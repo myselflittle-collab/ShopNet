@@ -439,7 +439,7 @@ const doors=[];
 const drawer=new THREE.Group();wardrobe.add(drawer);
 box(5.72,.86,.12,COB,0,.58,1.17,drawer);
 box(2.4,.4,.05,'#5257FF',0,.58,1.25,drawer);
-const dk=new THREE.Mesh(new THREE.CapsuleGeometry?new THREE.SphereGeometry(.12,20,16):new THREE.SphereGeometry(.12,20,16),mat('#FF5FA2'));dk.position.set(0,.58,1.36);dk.scale.set(2.2,1,1);drawer.add(dk);
+const dk=new THREE.Mesh(new THREE.SphereGeometry(.12,20,16),mat('#FF5FA2'));dk.position.set(0,.58,1.36);dk.scale.set(2.2,1,1);drawer.add(dk);
 box(5.5,.05,2.15,SHELF,0,.2,.05,drawer);
 box(.06,.55,2.15,SHELF,-2.72,.45,.05,drawer);box(.06,.55,2.15,SHELF,2.72,.45,.05,drawer);box(5.5,.55,.06,SHELF,0,.45,-1.0,drawer);
 
