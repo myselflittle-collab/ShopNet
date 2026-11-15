@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Almirah Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: full-bleed 3D wardrobe canvas, scroll drives the camera; one story card + 3D section chips float above; 2D shop panel slides in on click. */
+:root{
+  --sky:#E8E3FF; --ink:#1B1446; --cobalt:#3A3BFF; --sun:#FFC93C; --pink:#FF5FA2; --mint:#2ED3A0;
+  --paper:#FFFFFF; --paper-2:#F6F3FF; --muted:#5B5486; --line:#1B1446;
+  --display:"Bricolage Grotesque", "Arial Black", system-ui, sans-serif;
+  --body:"DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+html,body{background:var(--sky);color:var(--ink)}
+body{font-family:var(--body);font-size:15px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));overflow-x:hidden}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;outline:none}
+#scroller{height:700vh}
+button{font-family:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--pink);outline-offset:3px}
+
+/* Top bar */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding-top:calc(14px + env(safe-area-inset-top,0px));padding-bottom:14px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none}
+.logo{pointer-events:auto;display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.02em;background:none;border:0;padding:0}
+.logo svg{width:30px;height:30px}
+.top-actions{display:flex;gap:10px;pointer-events:auto}
+.btn{display:inline-flex;align-items:center;gap:8px;border:2.5px solid var(--ink);background:var(--paper);border-radius:999px;padding:9px 16px;font-weight:700;font-size:14px;box-shadow:3px 3px 0 var(--ink);transition:transform .15s,box-shadow .15s,background .15s}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.btn.primary{background:var(--sun)}
+.btn.pink{background:var(--pink);color:var(--paper)}
+.bag-count{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--ink);color:var(--paper);font-size:12px;font-variant-numeric:tabular-nums}
+
+/* Story card */
+.story{position:fixed;z-index:10;left:max(32px,env(safe-area-inset-left,0px));top:50%;transform:translateY(-44%);width:min(430px,38vw);
+  background:var(--paper);border:3px solid var(--ink);border-radius:26px;box-shadow:7px 7px 0 var(--ink);padding:24px 26px 22px;perspective:700px}
+.eyebrow{margin:0 0 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}
+.h3d{margin:0 0 12px;font-family:var(--display);font-weight:800;line-height:.95;letter-spacing:-.02em;font-size:clamp(36px,4.6vw,62px);color:var(--sun);
+  -webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-wrap:balance;
+  text-shadow:1px 1px 0 var(--ink),2px 2px 0 var(--ink),3px 3px 0 var(--ink),4px 4px 0 var(--ink),5px 5px 0 var(--pink),6px 6px 0 var(--pink),7px 7px 0 var(--pink)}
+.story.hero .h3d{font-size:clamp(48px,7vw,104px)}
+.story .body{margin:0;font-size:16px;line-height:1.5;max-width:42ch}
+.story .cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.story .cta:empty{display:none}
+.story.swap>*{animation:popIn .55s cubic-bezier(.2,1.4,.4,1) both}
+.story.swap>*:nth-child(2){animation-delay:.05s}
+.story.swap>*:nth-child(3){animation-delay:.1s}
+.story.swap>*:nth-child(4){animation-delay:.15s}
+@keyframes popIn{from{opacity:.0;transform:rotateX(-70deg) translateY(18px);transform-origin:50% 100%}to{opacity:1;transform:none}}
+.step-tag{position:absolute;top:-16px;right:20px;background:var(--mint);border:2.5px solid var(--ink);border-radius:999px;padding:4px 12px;font-weight:700;font-size:12px;font-variant-numeric:tabular-nums}
+
+/* Section dots */
+.dots{position:fixed;z-index:15;right:max(18px,env(safe-area-inset-right,0px));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px}
+.dot{display:flex;align-items:center;justify-content:flex-end;gap:10px;background:none;border:0;padding:2px;font-weight:700;font-size:12px}
+.dot span{opacity:0;transform:translateX(6px);transition:.2s;background:var(--paper);border:2px solid var(--ink);border-radius:999px;padding:3px 10px}
+.dot i{width:14px;height:14px;border-radius:50%;border:2.5px solid var(--ink);background:var(--paper);transition:.2s}
+.dot:hover span,.dot.on span{opacity:1;transform:none}
+.dot.on i{background:var(--pink);transform:scale(1.25)}
+
+.hint{position:fixed;z-index:9;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px;padding:7px 14px;box-shadow:3px 3px 0 var(--ink);transition:opacity .3s}
+.hint svg{width:14px;height:14px;animation:nudge 1.4s ease-in-out infinite}
+@keyframes nudge{50%{transform:translateY(4px)}}
+.progress{position:fixed;z-index:21;top:0;left:0;height:4px;width:100%;background:var(--pink);transform-origin:0 50%;transform:scaleX(0)}
+
+/* 3D section chips */
+#labels{position:fixed;inset:0;z-index:8;pointer-events:none}
+.chip{position:absolute;left:0;top:0;pointer-events:auto;display:flex;align-items:center;gap:6px;white-space:nowrap;background:var(--paper);border:2.5px solid var(--ink);border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px;box-shadow:3px 3px 0 var(--ink);transition:background .15s,opacity .25s;will-change:transform}
+.chip small{font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+.chip b{display:none}
+.chip.hot{background:var(--sun)}
+.chip.hot b{display:inline}
+.chip.off{opacity:0;pointer-events:none}
+
+/* 2D shop panel */
+.backdrop{position:fixed;inset:0;z-index:30;background:rgba(27,20,70,.45);opacity:0;transition:opacity .3s}
+.backdrop.open{opacity:1}
+.panel{position:fixed;z-index:31;top:0;right:0;bottom:0;width:min(960px,100%);background:var(--paper-2);border-left:3px solid var(--ink);display:flex;flex-direction:column;
+  transform:translateX(104%);transition:transform .38s cubic-bezier(.2,.9,.25,1)}
+.panel.open{transform:none}
+.p-head{padding-top:calc(18px + env(safe-area-inset-top,0px));padding-bottom:14px;padding-left:24px;padding-right:max(24px,env(safe-area-inset-right,0px));background:var(--paper);border-bottom:3px solid var(--ink);display:flex;flex-direction:column;gap:12px}
+.p-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.p-row h2{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(28px,4vw,40px);letter-spacing:-.02em;line-height:1}
+.p-row .eyebrow{margin-bottom:6px}
+.p-count{font-size:14px;color:var(--muted);margin-top:6px}
+.close{flex:none;width:44px;height:44px;border-radius:50%;border:2.5px solid var(--ink);background:var(--sun);display:grid;place-items:center;box-shadow:3px 3px 0 var(--ink)}
+.close svg{width:18px;height:18px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin;flex:1 1 320px;min-width:0}
+.fchip{flex:none;border:2px solid var(--ink);background:var(--paper);border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px}
+.fchip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.search,.sort{border:2px solid var(--ink);border-radius:12px;background:var(--paper);padding:8px 12px;font:inherit;font-size:14px;color:var(--ink)}
+.search{flex:1 1 200px;min-width:0}
+.p-body{flex:1;overflow-y:auto;padding:20px 24px calc(28px + env(safe-area-inset-bottom,0px));padding-right:max(24px,env(safe-area-inset-right,0px))}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px}
+.card{display:flex;flex-direction:column;background:var(--paper);border:2.5px solid var(--ink);border-radius:20px;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.card:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--ink)}
+.thumb{aspect-ratio:1/1;max-width:100%;display:grid;place-items:center;border-bottom:2.5px solid var(--ink);position:relative}
+.thumb svg{width:78%;height:78%}
+.badge{position:absolute;top:10px;left:10px;background:var(--paper);border:2px solid var(--ink);border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700}
+.meta{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+.brand{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.meta h3{margin:0;font-size:15px;line-height:1.25;font-weight:700}
+.price{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;font-variant-numeric:tabular-nums}
+.price b{font-size:17px}
+.price s{color:var(--muted);font-size:13px}
+.price .off{color:#0B8A63;font-weight:700;font-size:13px}
+.stock{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.stock i{width:8px;height:8px;border-radius:50%;background:var(--mint)}
+.stock.low i{background:#FF8A3D}
+.stock.out i{background:#C0392B}
+.sizes{display:flex;flex-wrap:wrap;gap:4px}
+.sizes span{font-size:11px;border:1.5px solid var(--ink);border-radius:6px;padding:1px 6px}
+.add{margin-top:auto;border:2.5px solid var(--ink);background:var(--sun);border-radius:12px;padding:8px;font-weight:700;font-size:14px}
+.add:disabled{background:var(--paper-2);color:var(--muted);cursor:not-allowed}
+.empty{padding:40px 10px;text-align:center;color:var(--muted)}
+.toast{position:fixed;z-index:40;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);border-radius:999px;padding:10px 18px;font-weight:700;font-size:14px}
+.nogl{position:fixed;inset:0;display:grid;place-items:center;z-index:1}
+
+@media (max-width:760px){
+  .story{left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));top:auto;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:none;width:auto;padding:18px 18px 16px;border-radius:22px;box-shadow:5px 5px 0 var(--ink)}
+  .h3d{font-size:34px;margin-bottom:8px}
+  .story.hero .h3d{font-size:50px}
+  .story .body{font-size:14.5px}
+  .dots{right:max(8px,env(safe-area-inset-right,0px));top:96px;transform:none;gap:8px}
+  .dot span{display:none}
+  .dot i{width:11px;height:11px}
+  .hint{display:none}
+  .chip{font-size:12px;padding:5px 10px}
+  .chip small{display:none}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .p-head,.p-body{padding-left:16px}
+  .btn{padding:8px 12px}
+  .btn .lbl{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head>
+<body>
+
+<canvas id="gl" aria-label="3D wardrobe store. Scroll to move through the wardrobe."></canvas>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="logo" id="home" aria-label="Almirah, back to start">
+    <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="3" width="30" height="34" rx="6" fill="#3A3BFF" stroke="#1B1446" stroke-width="2.5"/><line x1="20" y1="3" x2="20" y2="37" stroke="#1B1446" stroke-width="2.5"/><circle cx="16" cy="20" r="2.4" fill="#FF5FA2"/><circle cx="24" cy="20" r="2.4" fill="#FF5FA2"/></svg>
+    almirah
+  </button>
+  <div class="top-actions">
+    <button class="btn primary" id="openAll"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Full catalogue</span></button>
+    <button class="btn" id="bagBtn" aria-label="Bag"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 8h14l-1 13H6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span class="bag-count" id="bagCount">0</span></button>
+  </div>
+</header>
+
+<div id="labels"></div>
+
+<section class="story hero" id="story" aria-live="polite">
+  <span class="step-tag" id="stepTag">01 / 07</span>
+  <p class="eyebrow" id="sEyebrow">The 3D wardrobe store</p>
+  <h1 class="h3d" id="sTitle">ALMIRAH</h1>
+  <p class="body" id="sBody">Your whole closet in one cupboard. Scroll to open the doors and shop it shelf by shelf.</p>
+  <div class="cta" id="sCta"></div>
+</section>
+
+<nav class="dots" id="dots" aria-label="Wardrobe sections"></nav>
+<div class="hint" id="hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M12 4v16M5 13l7 7 7-7"/></svg>Scroll to open the doors</div>
+
+<div id="scroller"></div>
+
+<div class="backdrop" id="backdrop" hidden></div>
+<aside class="panel" id="panel" hidden role="dialog" aria-modal="true" aria-labelledby="pTitle">
+  <div class="p-head">
+    <div class="p-row">
+      <div>
+        <p class="eyebrow" id="pEyebrow">Department</p>
+        <h2 id="pTitle">Blazers</h2>
+        <div class="p-count" id="pCount"></div>
+      </div>
+      <button class="close" id="pClose" aria-label="Close and go back to the wardrobe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="controls">
+      <div class="chips" id="pChips" role="group" aria-label="Filter"></div>
+      <input class="search" id="pSearch" type="search" placeholder="Search name or brand" aria-label="Search products">
+      <select class="sort" id="pSort" aria-label="Sort">
+        <option value="feat">Featured</option>
+        <option value="lo">Price: low to high</option>
+        <option value="hi">Price: high to low</option>
+        <option value="stock">Most in stock</option>
+      </select>
+    </div>
+  </div>
+  <div class="p-body"><div class="grid" id="pGrid"></div></div>
+</aside>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- colour helpers ---------- */
+function hexRgb(h){h=h.replace('#','');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]}
+function shade(h,a){const c=hexRgb(h),t=a<0?0:255,p=Math.abs(a);return'#'+c.map(v=>Math.round(v+(t-v)*p).toString(16).padStart(2,'0')).join('')}
+
+/* ---------- shared silhouettes (used for 2D images AND 3D icons) ---------- */
+const P={
+  blazer:"M62 32 L100 58 L138 32 L168 52 L176 168 L24 168 L32 52 Z",
+  shirt:"M70 30 L100 46 L130 30 L168 48 L182 150 L160 154 L150 92 L150 172 L50 172 L50 92 L40 154 L18 150 L32 48 Z",
+  tshirt:"M72 32 Q100 50 128 32 L174 56 L160 90 L146 84 L146 170 L54 170 L54 84 L40 90 L26 56 Z",
+  kurta:"M74 26 Q100 40 126 26 L162 46 L172 112 L152 114 L146 70 L152 182 L48 182 L54 70 L48 114 L28 112 L38 46 Z",
+  jeans:"M58 24 L142 24 L150 180 L112 180 L100 76 L88 180 L50 180 Z",
+  shoe:"M24 140 L26 112 Q28 96 46 96 L70 96 Q84 72 100 74 Q128 100 160 108 Q178 112 178 128 L178 140 Z",
+  boot:"M52 44 L104 44 L106 108 Q150 110 170 124 L172 146 L50 146 Z",
+  brief:"M38 62 L162 62 L154 96 Q122 108 112 146 L88 146 Q78 108 46 96 Z",
+  boxer:"M44 54 L156 54 L164 150 L110 150 L100 104 L90 150 L36 150 Z",
+  bra:"M36 118 Q44 66 98 108 L98 124 L36 124 Z M102 108 Q156 66 164 118 L164 124 L102 124 Z",
+  swim:"M40 64 L160 64 L166 140 L110 140 L100 108 L90 140 L34 140 Z",
+  socks:"M78 26 L122 26 L122 116 Q124 136 148 142 Q170 148 166 168 L96 168 Q76 168 78 140 Z",
+  thermal:"M70 32 Q100 44 130 32 L168 50 L182 152 L162 156 L150 94 L150 172 L50 172 L50 94 L38 156 L18 152 L32 50 Z"
+};
+
+/* ---------- catalogue data ---------- */
+const CATS=[
+ {id:'blazers',name:'Blazers',dept:'Clothing',kind:'blazer',step:2,color:'#FF5FA2',brands:['Savile & Co','Northbay','Kora Tailors'],nouns:['Slim Fit Blazer','Double-Breasted Blazer','Linen Blazer','Velvet Blazer','Checked Blazer','Nehru Blazer'],price:[2499,8999],sizes:['36','38','40','42','44']},
+ {id:'shirts',name:'Formal Shirts',dept:'Clothing',kind:'shirt',step:2,color:'#F2F5FF',brands:['Crisp Collar','Northbay','Linea'],nouns:['Oxford Shirt','Poplin Shirt','Striped Shirt','Twill Shirt','Linen Shirt','Pinpoint Shirt'],price:[999,3499],sizes:['S','M','L','XL','XXL']},
+ {id:'tees',name:'T-Shirts',dept:'Clothing',kind:'tshirt',step:2,color:'#2ED3A0',brands:['Loop','Basic Theory','Kora'],nouns:['Crew Neck Tee','Oversized Tee','Pocket Tee','Graphic Tee','Henley Tee','Polo Tee'],price:[399,1499],sizes:['S','M','L','XL','XXL']},
+ {id:'kurtas',name:'Kurtas',dept:'Clothing',kind:'kurta',step:2,color:'#FF8A3D',brands:['Rang Haath','Indigo Loom','Mulmul Co'],nouns:['Cotton Kurta','Chikankari Kurta','Silk Kurta','Pathani Kurta','Short Kurta','Sambalpuri Kurta'],price:[799,4999],sizes:['S','M','L','XL','XXL']},
+ {id:'jeans',name:'Jeans',dept:'Clothing',kind:'jeans',step:2,color:'#3D6BFF',brands:['Denim Lab','Rivet & Co','Loop'],nouns:['Slim Jeans','Straight Jeans','Relaxed Jeans','Tapered Jeans','Bootcut Jeans','Selvedge Jeans'],price:[1199,4499],sizes:['28','30','32','34','36']},
+ {id:'w-classic',name:'Classic Watches',short:'Classic',dept:'Watches',kind:'watch',variant:'classic',step:3,color:'#E6B450',brands:['Tempo','Maison Vire','Heritage'],nouns:['Leather Dress Watch','Roman Dial Watch','Slim Classic','Moonphase Watch','Chronograph'],price:[2999,24999],sizes:['One size']},
+ {id:'w-sport',name:'Sport Watches',short:'Sport',dept:'Watches',kind:'watch',variant:'sport',step:3,color:'#FF6B2C',brands:['Pulse','Chronex','Tidal'],nouns:['Dive Watch','Field Watch','Digital Sport','Chrono Racer','Trail Watch'],price:[1499,12999],sizes:['One size']},
+ {id:'w-smart',name:'Smart Watches',short:'Smart',dept:'Watches',kind:'watch',variant:'smart',step:3,color:'#2ED3A0',brands:['Pulse','Orbit','Nova'],nouns:['Fitness Band','Smart Watch Pro','AMOLED Smart Watch','Kids Smart Watch','GPS Smart Watch'],price:[1999,29999],sizes:['One size']},
+ {id:'w-luxury',name:'Luxury Watches',short:'Luxury',dept:'Watches',kind:'watch',variant:'luxury',step:3,color:'#C9D1E0',brands:['Maison Vire','Aurum','Chronex Prestige'],nouns:['Automatic Watch','Skeleton Watch','Steel Bracelet Watch','Tourbillon Watch','GMT Watch'],price:[19999,149999],sizes:['One size']},
+ {id:'sneakers',name:'Sneakers',dept:'Shoes',kind:'shoe',variant:'sneaker',step:4,color:'#2ED3A0',brands:['Stride','Kinetic','Courtside'],nouns:['Canvas Low','Court Sneaker','High-Top','Slip-On','Chunky Sneaker'],price:[1299,6999],sizes:['UK 6','UK 7','UK 8','UK 9','UK 10','UK 11']},
+ {id:'running',name:'Running Shoes',short:'Running',dept:'Shoes',kind:'shoe',variant:'running',step:4,color:'#FF6B2C',brands:['Kinetic','Stride','Tempo Run'],nouns:['Road Runner','Trail Runner','Racing Flat','Cushion Max','Daily Trainer'],price:[1999,11999],sizes:['UK 6','UK 7','UK 8','UK 9','UK 10','UK 11']},
+ {id:'formal',name:'Formal Shoes',short:'Formal',dept:'Shoes',kind:'shoe',variant:'formal',step:4,color:'#6B3A1E',brands:['Oxbridge','Cordwain','Linea'],nouns:['Oxford','Derby','Loafer','Monk Strap','Brogue'],price:[1999,9999],sizes:['UK 6','UK 7','UK 8','UK 9','UK 10','UK 11']},
+ {id:'boots',name:'Boots',dept:'Shoes',kind:'boot',step:4,color:'#B07A45',brands:['Trailhead','Cordwain','Ridge'],nouns:['Chelsea Boot','Chukka Boot','Hiking Boot','Desert Boot','Work Boot'],price:[2499,12999],sizes:['UK 6','UK 7','UK 8','UK 9','UK 10','UK 11']},
+ {id:'briefs',name:'Briefs',dept:'Innerwear',kind:'brief',step:5,color:'#FF5FA2',brands:['Comfy Co','Bare Basics','Loop'],nouns:['Cotton Brief, pack of 3','Trunk Brief','Micro Modal Brief','Hipster Brief'],price:[399,1299],sizes:['S','M','L','XL','XXL']},
+ {id:'boxers',name:'Boxers',dept:'Innerwear',kind:'boxer',step:5,color:'#3D6BFF',brands:['Comfy Co','Loop','Bare Basics'],nouns:['Woven Boxer','Knit Boxer','Printed Boxer','Boxer Brief'],price:[349,999],sizes:['S','M','L','XL','XXL']},
+ {id:'bras',name:'Bras',dept:'Innerwear',kind:'bra',step:5,color:'#FF9EC4',brands:['Bare Basics','Softline','Comfy Co'],nouns:['T-Shirt Bra','Sports Bra','Wire-Free Bra','Bralette','Padded Bra'],price:[499,1999],sizes:['32B','34B','34C','36C','38C']},
+ {id:'swim',name:'Swimwear',dept:'Innerwear',kind:'swim',step:5,color:'#2ED3A0',brands:['Tidal','Softline','Loop'],nouns:['Swim Shorts','Swim Trunks','Board Shorts','Bikini Set','One-Piece Swimsuit'],price:[699,2999],sizes:['S','M','L','XL']},
+ {id:'socks',name:'Socks',dept:'Innerwear',kind:'socks',step:5,color:'#FFC93C',brands:['Loop','Comfy Co','Stride'],nouns:['Ankle Socks, pack of 5','Crew Socks','No-Show Socks','Sports Socks','Wool Socks'],price:[249,899],sizes:['Free size']},
+ {id:'thermals',name:'Thermals',dept:'Innerwear',kind:'thermal',step:5,color:'#7A5CFF',brands:['Bare Basics','Northbay','Comfy Co'],nouns:['Thermal Top','Thermal Set','Thermal Leggings','Warm Vest'],price:[599,2499],sizes:['S','M','L','XL','XXL']}
+];
+const CAT=Object.fromEntries(CATS.map(c=>[c.id,c]));
+const PALETTE=[['Ink','#1B1446'],['Rose','#FF5FA2'],['Mint','#2ED3A0'],['Cobalt','#3D6BFF'],['Sun','#FFC93C'],['Tangerine','#FF8A3D'],['Chalk','#F2F5FF'],['Violet','#7A5CFF'],['Brick','#C0392B'],['Tan','#B07A45'],['Olive','#7C8A3A']];
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const R=rng(20261115), pick=a=>a[Math.floor(R()*a.length)];
+const PRODUCTS=[];
+CATS.forEach(c=>{
+  const n=9+Math.floor(R()*5);
+  for(let i=0;i<n;i++){
+    const col=i===0?['',c.color]:pick(PALETTE);
+    const price=Math.max(c.price[0],Math.round((c.price[0]+R()*(c.price[1]-c.price[0]))/100)*100-1);
+    const mrp=Math.round(price*(1.15+R()*0.45)/100)*100-1;
+    const stock=R()<0.12?0:1+Math.floor(R()*38);
+    PRODUCTS.push({id:c.id+'-'+i,cat:c.id,kind:c.kind,variant:c.variant,brand:pick(c.brands),name:(col[0]?col[0]+' ':'')+pick(c.nouns),color:col[1],price,mrp,stock,sizes:c.sizes});
+  }
+});
+const COUNT={};PRODUCTS.forEach(p=>COUNT[p.cat]=(COUNT[p.cat]||0)+1);
+const inr=n=>'₹'+n.toLocaleString('en-IN');
+
+/* ---------- 2D product images (SVG) ---------- */
+function watchSVG(color,v){
+  const strap=v==='classic'?'#7A4A2A':v==='luxury'?'#AEB8CA':shade(color,-0.15);
+  const cs=v==='classic'?'#E6B450':v==='luxury'?'#D8DEE9':v==='smart'?'#1B1446':color;
+  let s=`<rect x="80" y="16" width="40" height="62" rx="8" fill="${strap}" stroke="#1B1446" stroke-width="3"/><rect x="80" y="122" width="40" height="62" rx="8" fill="${strap}" stroke="#1B1446" stroke-width="3"/>`;
+  if(v==='smart'){
+    s+=`<rect x="60" y="56" width="80" height="90" rx="22" fill="${cs}" stroke="#1B1446" stroke-width="3"/><rect x="69" y="65" width="62" height="72" rx="15" fill="#0D0A26"/><circle cx="100" cy="101" r="22" fill="none" stroke="${color}" stroke-width="6"/><circle cx="100" cy="101" r="12" fill="none" stroke="#FF5FA2" stroke-width="5"/><rect x="140" y="88" width="7" height="18" rx="3" fill="${cs}"/>`;
+  }else{
+    let ticks='';for(let i=0;i<12;i++){const a=i*Math.PI/6,r1=30,r2=i%3?26:22;ticks+=`<line x1="${100+Math.sin(a)*r1}" y1="${100-Math.cos(a)*r1}" x2="${100+Math.sin(a)*r2}" y2="${100-Math.cos(a)*r2}" stroke="${v==='sport'?'#FFC93C':'#1B1446'}" stroke-width="2.5" stroke-linecap="round"/>`}
+    s+=`<rect x="142" y="92" width="10" height="16" rx="3" fill="${cs}" stroke="#1B1446" stroke-width="2.5"/><circle cx="100" cy="100" r="45" fill="${cs}" stroke="#1B1446" stroke-width="3"/><circle cx="100" cy="100" r="35" fill="${v==='sport'?'#1B1446':'#FFFDF5'}"/>${ticks}<line x1="100" y1="100" x2="100" y2="76" stroke="${v==='sport'?'#FFFFFF':'#1B1446'}" stroke-width="4" stroke-linecap="round"/><line x1="100" y1="100" x2="118" y2="110" stroke="${v==='sport'?'#FFFFFF':'#1B1446'}" stroke-width="4" stroke-linecap="round"/><circle cx="100" cy="100" r="4" fill="#FF5FA2"/>`;
+  }
+  return s;
+}
+function productSVG(p){
+  const c=p.color, d=shade(c,-0.35), l=shade(c,0.35);
+  let s='';
+  if(p.kind==='watch') s=watchSVG(c,p.variant);
+  else{
+    s=`<path d="${P[p.kind]}" fill="${c}" stroke="#1B1446" stroke-width="3.5" stroke-linejoin="round"/>`;
+    switch(p.kind){
+      case'blazer':s+=`<path d="M100 58 L80 38 L74 98 L100 124 L126 98 L120 38 Z" fill="${d}" opacity=".45"/><circle cx="100" cy="138" r="4.5" fill="#1B1446"/><circle cx="100" cy="154" r="4.5" fill="#1B1446"/><path d="M128 112 L150 112" stroke="#1B1446" stroke-width="3" stroke-linecap="round"/>`;break;
+      case'shirt':s+=`<path d="M82 34 L100 52 L118 34 L112 28 L88 28 Z" fill="${l}" stroke="#1B1446" stroke-width="2.5"/><line x1="100" y1="52" x2="100" y2="170" stroke="#1B1446" stroke-width="2.5"/><circle cx="106" cy="76" r="3" fill="#1B1446"/><circle cx="106" cy="104" r="3" fill="#1B1446"/><circle cx="106" cy="132" r="3" fill="#1B1446"/>`;break;
+      case'tshirt':s+=`<path d="M78 34 Q100 56 122 34" fill="none" stroke="#1B1446" stroke-width="4"/><rect x="112" y="88" width="20" height="18" rx="3" fill="${d}" opacity=".4"/>`;break;
+      case'kurta':s+=`<rect x="96" y="36" width="8" height="52" rx="2" fill="${d}" opacity=".5"/><path d="M50 166 L150 166" stroke="${l}" stroke-width="8"/><path d="M50 166 L150 166" stroke="#1B1446" stroke-width="2" stroke-dasharray="4 6"/>`;break;
+      case'jeans':s+=`<line x1="58" y1="38" x2="142" y2="38" stroke="#1B1446" stroke-width="3"/><path d="M100 38 L100 76" stroke="#1B1446" stroke-width="2.5"/><path d="M66 42 Q72 62 90 60" fill="none" stroke="${l}" stroke-width="3"/><path d="M134 42 Q128 62 110 60" fill="none" stroke="${l}" stroke-width="3"/>`;break;
+      case'shoe':s+=`<rect x="20" y="134" width="162" height="14" rx="7" fill="${p.variant==='formal'?'#1B1446':'#FFFFFF'}" stroke="#1B1446" stroke-width="3"/>`+(p.variant==='formal'?`<ellipse cx="128" cy="110" rx="16" ry="5" fill="#FFFFFF" opacity=".35"/>`:`<path d="M78 90 L92 100 M86 84 L100 94 M94 80 L108 90" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>`)+(p.variant==='running'?`<path d="M62 126 Q110 108 160 120" fill="none" stroke="${l}" stroke-width="7" stroke-linecap="round"/>`:'');break;
+      case'boot':s+=`<rect x="46" y="140" width="130" height="14" rx="6" fill="#1B1446"/><path d="M58 64 L100 64" stroke="${l}" stroke-width="5" stroke-linecap="round"/><path d="M80 44 L80 104" stroke="${d}" stroke-width="3"/>`;break;
+      case'brief':case'boxer':case'swim':s+=`<rect x="${p.kind==='brief'?38:p.kind==='boxer'?44:40}" y="${p.kind==='brief'?62:p.kind==='boxer'?54:64}" width="${p.kind==='brief'?124:p.kind==='boxer'?112:120}" height="12" fill="${p.kind==='swim'?l:'#1B1446'}" stroke="#1B1446" stroke-width="3"/>`+(p.kind==='swim'?`<circle cx="66" cy="104" r="7" fill="${l}"/><circle cx="134" cy="100" r="7" fill="${l}"/><circle cx="104" cy="88" r="5" fill="${l}"/>`:'');break;
+      case'bra':s+=`<path d="M48 104 L60 50 M152 104 L140 50" stroke="#1B1446" stroke-width="4" stroke-linecap="round"/><rect x="34" y="122" width="132" height="10" rx="4" fill="${d}" stroke="#1B1446" stroke-width="3"/>`;break;
+      case'socks':s+=`<rect x="78" y="26" width="44" height="16" fill="${l}" stroke="#1B1446" stroke-width="3"/><path d="M148 142 Q170 148 166 168 L140 168 Z" fill="${d}" opacity=".5"/>`;break;
+      case'thermal':s+=`<path d="M80 34 Q100 50 120 34" fill="none" stroke="#1B1446" stroke-width="4"/><path d="M50 160 L150 160 M24 140 L40 142 M176 140 L160 142" stroke="${d}" stroke-width="5"/>`;break;
+    }
+  }
+  return `<svg viewBox="0 0 200 200" aria-hidden="true">${s}</svg>`;
+}
+
+/* ---------- story steps ---------- */
+const STEPS=[
+ {nav:'Home',eb:'The 3D wardrobe store',t:'ALMIRAH',b:'Your whole closet in one cupboard. Scroll to open the doors and shop it shelf by shelf.',hero:1},
+ {nav:'Open',eb:'Step inside',t:'Doors open',b:'Every shelf is a department. Point at anything to pick it up, click it to see every item in stock.'},
+ {nav:'Rail',eb:'The hanging rail',t:'Hang out here',b:'Blazers, formal shirts, tees, kurtas and denim. Pick a hanger to browse every style, size and price.'},
+ {nav:'Watches',eb:'Top shelf',t:'Time to choose',b:'Classic, sport, smart and luxury. Each case opens its own brands and models.'},
+ {nav:'Shoes',eb:'Shoe rack',t:'Step it up',b:'Sneakers, running, formal and boots. Click a pair for every brand and UK size.'},
+ {nav:'Drawer',eb:'The bottom drawer',t:'Everyday basics',b:'Briefs, boxers, bras, swimwear, socks and thermals, folded and ready to pick.'},
+ {nav:'All',eb:'The whole store',t:'Browse it all',b:'Want the complete list? The catalogue shows every item with live stock and price.',cta:1}
+];
+const N=STEPS.length;
+
+/* ---------- UI: dots, story ---------- */
+const dots=$('#dots');
+STEPS.forEach((s,i)=>{const b=document.createElement('button');b.className='dot';b.innerHTML=`<span>${s.nav}</span><i></i>`;b.setAttribute('aria-label','Go to '+s.nav);b.onclick=()=>goStep(i);dots.appendChild(b)});
+function maxScroll(){return Math.max(1,document.documentElement.scrollHeight-innerHeight)}
+function goStep(i){window.scrollTo({top:i/(N-1)*maxScroll(),behavior:reduce?'auto':'smooth'})}
+$('#home').onclick=()=>goStep(0);
+let shownStep=-1;
+function showStep(i){
+  if(i===shownStep)return;shownStep=i;const s=STEPS[i],el=$('#story');
+  $('#sEyebrow').textContent=s.eb;$('#sTitle').textContent=s.t;$('#sBody').textContent=s.b;
+  $('#stepTag').textContent=String(i+1).padStart(2,'0')+' / '+String(N).padStart(2,'0');
+  $('#sCta').innerHTML=s.cta?'<button class="btn primary" id="ctaAll">Open full catalogue</button><button class="btn" id="ctaTop">Back to top</button>':'';
+  if(s.cta){$('#ctaAll').onclick=()=>openPanel({type:'all'});$('#ctaTop').onclick=()=>goStep(0)}
+  el.classList.toggle('hero',!!s.hero);
+  el.classList.remove('swap');void el.offsetWidth;el.classList.add('swap');
+  [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===i));
+  $('#hint').style.opacity=i===0?1:0;
+}
+showStep(0);
+
+/* ---------- 2D panel ---------- */
+const panel=$('#panel'),backdrop=$('#backdrop');
+let view=null,filter='All',query='',lastFocus=null;
+function openPanel(v){
+  view=v;filter='All';query='';$('#pSearch').value='';$('#pSort').value='feat';
+  lastFocus=document.activeElement;
+  panel.hidden=false;backdrop.hidden=false;document.documentElement.style.overflow='hidden';
+  requestAnimationFrame(()=>{panel.classList.add('open');backdrop.classList.add('open')});
+  renderPanel();panel.querySelector('.p-body').scrollTop=0;
+  setTimeout(()=>$('#pClose').focus(),60);
+}
+function closePanel(){
+  if(panel.hidden)return;
+  panel.classList.remove('open');backdrop.classList.remove('open');
+  setTimeout(()=>{panel.hidden=true;backdrop.hidden=true;document.documentElement.style.overflow=''},reduce?0:380);
+  if(lastFocus&&lastFocus.focus)lastFocus.focus();
+}
+function renderPanel(){
+  let list,chips;
+  if(view.type==='cat'){
+    const c=CAT[view.cat];list=PRODUCTS.filter(p=>p.cat===c.id);
+    $('#pEyebrow').textContent=c.dept;$('#pTitle').textContent=c.name;
+    chips=['All',...c.brands];if(filter!=='All')list=list.filter(p=>p.brand===filter);
+  }else{
+    list=PRODUCTS.slice();$('#pEyebrow').textContent='Every shelf';$('#pTitle').textContent='Full catalogue';
+    chips=['All','Clothing','Watches','Shoes','Innerwear'];if(filter!=='All')list=list.filter(p=>CAT[p.cat].dept===filter);
+  }
+  if(query){const q=query.toLowerCase();list=list.filter(p=>(p.name+' '+p.brand+' '+CAT[p.cat].name).toLowerCase().includes(q))}
+  const so=$('#pSort').value;
+  if(so==='lo')list.sort((a,b)=>a.price-b.price);else if(so==='hi')list.sort((a,b)=>b.price-a.price);else if(so==='stock')list.sort((a,b)=>b.stock-a.stock);
+  const units=list.reduce((s,p)=>s+p.stock,0);
+  $('#pCount').textContent=`${list.length} item${list.length===1?'':'s'} · ${units} units in stock`;
+  $('#pChips').innerHTML=chips.map(c=>`<button class="fchip" aria-pressed="${c===filter}" data-f="${c}">${c}</button>`).join('');
+  $('#pGrid').innerHTML=list.length?list.map(p=>{
+    const off=Math.round((1-p.price/p.mrp)*100);
+    const st=p.stock===0?'<div class="stock out"><i></i>Out of stock</div>':p.stock<6?`<div class="stock low"><i></i>Only ${p.stock} left</div>`:`<div class="stock"><i></i>In stock · ${p.stock}</div>`;
+    return `<article class="card"><div class="thumb" style="background:${shade(p.color,p.color==='#F2F5FF'?-0.06:0.78)}">${productSVG(p)}${view.type==='all'?`<span class="badge">${CAT[p.cat].name}</span>`:''}</div>
+    <div class="meta"><div class="brand">${p.brand}</div><h3>${p.name}</h3>
+    <div class="price"><b>${inr(p.price)}</b><s>${inr(p.mrp)}</s><span class="off">${off}% off</span></div>${st}
+    <div class="sizes">${p.sizes.map(z=>`<span>${z}</span>`).join('')}</div>
+    <button class="add" data-id="${p.id}" ${p.stock?'':'disabled'}>${p.stock?'Add to bag':'Sold out'}</button></div></article>`}).join(''):'<p class="empty">Nothing matches that search. Try another word or clear the filter.</p>';
+}
+$('#pChips').addEventListener('click',e=>{const b=e.target.closest('.fchip');if(!b)return;filter=b.dataset.f;renderPanel()});
+$('#pSearch').addEventListener('input',e=>{query=e.target.value.trim();renderPanel()});
+$('#pSort').addEventListener('change',renderPanel);
+$('#pClose').onclick=closePanel;backdrop.onclick=closePanel;
+addEventListener('keydown',e=>{if(e.key==='Escape')closePanel()});
+let bag=0,toastT;
+$('#pGrid').addEventListener('click',e=>{const b=e.target.closest('.add');if(!b||b.disabled)return;const p=PRODUCTS.find(x=>x.id===b.dataset.id);bag++;$('#bagCount').textContent=bag;toast(`Added ${p.name} to your bag`);b.textContent='Added ✓';setTimeout(()=>b.textContent='Add to bag',1400)});
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2000)}
+$('#openAll').onclick=()=>openPanel({type:'all'});
+$('#bagBtn').onclick=()=>toast(bag?`${bag} item${bag>1?'s':''} in your bag`:'Your bag is empty');
+
+/* ---------- 3D ---------- */
+let renderer;
+try{ if(!window.THREE)throw 0; renderer=new THREE.WebGLRenderer({canvas:$('#gl'),antialias:true}); }
+catch(e){ $('#sBody').textContent='This browser can’t show the 3D wardrobe. You can still shop everything in the full catalogue.'; $('#sCta').innerHTML='<button class="btn primary" id="fb">Open full catalogue</button>'; $('#fb').onclick=()=>openPanel({type:'all'}); return; }
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();scene.background=new THREE.Color('#E8E3FF');scene.fog=new THREE.Fog('#E8E3FF',28,70);
+const FOV=40,camera=new THREE.PerspectiveCamera(FOV,1,0.1,200);
+scene.add(new THREE.HemisphereLight(0xffffff,0xb7a8ff,0.85));
+const sun=new THREE.DirectionalLight(0xffffff,0.85);sun.position.set(6,11,9);scene.add(sun);
+const fill=new THREE.DirectionalLight(0xffd6ec,0.35);fill.position.set(-8,4,6);scene.add(fill);
+const warm=new THREE.PointLight(0xffe4b0,0.55,14);warm.position.set(0,4.5,2.5);scene.add(warm);
+
+const mat=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.55,metalness:0},o));
+function box(w,h,d,c,x,y,z,parent){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),typeof c==='string'?mat(c):c);m.position.set(x,y,z);(parent||scene).add(m);return m}
+function rbox(w,h,d,r,c){const s=new THREE.Shape(),x=-w/2,y=-h/2;s.moveTo(x+r,y);s.lineTo(x+w-r,y);s.quadraticCurveTo(x+w,y,x+w,y+r);s.lineTo(x+w,y+h-r);s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);s.lineTo(x+r,y+h);s.quadraticCurveTo(x,y+h,x,y+h-r);s.lineTo(x,y+r);s.quadraticCurveTo(x,y,x+r,y);const g=new THREE.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:.02,bevelSize:.02,bevelSegments:2,curveSegments:8});g.translate(0,0,-d/2);return new THREE.Mesh(g,mat(c))}
+function svgShapes(d,s){const shapes=[];let sh=null,m;const re=/([MLQZ])([^MLQZ]*)/g,X=v=>(v-100)/100*s,Y=v=>(100-v)/100*s;
+  while((m=re.exec(d))){const c=m[1],n=m[2].trim().split(/[\s,]+/).filter(Boolean).map(Number);
+    if(c==='M'){sh=new THREE.Shape();shapes.push(sh);sh.moveTo(X(n[0]),Y(n[1]))}
+    else if(c==='L'){for(let i=0;i<n.length;i+=2)sh.lineTo(X(n[i]),Y(n[i+1]))}
+    else if(c==='Q'){sh.quadraticCurveTo(X(n[0]),Y(n[1]),X(n[2]),Y(n[3]))}}
+  return shapes}
+function iconMesh(kind,s,depth,color){const g=new THREE.ExtrudeGeometry(svgShapes(P[kind],s),{depth,bevelEnabled:true,bevelThickness:.03,bevelSize:.025,bevelSegments:3,curveSegments:12});g.translate(0,0,-depth/2);return new THREE.Mesh(g,mat(color,{roughness:.45}))}
+
+/* floor + rug + soft shadow */
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),mat('#D9D0FF'));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const rug=new THREE.Mesh(new THREE.CircleGeometry(5.2,48),mat('#FFB3D1'));rug.rotation.x=-Math.PI/2;rug.position.y=.01;scene.add(rug);
+(function(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),gr=g.createRadialGradient(64,64,4,64,64,64);gr.addColorStop(0,'rgba(27,20,70,.45)');gr.addColorStop(1,'rgba(27,20,70,0)');g.fillStyle=gr;g.fillRect(0,0,128,128);
+  const sh=new THREE.Mesh(new THREE.PlaneGeometry(8.5,4.2),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false}));sh.rotation.x=-Math.PI/2;sh.position.set(0,.02,.2);scene.add(sh)})();
+
+/* wardrobe body */
+const COB='#3A3BFF',INSIDE='#FFC93C',SHELF='#FFF1C9';
+const wardrobe=new THREE.Group();scene.add(wardrobe);
+box(6,7,.1,INSIDE,0,3.5,-1.15,wardrobe);
+box(.15,7,2.4,COB,-2.925,3.5,0,wardrobe);box(.15,7,2.4,COB,2.925,3.5,0,wardrobe);
+box(6.2,.2,2.6,COB,0,6.95,0,wardrobe);box(6,.12,2.4,COB,0,.06,0,wardrobe);
+box(5.7,.1,2.3,SHELF,0,1.1,0,wardrobe);box(5.7,.1,2.3,SHELF,0,5.75,0,wardrobe);
+const rail=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,5.7,16),mat('#C9D1E0',{metalness:.6,roughness:.3}));rail.rotation.z=Math.PI/2;rail.position.set(0,5.45,0);wardrobe.add(rail);
+[[-2.6,.25],[2.6,.25]].forEach(([x])=>{const f=new THREE.Mesh(new THREE.SphereGeometry(.22,20,16),mat('#FF5FA2'));f.position.set(x,7.2,0);wardrobe.add(f)});
+// doors
+const doors=[];
+[-1,1].forEach(side=>{const pivot=new THREE.Group();pivot.position.set(side*3,4.05,1.26);wardrobe.add(pivot);
+  const door=new THREE.Group();door.position.x=-side*1.5;pivot.add(door);
+  box(3,5.8,.12,COB,0,0,0,door);
+  box(2.3,2.2,.06,'#5257FF',0,1.3,.08,door);box(2.3,2.2,.06,'#5257FF',0,-1.3,.08,door);
+  const mirror=box(2.5,5.2,.03,mat('#D6ECFF',{metalness:.3,roughness:.15}),0,0,-.08,door);
+  const knob=new THREE.Mesh(new THREE.SphereGeometry(.13,20,16),mat('#FF5FA2'));knob.position.set(side*1.15,0,.2);door.add(knob);
+  doors.push({pivot,side})});
+// drawer
+const drawer=new THREE.Group();wardrobe.add(drawer);
+box(5.72,.86,.12,COB,0,.58,1.17,drawer);
+box(2.4,.4,.05,'#5257FF',0,.58,1.25,drawer);
+const dk=new THREE.Mesh(new THREE.CapsuleGeometry?new THREE.SphereGeometry(.12,20,16):new THREE.SphereGeometry(.12,20,16),mat('#FF5FA2'));dk.position.set(0,.58,1.36);dk.scale.set(2.2,1,1);drawer.add(dk);
+box(5.5,.05,2.15,SHELF,0,.2,.05,drawer);
+box(.06,.55,2.15,SHELF,-2.72,.45,.05,drawer);box(.06,.55,2.15,SHELF,2.72,.45,.05,drawer);box(5.5,.55,.06,SHELF,0,.45,-1.0,drawer);
+
+/* interactive items */
+const ITEMS=[],pickables=[];
+function addItem(group,cat,popDir,labelOff,parent){
+  (parent||wardrobe).add(group);
+  const it={group,cat,step:cat.step,base:group.position.clone(),baseRot:group.rotation.clone(),pop:popDir,labelOff,hover:0,i:ITEMS.length};
+  group.traverse(o=>{if(o.isMesh){o.userData.item=it;pickables.push(o)}});
+  const chip=document.createElement('button');chip.className='chip off';chip.innerHTML=`${cat.short||cat.name} <small>${COUNT[cat.id]} styles</small><b>· Shop →</b>`;
+  chip.setAttribute('aria-label',`Shop ${cat.name}, ${COUNT[cat.id]} styles`);
+  chip.onclick=()=>openPanel({type:'cat',cat:cat.id});
+  chip.onpointerenter=()=>chipHover=it;chip.onpointerleave=()=>{if(chipHover===it)chipHover=null};
+  $('#labels').appendChild(chip);it.chip=chip;ITEMS.push(it);return it;
+}
+// hanging garments
+['blazers','shirts','tees','kurtas','jeans'].forEach((id,i)=>{
+  const c=CAT[id],g=new THREE.Group();g.position.set(-2.24+i*1.12,5.45,0);
+  const hook=new THREE.Mesh(new THREE.TorusGeometry(.09,.018,8,20,Math.PI*1.4),mat('#C9D1E0',{metalness:.6,roughness:.3}));hook.rotation.z=-.3;g.add(hook);
+  const stem=box(.03,.14,.03,mat('#C9D1E0',{metalness:.6,roughness:.3}),0,-.15,0,g);
+  const bar=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.8,8),mat('#8C5A2B'));bar.rotation.z=Math.PI/2;bar.position.y=-.24;g.add(bar);
+  const s=id==='jeans'?.7:.66,m=iconMesh(c.kind,s,.1,c.color);m.position.y=-.28-(id==='jeans'?.76:.7)*s;g.add(m);
+  addItem(g,c,new THREE.Vector3(0,-.05,.55),new THREE.Vector3(0,-1.58,.3));
+});
+// watches on pedestals
+function makeWatch(c){
+  const g=new THREE.Group(),v=c.variant;
+  const strapC=v==='classic'?'#7A4A2A':v==='luxury'?'#AEB8CA':shade(c.color,-.15);
+  const caseC=v==='classic'?'#E6B450':v==='luxury'?'#D8DEE9':v==='smart'?'#1B1446':c.color;
+  const met=(v==='classic'||v==='luxury')?{metalness:.7,roughness:.25}:{};
+  const st1=rbox(.2,.3,.05,.06,strapC);st1.position.y=.33;g.add(st1);const st2=rbox(.2,.3,.05,.06,strapC);st2.position.y=-.33;g.add(st2);
+  if(v==='smart'){const cs=rbox(.38,.44,.08,.1,caseC);g.add(cs);const sc=rbox(.3,.36,.02,.07,'#0D0A26');sc.position.z=.06;g.add(sc);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(.09,.018,8,32),new THREE.MeshBasicMaterial({color:c.color}));ring.position.z=.085;g.add(ring);
+    const ring2=new THREE.Mesh(new THREE.TorusGeometry(.05,.016,8,32),new THREE.MeshBasicMaterial({color:'#FF5FA2'}));ring2.position.z=.085;g.add(ring2);}
+  else{const cs=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.09,40),mat(caseC,met));cs.rotation.x=Math.PI/2;g.add(cs);
+    const face=new THREE.Mesh(new THREE.CylinderGeometry(.175,.175,.02,40),mat(v==='sport'?'#1B1446':'#FFFDF5'));face.rotation.x=Math.PI/2;face.position.z=.05;g.add(face);
+    const hc=v==='sport'?'#FFFFFF':'#1B1446';const h1=box(.022,.13,.01,hc,0,.055,.065,g);const h2=box(.09,.02,.01,hc,.04,-.01,.065,g);h2.rotation.z=-.4;
+    const cr=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.06,12),mat(caseC,met));cr.rotation.z=Math.PI/2;cr.position.x=.25;g.add(cr);}
+  return g;
+}
+['w-classic','w-sport','w-smart','w-luxury'].forEach((id,i)=>{
+  const c=CAT[id],x=-2.1+i*1.4;
+  const ped=new THREE.Mesh(new THREE.CylinderGeometry(.34,.4,.16,32),mat('#FF5FA2'));ped.position.set(x,5.88,.15);wardrobe.add(ped);
+  const g=makeWatch(c);g.position.set(x,6.32,.25);g.rotation.x=-.12;g.scale.setScalar(.95);
+  addItem(g,c,new THREE.Vector3(0,.02,.6),new THREE.Vector3(0,-.72,.3));
+});
+// shoes
+['sneakers','running','formal','boots'].forEach((id,i)=>{
+  const c=CAT[id],g=new THREE.Group();g.position.set(-2.05+i*1.37,1.15,.1);
+  const s=.62,m=iconMesh(c.kind,s,.3,c.color);m.position.y=(c.kind==='boot'?.46:.4)*s;g.add(m);
+  const sole=new THREE.Mesh(new THREE.BoxGeometry(1.0*s*1.0,.07,.34),mat(c.variant==='formal'||c.kind==='boot'?'#1B1446':'#FFFFFF'));sole.position.set(.02,.035,0);g.add(sole);
+  addItem(g,c,new THREE.Vector3(0,.25,.55),new THREE.Vector3(0,.95,.3));
+});
+// drawer items (laid flat)
+['briefs','boxers','bras','swim','socks','thermals'].forEach((id,i)=>{
+  const c=CAT[id],g=new THREE.Group(),col=i%3,row=Math.floor(i/3);
+  g.position.set(-1.8+col*1.8,.3,-.48+row*1.0);g.rotation.x=-Math.PI/2;
+  const m=iconMesh(c.kind,.62,.07,c.color);g.add(m);
+  addItem(g,c,new THREE.Vector3(0,.45,.15),new THREE.Vector3(0,.12,.48),drawer);
+});
+
+/* playful floaters */
+const floaters=[];
+[[new THREE.TorusGeometry(.6,.22,16,40),'#FF5FA2',-5.6,6.2,-1.5],[new THREE.SphereGeometry(.55,32,24),'#2ED3A0',5.8,2.2,-.5],[new THREE.ConeGeometry(.5,1,4),'#FFC93C',5.2,7.2,-2.5],[new THREE.IcosahedronGeometry(.55,0),'#7A5CFF',-5.8,1.6,1],[new THREE.TorusKnotGeometry(.32,.11,64,10),'#FF8A3D',4.4,4.6,2.5]]
+.forEach(([geo,c,x,y,z],i)=>{const m=new THREE.Mesh(geo,mat(c,{roughness:.35}));m.position.set(x,y,z);scene.add(m);floaters.push({m,y,i})});
+
+/* ---------- camera keyframes ---------- */
+const KF=[
+ {t:[0,3.7,0],d:[0,.06,1],w:13,h:9.4,door:0,drawer:0},
+ {t:[0,3.6,0],d:[0,.1,1],w:8.2,h:8,door:1,drawer:0},
+ {t:[0,4.05,0],d:[0,.04,1],w:5.9,h:3.4,door:1,drawer:0},
+ {t:[0,6.25,0],d:[0,.08,1],w:5.7,h:1.55,door:1,drawer:0},
+ {t:[0,1.5,0],d:[0,.16,1],w:5.6,h:1.35,door:1,drawer:0},
+ {t:[0,.35,1.85],d:[0,1.35,.9],w:6,h:2.4,door:1,drawer:1},
+ {t:[0,3.6,0],d:[.62,.2,1],w:10,h:9,door:1,drawer:.3}
+];
+let CAMS=[];
+function fitCams(){
+  const W=innerWidth,H=innerHeight,a=W/H,tanH=Math.tan(FOV*Math.PI/360);
+  CAMS=KF.map(k=>{
+    const dir=new THREE.Vector3(...k.d).normalize(),fwd=dir.clone().negate();
+    const right=new THREE.Vector3().crossVectors(fwd,new THREE.Vector3(0,1,0)).normalize();
+    const up=new THREE.Vector3().crossVectors(right,fwd).normalize();
+    const t=new THREE.Vector3(...k.t);let w=k.w,h=k.h;
+    if(a>1.05&&W>760){t.addScaledVector(right,-w*.22);w*=1.5}
+    else{t.addScaledVector(up,-h*.42);h*=2.0;w*=1.05}
+    const dist=Math.max((w/2)/(tanH*a),(h/2)/tanH);
+    return{pos:t.clone().addScaledVector(dir,dist),tgt:t,door:k.door,drawer:k.drawer};
+  });
+}
+function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();fitCams()}
+addEventListener('resize',resize);resize();
+
+/* ---------- picking ---------- */
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(9,9);
+let hovered=null,chipHover=null,mouseIn=false,activeStep=0,pNow=0;
+function allowed(it){const near=Math.abs(pNow-activeStep)<.32;if(!near)return false;return it.step===activeStep||((activeStep===1||activeStep===6)&&it.step!==5)}
+function pickAt(x,y){ndc.set(x/innerWidth*2-1,-(y/innerHeight)*2+1);ray.setFromCamera(ndc,camera);const hits=ray.intersectObjects(pickables,false);for(const h of hits){const it=h.object.userData.item;if(it&&allowed(it))return it}return null}
+const cv=$('#gl');let mx=0,my=0;
+cv.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;mouseIn=true;mx=e.clientX;my=e.clientY});
+cv.addEventListener('pointerleave',()=>{mouseIn=false;hovered=null});
+cv.addEventListener('click',e=>{const it=pickAt(e.clientX,e.clientY);if(it)openPanel({type:'cat',cat:it.cat.id})});
+
+/* ---------- loop ---------- */
+const ss=x=>x*x*(3-2*x),tmp=new THREE.Vector3(),cp=new THREE.Vector3(),ct=new THREE.Vector3();
+let pTarget=0;
+function readScroll(){pTarget=Math.min(N-1,Math.max(0,scrollY/maxScroll()*(N-1)))}
+addEventListener('scroll',readScroll,{passive:true});readScroll();pNow=pTarget;
+const clock=new THREE.Clock();
+function frame(){
+  requestAnimationFrame(frame);
+  const t=clock.getElapsedTime();
+  pNow+=reduce?(pTarget-pNow):(pTarget-pNow)*.085;
+  if(Math.abs(pTarget-pNow)<1e-4)pNow=pTarget;
+  $('#progress').style.transform=`scaleX(${pNow/(N-1)})`;
+  const i=Math.min(N-2,Math.floor(pNow)),f=ss(pNow-i),A=CAMS[i],B=CAMS[i+1];
+  cp.lerpVectors(A.pos,B.pos,f);ct.lerpVectors(A.tgt,B.tgt,f);
+  if(!reduce){cp.x+=Math.sin(t*.4)*.06;cp.y+=Math.cos(t*.5)*.04}
+  camera.position.copy(cp);camera.lookAt(ct);
+  const door=A.door+(B.door-A.door)*f,dr=A.drawer+(B.drawer-A.drawer)*f;
+  doors.forEach(d=>d.pivot.rotation.y=-d.side*door*1.95);
+  drawer.position.z=dr*1.9;
+  activeStep=Math.round(pNow);showStep(activeStep);
+  hovered=chipHover||(mouseIn&&!panel.classList.contains('open')?pickAt(mx,my):null);
+  cv.style.cursor=hovered?'pointer':'';
+  const near=1-Math.min(1,Math.abs(pNow-activeStep)/.35);
+  ITEMS.forEach(it=>{
+    it.hover+=((it===hovered?1:0)-it.hover)*(reduce?1:.14);
+    const h=it.hover,g=it.group;
+    g.position.copy(it.base).addScaledVector(it.pop,h);
+    g.scale.setScalar((it.step===3?.95:1)*(1+.16*h));
+    if(it.step===2){g.rotation.z=(reduce?0:Math.sin(t*1.1+it.i)*.03)+Math.sin(t*4)*.05*h;g.rotation.y=Math.sin(t*2)*.2*h}
+    else if(it.step===5){g.rotation.z=Math.sin(t*3)*.12*h}
+    else{g.rotation.y=Math.sin(t*2.2)*.35*h}
+    // chip
+    const show=it.step===activeStep&&near>.05;
+    it.chip.classList.toggle('off',!show);it.chip.classList.toggle('hot',it===hovered);
+    if(show){g.getWorldPosition(tmp);tmp.add(it.labelOff);tmp.project(camera);
+      const x=(tmp.x*.5+.5)*innerWidth,y=(-tmp.y*.5+.5)*innerHeight;
+      it.chip.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`;it.chip.style.opacity=near}else it.chip.style.opacity=0;
+  });
+  if(!reduce)floaters.forEach(o=>{o.m.position.y=o.y+Math.sin(t*.9+o.i)*.35;o.m.rotation.x=t*.3+o.i;o.m.rotation.y=t*.4});
+  renderer.render(scene,camera);
+}
+frame();
+})();
+</script>
+
+</body>
+</html>
