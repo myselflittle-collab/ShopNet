@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
-    "test": "npx --yes tsx@4.20.6 --tsconfig tsconfig.json --test tests/walker.test.ts"
+    "test": "npx --yes tsx@4.20.6 --tsconfig tsconfig.json --test tests/walker.test.ts",
+    "check:photos": "node scripts/check-photos.mjs"
   },
   "dependencies": {
     "@react-three/drei": "10.7.9",

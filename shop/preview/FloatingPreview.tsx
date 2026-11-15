@@ -5,7 +5,8 @@ import { useMallStore } from "@/lib/bridge/mallStore";
 import { previewAnchor, previewCard } from "@/lib/bridge/previewBridge";
 import { SECTION_BY_ID } from "@/lib/config/sections";
 import { catalog } from "@/lib/catalog/mockCatalog";
-import { blazerImage, inr } from "@/lib/catalog/productImage";
+import { inr } from "@/lib/catalog/productImage";
+import { Photo } from "@/shop/components/Photo";
 
 const CARD_W = 340;
 const GAP = 18;
@@ -94,15 +95,14 @@ export function FloatingPreview() {
               <ul className="mt-3 grid grid-cols-4 gap-2">
                 {items.map((p) => (
                   <li key={p.id} className="min-w-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={blazerImage(p.colours[0].hex, p.style)} alt="" className="aspect-[5/6] w-full rounded-md object-cover" />
+                    <Photo photo={p.photos[0]} width={160} sizes="80px" priority className="rounded-md" />
                     <p className="mt-1 truncate text-[11px] leading-tight">{p.name}</p>
                     <p className="text-[11px] font-semibold tabular-nums">{inr(p.price)}</p>
                   </li>
                 ))}
               </ul>
               <div className="mt-3 flex items-center justify-between gap-2">
-                <p className="text-[12px] text-muted">Click the display to enter</p>
+                <p className="text-[12px] text-muted">Click to enter the store</p>
                 <button
                   type="button"
                   className="btn-primary"

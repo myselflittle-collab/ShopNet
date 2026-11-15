@@ -18,22 +18,31 @@ Open http://localhost:3000
 
 | Desktop | Mobile |
 | --- | --- |
-| Scroll up / down — walk forward / back | Hold ▲ / ▼ — walk |
-| Drag — look around | Drag — look around |
-| W A S D or arrow keys — walk, strafe, turn | Tap a display — preview |
-| Hover a display — preview | "Enter section" button — open |
-| Click a highlighted display — open the section | |
-| Esc or "Back to mall" — close the shop | |
+| Click once to capture the mouse, then **move the mouse to look** (full 360°, up/down limited) | **One finger** — look around |
+| **Scroll** up / down — walk forward / back | **Two fingers** up / down, or hold ▲ / ▼ — walk |
+| Aim the **centre dot** at a store — it highlights and shows a preview | **Tap** a store — turn to face it and preview |
+| **Click** — enter the targeted store | **Tap again** — enter |
+| W A S D / arrow keys — walk, strafe, turn · **Esc** frees the mouse | |
+| Esc or "Back to mall" — close the shop | Back to mall |
+
+If the browser refuses to capture the mouse, moving the cursor toward a screen edge turns the view instead.
 
 Only **Women's Blazers** is open in this stage (first section on the left).
 
 ## Checks
 
 ```
-npm run typecheck   # TypeScript
-npm test            # walking + collision unit tests
-npm run build       # production build
+npm run typecheck     # TypeScript
+npm test              # walking + collision unit tests
+npm run build         # production build
+npm run check:photos  # confirms every product photo loads (needs internet)
 ```
+
+## Product photos
+
+Women's Blazers uses real fashion photographs from Unsplash, free under the [Unsplash License](https://unsplash.com/license);
+photographers are credited in each product's gallery. They load from Unsplash's image CDN. Replace them with the brand's own
+product photography before launch (`lib/catalog/photos.ts`).
 
 `tests/e2e-run.py` is the browser test used during development (Python + Playwright).
 

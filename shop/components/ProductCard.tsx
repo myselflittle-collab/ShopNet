@@ -2,13 +2,24 @@
 
 import { useState } from "react";
 import type { Product } from "@/lib/catalog/types";
-import { blazerImage, inr } from "@/lib/catalog/productImage";
+import { inr } from "@/lib/catalog/productImage";
 import { useShopStore } from "@/lib/bridge/shopStore";
 import { discountPct } from "@/shop/filters";
+import { Photo } from "./Photo";
 import { Rating } from "./Rating";
 
-export function ProductCard({ p, onNotify }: { p: Product; onNotify: (msg: string) => void }) {
-  const [colour, setColour] = useState(p.colours[0]);
+export function ProductCard({
+  p,
+  onNotify,
+  onOpen,
+  priority = false,
+}: {
+  p: Product;
+  onNotify: (msg: string) => void;
+  onOpen: (p: Product) => void;
+  priority?: boolean;
+}) {
+  const colour = p.colours[0];
   const [size, setSize] = useState<string | null>(null);
   const wished = useShopStore((s) => s.wishlist.includes(p.id));
   const toggleWish = useShopStore((s) => s.toggleWish);
@@ -26,10 +37,11 @@ export function ProductCard({ p, onNotify }: { p: Product; onNotify: (msg: strin
 
   return (
     <article className="card group">
-      <div className="relative">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={blazerImage(colour.hex, p.style)} alt={`${p.name} in ${colour.name}`} className="aspect-[5/6] w-full object-cover" />
-        {p.badge && <span className="badge absolute left-3 top-3">{p.badge}</span>}
+      <div className="relative overflow-hidden">
+        <button type="button" className="block w-full" onClick={() => onOpen(p)} aria-label={`View ${p.name}`}>
+          <Photo photo={p.photos[0]} priority={priority} className="transition-transform duration-500 group-hover:scale-[1.03]" />
+        </button>
+        {p.badge && <span className="badge pointer-events-none absolute left-3 top-3">{p.badge}</span>}
         <button
           type="button"
           onClick={() => toggleWish(p.id)}
@@ -39,31 +51,30 @@ export function ProductCard({ p, onNotify }: { p: Product; onNotify: (msg: strin
         >
           <span className={wished ? "text-rose" : "text-ink"}>{wished ? "♥" : "♡"}</span>
         </button>
-        {out && <span className="absolute inset-x-0 bottom-0 bg-ink/80 py-1.5 text-center text-[12px] text-white">Out of stock</span>}
+        {p.photos.length > 1 && (
+          <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold">
+            {p.photos.length} photos
+          </span>
+        )}
+        {out && <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-ink/80 py-1.5 text-center text-[12px] text-white">Out of stock</span>}
       </div>
       <div className="flex flex-1 flex-col gap-1.5 p-3.5">
         <p className="eyebrow">{p.brand}</p>
-        <h3 className="text-[14px] font-medium leading-snug">{p.name}</h3>
+        <h3 className="text-[14px] font-medium leading-snug">
+          <button type="button" className="text-left hover:underline" onClick={() => onOpen(p)}>
+            {p.name}
+          </button>
+        </h3>
         <Rating value={p.rating} count={p.reviews} />
         <p className="flex flex-wrap items-baseline gap-x-2 tabular-nums">
           <span className="text-[16px] font-semibold">{inr(p.price)}</span>
           <s className="text-[12px] text-muted">{inr(p.mrp)}</s>
           <span className="text-[12px] font-semibold text-emerald">{discountPct(p)}% off</span>
         </p>
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Colour">
-          {p.colours.map((c) => (
-            <button
-              key={c.name}
-              type="button"
-              title={c.name}
-              aria-label={c.name}
-              aria-pressed={c.name === colour.name}
-              onClick={() => setColour(c)}
-              className="h-5 w-5 rounded-full border border-line outline-offset-2 aria-pressed:outline aria-pressed:outline-2 aria-pressed:outline-ink"
-              style={{ background: c.hex }}
-            />
-          ))}
-        </div>
+        <p className="flex items-center gap-2 text-[12px]">
+          <span className="h-4 w-4 rounded-full border border-line" style={{ background: colour.hex }} aria-hidden="true" />
+          {colour.name}
+        </p>
         <div className="flex flex-wrap gap-1" role="group" aria-label="Size">
           {p.sizes.map((z) => (
             <button

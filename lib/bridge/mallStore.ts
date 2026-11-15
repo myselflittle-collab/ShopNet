@@ -4,6 +4,8 @@ import { create } from "zustand";
 import type { Pose } from "@/mall/navigation/walker";
 
 export type MallMode = "walking" | "opening" | "shop" | "returning";
+/** how looking around works right now: idle = mouse free (click to start), locked = mouse captured, steer = fallback, touch */
+export type LookMode = "idle" | "locked" | "steer" | "touch";
 
 interface MallState {
   mode: MallMode;
@@ -17,6 +19,11 @@ interface MallState {
   openRequest: string | null;
   /** the mall has drawn its first frame */
   ready: boolean;
+  lookMode: LookMode;
+  setLookMode: (m: LookMode) => void;
+  /** the shop panel is on screen (drives the mall's blur); set by the shop overlay */
+  shopVisible: boolean;
+  setShopVisible: (v: boolean) => void;
   setMode: (m: MallMode) => void;
   setHovered: (id: string | null) => void;
   savePose: (p: Pose) => void;
@@ -44,6 +51,10 @@ export const useMallStore = create<MallState>((set) => ({
   pendingRoute: null,
   openRequest: null,
   ready: false,
+  lookMode: "idle",
+  setLookMode: (lookMode) => set({ lookMode }),
+  shopVisible: false,
+  setShopVisible: (shopVisible) => set({ shopVisible }),
   setMode: (mode) => set({ mode }),
   setHovered: (hoveredId) => set({ hoveredId }),
   savePose: (p) => {

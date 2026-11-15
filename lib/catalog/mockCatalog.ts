@@ -1,6 +1,7 @@
 import type { BlazerStyle, CatalogService, Colour, Product } from "./types";
+import { gallery } from "./photos";
 
-/** Deterministic pseudo-random so mock data is identical on server and client. */
+/** Deterministic pseudo-random so mock prices and ratings are identical on server and client. */
 function rng(seed: number) {
   return () => {
     seed |= 0;
@@ -11,65 +12,75 @@ function rng(seed: number) {
   };
 }
 
-const COLOURS: Colour[] = [
-  { name: "Ivory", hex: "#EDE6D8" },
-  { name: "Camel", hex: "#B98B5E" },
+/** Colours exactly as they appear in the product photographs. */
+export const ALL_COLOURS: Colour[] = [
+  { name: "Sand", hex: "#CBB497" },
+  { name: "Camel", hex: "#B89772" },
+  { name: "Ivory", hex: "#ECE8E0" },
   { name: "Black", hex: "#1E1E22" },
-  { name: "Navy", hex: "#1F2A44" },
-  { name: "Charcoal", hex: "#3D3F45" },
-  { name: "Blush", hex: "#D9A9A0" },
-  { name: "Olive", hex: "#5F6146" },
-  { name: "Burgundy", hex: "#6B2533" },
-  { name: "Sage", hex: "#9AA88F" },
-  { name: "Powder Blue", hex: "#A9BCD0" },
+  { name: "Forest Green", hex: "#3F5B45" },
+  { name: "Black & White Stripe", hex: "#6B6B6B" },
+  { name: "Tangerine", hex: "#D9692F" },
+  { name: "Navy & Tan", hex: "#26324D" },
 ];
+const C = Object.fromEntries(ALL_COLOURS.map((c) => [c.name, c])) as Record<string, Colour>;
 
-const BRANDS = ["Maison Kaya", "Aurelle", "Studio Vane", "Northbay Women", "Kora Atelier"];
-const FABRICS = ["Wool blend", "Linen", "Crepe", "Tweed", "Cotton twill", "Velvet"];
-const STYLES: { style: BlazerStyle; name: string; fit: string }[] = [
-  { style: "single", name: "Single-Breasted Blazer", fit: "Tailored fit" },
-  { style: "double", name: "Double-Breasted Blazer", fit: "Structured fit" },
-  { style: "cropped", name: "Cropped Blazer", fit: "Boxy fit" },
-  { style: "longline", name: "Longline Blazer", fit: "Relaxed fit" },
+export const ALL_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
+
+interface Def {
+  name: string;
+  colour: string;
+  style: BlazerStyle;
+  fabric: string;
+  fit: string;
+  brand: string;
+  photos: ReturnType<typeof gallery>;
+  badge?: Product["badge"];
+  blurb: string;
+}
+
+const DEFS: Def[] = [
+  { name: "Sand Oversized Linen Blazer", colour: "Sand", style: "longline", fabric: "Linen", fit: "Relaxed fit", brand: "Maison Kaya", photos: gallery("beigeWalk", undefined, { fx: 0.5, fy: 0.35 }), badge: "Bestseller", blurb: "An easy, slightly oversized cut that works over shorts or wide trousers." },
+  { name: "Camel Tailored Blazer", colour: "Camel", style: "single", fabric: "Wool blend", fit: "Tailored fit", brand: "Aurelle", photos: gallery("beigeLeaves", undefined, { fx: 0.5, fy: 0.4 }), badge: "New", blurb: "A clean single-breasted silhouette in a warm camel tone." },
+  { name: "Ivory Structured Blazer", colour: "Ivory", style: "single", fabric: "Crepe", fit: "Structured fit", brand: "Studio Vane", photos: gallery("whiteWall", undefined, { fx: 0.5, fy: 0.4 }), blurb: "Crisp ivory crepe with sharp shoulders and a nipped waist." },
+  { name: "Black Single-Breasted Blazer", colour: "Black", style: "single", fabric: "Wool blend", fit: "Tailored fit", brand: "Northbay Women", photos: gallery("blackWhitePants", "blackWhitePants2", { fx: 0.5, fy: 0.35 }), badge: "Bestseller", blurb: "The everyday black blazer, cut to pair with light trousers." },
+  { name: "Forest Green Blazer", colour: "Forest Green", style: "single", fabric: "Wool blend", fit: "Tailored fit", brand: "Kora Atelier", photos: gallery("green", undefined, { fx: 0.5, fy: 0.45 }), badge: "Limited", blurb: "A deep forest green that reads polished day or night." },
+  { name: "Monochrome Striped Blazer", colour: "Black & White Stripe", style: "single", fabric: "Cotton twill", fit: "Relaxed fit", brand: "Studio Vane", photos: gallery("striped", undefined, { fx: 0.5, fy: 0.55 }), blurb: "Bold black-and-white stripes in a soft, unstructured cut." },
+  { name: "Black Wool Blazer", colour: "Black", style: "single", fabric: "Wool", fit: "Tailored fit", brand: "Aurelle", photos: gallery("blackBrownHair", undefined, { fx: 0.5, fy: 0.5 }), blurb: "Fine wool with a smooth hand and a fully lined body." },
+  { name: "Black Relaxed Blazer", colour: "Black", style: "longline", fabric: "Crepe", fit: "Relaxed fit", brand: "Maison Kaya", photos: gallery("blackChair", undefined, { fx: 0.5, fy: 0.4 }), blurb: "A longer, relaxed blazer that drapes easily when seated." },
+  { name: "Black Evening Blazer", colour: "Black", style: "single", fabric: "Crepe", fit: "Structured fit", brand: "Kora Atelier", photos: gallery("blackPearls", undefined, { fx: 0.5, fy: 0.55 }), badge: "New", blurb: "A sleek evening blazer designed to frame statement jewellery." },
+  { name: "Black Workwear Blazer", colour: "Black", style: "single", fabric: "Wool blend", fit: "Tailored fit", brand: "Northbay Women", photos: gallery("blackLaptop", undefined, { fx: 0.5, fy: 0.45 }), blurb: "A comfortable office blazer with room to move." },
+  { name: "Tangerine Suit Blazer", colour: "Tangerine", style: "single", fabric: "Wool blend", fit: "Tailored fit", brand: "Aurelle", photos: gallery("orange", undefined, { fx: 0.5, fy: 0.5 }), badge: "Limited", blurb: "A confident tangerine suit jacket with matching trousers available." },
+  { name: "Navy & Tan Tailored Jacket", colour: "Navy & Tan", style: "single", fabric: "Wool blend", fit: "Tailored fit", brand: "Northbay Women", photos: gallery("navyTan", undefined, { fx: 0.5, fy: 0.5 }), blurb: "Navy tailoring with tan accents for a quietly different look." },
+  { name: "Black Suit Blazer", colour: "Black", style: "longline", fabric: "Wool", fit: "Structured fit", brand: "Maison Kaya", photos: gallery("blackSuit", undefined, { fx: 0.5, fy: 0.4 }), blurb: "A long, sharp suit blazer that anchors a full black suit." },
 ];
-const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
 function buildWomenBlazers(): Product[] {
   const R = rng(20261115);
-  const pick = <T,>(a: T[]) => a[Math.floor(R() * a.length)];
-  const out: Product[] = [];
-  for (let i = 0; i < 24; i++) {
-    const st = STYLES[i % STYLES.length];
-    const fabric = pick(FABRICS);
-    const main = COLOURS[(i * 3) % COLOURS.length];
-    const nExtra = Math.floor(R() * 3);
-    const offset = 1 + Math.floor(R() * (COLOURS.length - 1));
-    const extra = Array.from({ length: nExtra }, (_, k) => COLOURS[(i * 3 + offset + k * 4) % COLOURS.length]).filter(
-      (c, k, arr) => c !== main && arr.indexOf(c) === k,
-    );
-    const price = Math.round((2499 + R() * 9500) / 100) * 100 - 1;
-    const mrp = Math.round((price * (1.2 + R() * 0.5)) / 100) * 100 - 1;
-    const sizes = SIZES.filter(() => R() > 0.18);
-    out.push({
+  return DEFS.map((d, i) => {
+    const price = Math.round((2799 + R() * 8800) / 100) * 100 - 1;
+    const mrp = Math.round((price * (1.2 + R() * 0.45)) / 100) * 100 - 1;
+    const sizes = ALL_SIZES.filter(() => R() > 0.15);
+    return {
       id: `wb-${String(i + 1).padStart(3, "0")}`,
       sectionId: "women-blazers",
-      name: `${main.name} ${fabric} ${st.name}`,
-      brand: pick(BRANDS),
+      name: d.name,
+      brand: d.brand,
       price,
       mrp,
-      rating: Math.round((3.6 + R() * 1.35) * 10) / 10,
-      reviews: Math.floor(12 + R() * 640),
-      colours: [main, ...extra],
+      rating: Math.round((3.8 + R() * 1.15) * 10) / 10,
+      reviews: Math.floor(18 + R() * 620),
+      colours: [C[d.colour]],
       sizes: sizes.length ? sizes : ["M"],
-      stock: R() < 0.1 ? 0 : 1 + Math.floor(R() * 40),
-      fabric,
-      fit: st.fit,
-      style: st.style,
-      description: `A ${st.fit.toLowerCase()} ${st.name.toLowerCase()} in ${fabric.toLowerCase()}, with notch lapels, fully lined and finished with horn-effect buttons.`,
-      badge: i % 7 === 0 ? "New" : i % 5 === 0 ? "Bestseller" : i % 11 === 0 ? "Limited" : undefined,
-    });
-  }
-  return out;
+      stock: i === 7 ? 0 : 2 + Math.floor(R() * 38),
+      fabric: d.fabric,
+      fit: d.fit,
+      style: d.style,
+      description: `${d.blurb} ${d.fabric}, ${d.fit.toLowerCase()}, notch lapels and a fully lined body.`,
+      photos: d.photos,
+      badge: d.badge,
+    };
+  });
 }
 
 const DATA: Record<string, Product[]> = {
@@ -80,9 +91,22 @@ export const catalog: CatalogService = {
   listBySection: (sectionId) => DATA[sectionId] ?? [],
   previewBySection: (sectionId, n = 4) => {
     const list = DATA[sectionId] ?? [];
-    return [...list].filter((p) => p.stock > 0).sort((a, b) => b.rating - a.rating).slice(0, n);
+    // a varied preview: best-rated in-stock item of each colour first
+    const seen = new Set<string>();
+    const out: Product[] = [];
+    for (const p of [...list].filter((p) => p.stock > 0).sort((a, b) => b.rating - a.rating)) {
+      if (seen.has(p.colours[0].name)) continue;
+      seen.add(p.colours[0].name);
+      out.push(p);
+      if (out.length === n) break;
+    }
+    return out;
   },
+  byId: (id) => Object.values(DATA).flat().find((p) => p.id === id),
 };
 
-export const ALL_COLOURS = COLOURS;
-export const ALL_SIZES = SIZES;
+/** Distinct garment colours of a section, used to dress the 3D rail with the same collection. */
+export function sectionColours(sectionId: string): string[] {
+  return Array.from(new Set(catalog.listBySection(sectionId).map((p) => p.colours[0].hex)));
+}
+

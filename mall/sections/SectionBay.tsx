@@ -6,7 +6,8 @@ import * as THREE from "three";
 import { HALF_W, MALL } from "@/lib/config/mall";
 import type { PlacedSection } from "@/lib/config/sections";
 import { useMallStore } from "@/lib/bridge/mallStore";
-import { catalog } from "@/lib/catalog/mockCatalog";
+import { sectionColours } from "@/lib/catalog/mockCatalog";
+import { openState } from "@/mall/transitions/openState";
 import { makeLabelTexture } from "@/mall/scene/labelTexture";
 import { BAY_INNER } from "./geometry";
 import { Fixture } from "./Fixtures";
@@ -40,21 +41,44 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
   );
   useEffect(() => () => sign.dispose(), [sign]);
 
-  // Women's Blazers shows the real catalogue colours on its rail.
-  const colors = useMemo(
-    () => (s.live ? catalog.listBySection(s.id).slice(0, 12).map((p) => p.colours[0].hex) : undefined),
-    [s],
-  );
+  // A live section's rail carries the same garments (colours) as its shop photos.
+  const colors = useMemo(() => (s.live ? sectionColours(s.id) : undefined), [s]);
 
   const accentMat = useRef<THREE.MeshStandardMaterial>(null);
+  const floorGlow = useRef<THREE.MeshBasicMaterial>(null);
+  const display = useRef<THREE.Group>(null);
+  const doorL = useRef<THREE.Group>(null);
+  const doorR = useRef<THREE.Group>(null);
   const glow = useRef(0);
   useFrame((_, dt) => {
-    const target = hovered ? 1 : 0;
+    const opening = openState.id === s.id;
+    const target = hovered || opening ? 1 : 0;
     glow.current += (target - glow.current) * Math.min(1, dt * 8);
     const g = glow.current;
     if (accentMat.current) {
       accentMat.current.emissive.copy(ACCENT_IDLE).lerp(ACCENT_HOT, g);
-      accentMat.current.emissiveIntensity = 0.25 + g * 1.6;
+      accentMat.current.emissiveIntensity = 0.25 + g * 2.2;
+    }
+    if (floorGlow.current) floorGlow.current.opacity = g * 0.55;
+
+    // opening: doors swing open, then the rail glides toward the corridor and spreads out
+    if (s.live) {
+      const tgt = opening ? openState.target : 0;
+      if (opening) {
+        openState.value += (tgt - openState.value) * (1 - Math.exp(-dt * 3.2));
+        if (Math.abs(tgt - openState.value) < 0.001) openState.value = tgt;
+      }
+      const v = opening ? openState.value : 0;
+      const doors = Math.min(1, v * 1.8);
+      const glide = Math.max(0, (v - 0.25) / 0.75);
+      const eased = glide * glide * (3 - 2 * glide);
+      if (doorL.current) doorL.current.rotation.y = -s.side * doors * 1.45;
+      if (doorR.current) doorR.current.rotation.y = s.side * doors * 1.45;
+      if (display.current) {
+        display.current.position.x = -s.side * eased * 1.25;
+        display.current.position.y = eased * 0.06;
+        display.current.scale.z = 1 + eased * 0.12;
+      }
     }
   });
 
@@ -97,7 +121,55 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
         <boxGeometry args={[0.05, 0.02, s.width - 0.2]} />
         <meshStandardMaterial color="#bdb5a8" />
       </mesh>
-      <Fixture s={s} colors={colors} />
+      {/* targeting glow on the floor at the opening */}
+      <mesh position={[frontX - s.side * 0.55, 0.012, s.cz]} rotation-x={-Math.PI / 2}>
+        <planeGeometry args={[1.1, s.width - 0.3]} />
+        <meshBasicMaterial ref={floorGlow} color="#f2c27a" transparent opacity={0} depthWrite={false} />
+      </mesh>
+      {/* the display: moved as one piece when the section opens (scaled around the bay centre) */}
+      <group position={[0, 0, s.cz]}>
+        <group ref={display}>
+          <group position={[0, 0, -s.cz]}>
+            <Fixture s={s} colors={colors} />
+          </group>
+        </group>
+      </group>
+      {s.live && (
+        <>
+          {/* glass boutique doors across the opening; they swing open when you enter */}
+          <group ref={doorL} position={[frontX, 0, s.z0 - 0.08]}>
+            <GlassDoor width={s.width / 2 - 0.08} dir={-1} />
+          </group>
+          <group ref={doorR} position={[frontX, 0, s.z1 + 0.08]}>
+            <GlassDoor width={s.width / 2 - 0.08} dir={1} />
+          </group>
+        </>
+      )}
+    </group>
+  );
+}
+
+/** One glass door leaf hinged at its outer edge; dir = which way it extends along z from the hinge. */
+function GlassDoor({ width, dir }: { width: number; dir: 1 | -1 }) {
+  const h = 2.9;
+  const cz = (dir * width) / 2;
+  return (
+    <group>
+      <mesh position={[0, h / 2 + 0.04, cz]}>
+        <boxGeometry args={[0.025, h, width]} />
+        <meshStandardMaterial color="#dfe9ec" transparent opacity={0.16} roughness={0.05} metalness={0.1} depthWrite={false} />
+      </mesh>
+      {[0.04, h + 0.04].map((y) => (
+        <mesh key={y} position={[0, y, cz]}>
+          <boxGeometry args={[0.025, 0.025, width]} />
+          <meshStandardMaterial color="#cdb684" metalness={0.3} roughness={0.45} />
+        </mesh>
+      ))}
+      {/* slim handle near the meeting edge (no full-height post, so the closed doors don't split the view) */}
+      <mesh position={[0, 1.15, dir * (width - 0.1)]}>
+        <boxGeometry args={[0.04, 0.42, 0.018]} />
+        <meshStandardMaterial color="#cdb684" metalness={0.3} roughness={0.45} />
+      </mesh>
     </group>
   );
 }

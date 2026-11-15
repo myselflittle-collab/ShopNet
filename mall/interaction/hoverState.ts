@@ -7,20 +7,7 @@ export const HOVER_TIMING = {
   hideGraceMs: 300,
   stickyExpand: 0.15,
   maxDistance: 12,
-  clickCooldownAfterDragMs: 300,
   maxClickSpeed: 0.6,
-};
-
-export const pointer = {
-  /** cursor in CSS px relative to the canvas; null when outside */
-  x: null as number | null,
-  y: null as number | null,
-  type: "mouse" as string,
-  down: false,
-  downX: 0,
-  downY: 0,
-  dragging: false,
-  lastDragEnd: 0,
 };
 
 export const hover = {
