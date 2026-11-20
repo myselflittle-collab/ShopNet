@@ -14,8 +14,7 @@ export type ShopNetModel =
   | "handbag"
   | "fedora"
   | "glasses"
-  | "pocket-watch"
-  | "dress-form-mannequin";
+  | "pocket-watch";
 
 class ModelErrorBoundary extends Component<
   { children: ReactNode },
