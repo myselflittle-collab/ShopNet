@@ -139,6 +139,7 @@ function buildCollection(sectionId: string, seed: CollectionSeed): Product[] {
     const mrp = Math.round((price * (1.18 + R() * 0.42)) / 100) * 100 - 1;
     const photoKey = seed.photos[i % seed.photos.length];
     const altKey = seed.photos.length > 1 ? seed.photos[(i + 1) % seed.photos.length] : undefined;
+    const sizes = seed.sizes ?? ALL_SIZES.filter(() => R() > 0.12);
     return {
       id: `${sectionId}-${String(i + 1).padStart(3, "0")}`,
       sectionId,
@@ -149,7 +150,7 @@ function buildCollection(sectionId: string, seed: CollectionSeed): Product[] {
       rating: Math.round((4.0 + R() * 0.9) * 10) / 10,
       reviews: Math.floor(12 + R() * 420),
       colours: [C[seed.colour]],
-      sizes: seed.sizes ?? ALL_SIZES.filter(() => R() > 0.12),
+      sizes: sizes.length ? sizes : ["M"],
       stock: 3 + Math.floor(R() * 35),
       fabric: seed.fabric,
       fit: seed.fit,
