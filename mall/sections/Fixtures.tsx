@@ -1,7 +1,6 @@
 "use client";
 
 import { Fragment } from "react";
-import * as THREE from "three";
 import { HALF_W, MALL } from "@/lib/config/mall";
 import type { PlacedSection } from "@/lib/config/sections";
 import { AssetModel, type ShopNetModel } from "./AssetModel";
@@ -21,7 +20,6 @@ function assetsFor(s: PlacedSection): DisplayAsset[] {
   const x = s.side * (HALF_W - MALL.bayDepth / 2 - 0.25);
   const front = s.cz - 0.8;
   const back = s.cz + 0.65;
-  const side = s.side;
 
   switch (s.id) {
     case "women-blazers":
@@ -92,7 +90,7 @@ function Rail({ s }: { s: PlacedSection }) {
   return (
     <group>
       <mesh position={[railX, 1.92, s.cz]}>
-        <cylinderGeometry args={[0.025, 0.025, length, 12]} />
+        <boxGeometry args={[0.035, 0.035, length]} />
         <meshStandardMaterial color={METAL} metalness={0.82} roughness={0.28} />
       </mesh>
       {[-1, 1].map((dir) => (
