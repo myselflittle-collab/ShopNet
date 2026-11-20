@@ -40,6 +40,8 @@ export const PHOTO = {
   womenHandbag: { id: "photo-1681747685985-a401c271156c", alt: "Pink leather handbag product photograph", credit: { name: "Unsplash contributor", profile: "https://unsplash.com", page: "https://unsplash.com/license" } },
   menDenim: { id: "photo-1675442141177-b99b70652416", alt: "Man wearing a denim jacket", credit: { name: "Unsplash contributor", profile: "https://unsplash.com", page: "https://unsplash.com/license" } },
   formalShoes: { id: "photo-1616663308968-58162d332720", alt: "Brown leather formal shoes", credit: { name: "Unsplash contributor", profile: "https://unsplash.com", page: "https://unsplash.com/license" } },
+  menKurta: { id: "photo-1774437790995-9a8513532a25", alt: "Man wearing a pink traditional kurta", credit: c("Tanmay Abhay Mahajan", "mr_bond1999", "gLkRkNGKPss") },
+  womenSari: { id: "photo-1610189013429-a703f4b245cf", alt: "Woman wearing a blue and yellow sari", credit: { name: "Unsplash contributor", profile: "https://unsplash.com", page: "https://unsplash.com/license" } },
 } as const;
 
 export type PhotoKey = keyof typeof PHOTO;
