@@ -1,5 +1,5 @@
 import type { BlazerStyle, CatalogService, Colour, Product } from "./types";
-import { gallery } from "./photos";
+import { gallery, type PhotoKey } from "./photos";
 
 /** Deterministic pseudo-random so mock prices and ratings are identical on server and client. */
 function rng(seed: number) {
@@ -22,6 +22,10 @@ export const ALL_COLOURS: Colour[] = [
   { name: "Black & White Stripe", hex: "#6B6B6B" },
   { name: "Tangerine", hex: "#D9692F" },
   { name: "Navy & Tan", hex: "#26324D" },
+  { name: "Blue", hex: "#5A7897" },
+  { name: "Brown", hex: "#74533F" },
+  { name: "Rose", hex: "#C78F91" },
+  { name: "Denim", hex: "#385B83" },
 ];
 const C = Object.fromEntries(ALL_COLOURS.map((c) => [c.name, c])) as Record<string, Colour>;
 
@@ -83,8 +87,83 @@ function buildWomenBlazers(): Product[] {
   });
 }
 
+
+interface CollectionSeed {
+  names: string[];
+  photos: PhotoKey[];
+  colour: string;
+  fabric: string;
+  fit: string;
+  brand: string;
+  basePrice: number;
+  sizes?: string[];
+  badge?: Product["badge"];
+}
+
+/**
+ * Demo catalogue for the complete mall. Names, prices, stock and ratings are sample data.
+ * Photography is category-matched where a verified Unsplash image is available; the live
+ * commerce catalogue must later replace these demo records with real seller/product feeds.
+ */
+const COLLECTIONS: Record<string, CollectionSeed> = {
+  "women-trousers": { names: ["Tailored Wide-Leg Trousers", "High-Waist Straight Pants", "Relaxed Linen Trousers", "Cropped Tailored Pants"], photos: ["womenTrousers", "blackWhitePants"], colour: "Navy & Tan", fabric: "Tailored blend", fit: "Straight fit", brand: "Aurelle", basePrice: 2999, badge: "Bestseller" },
+  "women-tshirts": { names: ["Essential Crew-Neck T-shirt", "Soft Cotton Everyday Tee", "Relaxed White T-shirt", "Classic Jersey T-shirt"], photos: ["whiteTee"], colour: "Ivory", fabric: "Cotton jersey", fit: "Relaxed fit", brand: "Kora Atelier", basePrice: 799 },
+  "women-shirts": { names: ["Classic White Shirt", "Oversized Cotton Shirt", "Relaxed Button-Down Shirt", "Everyday Poplin Shirt"], photos: ["whiteTee", "whiteWall"], colour: "Ivory", fabric: "Cotton poplin", fit: "Relaxed fit", brand: "Northbay Women", basePrice: 1499 },
+  "women-dresses": { names: ["Floral Midi Dress", "Evening Occasion Dress", "Soft Drape Day Dress", "Modern Printed Dress"], photos: ["womenDress", "skirt"], colour: "Rose", fabric: "Crepe", fit: "Regular fit", brand: "Maison Kaya", basePrice: 3299, badge: "New" },
+  "women-jeans": { names: ["Straight-Leg Denim Jeans", "Classic Blue Jeans", "Relaxed Everyday Denim", "High-Waist Denim"], photos: ["womenTrousers", "womenDress"], colour: "Denim", fabric: "Denim", fit: "Straight fit", brand: "Studio Vane", basePrice: 2199 },
+  "women-ethnic": { names: ["Classic Sari", "Festive Draped Collection", "Traditional Occasion Wear", "Printed Ethnic Set"], photos: ["womenSari"], colour: "Blue", fabric: "Woven blend", fit: "Classic drape", brand: "Aurelle", basePrice: 3999, badge: "Bestseller" },
+  "women-skirts": { names: ["Black Midi Skirt", "Printed Everyday Skirt", "A-Line Statement Skirt", "Pleated Midi Skirt"], photos: ["skirt", "womenDress"], colour: "Black", fabric: "Crepe", fit: "A-line fit", brand: "Maison Kaya", basePrice: 1899 },
+  "women-jackets": { names: ["Modern Tailored Jacket", "Navy Everyday Jacket", "Relaxed Layering Jacket", "Classic Outerwear Jacket"], photos: ["navyTan", "beigeWalk", "blackSuit"], colour: "Navy & Tan", fabric: "Woven blend", fit: "Regular fit", brand: "Northbay Women", basePrice: 3599 },
+  "women-innerwear": { names: ["Cotton Essentials Top", "Everyday Layering Tee", "Soft Lounge Top", "Comfort Base Layer"], photos: ["whiteTee"], colour: "Ivory", fabric: "Soft cotton", fit: "Comfort fit", brand: "Kora Atelier", basePrice: 699 },
+  "women-shoes": { names: ["Canvas Everyday Sneakers", "Classic High Heels", "Evening Court Shoes", "Minimal Leather Pumps"], photos: ["heels", "formalShoes"], colour: "Brown", fabric: "Leather / textile", fit: "Standard fit", brand: "Studio Vane", basePrice: 2499, sizes: ["5", "6", "7", "8", "9", "10"] },
+  "women-handbags": { names: ["Structured Leather Handbag", "Everyday Top-Handle Bag", "Compact Shoulder Bag", "Classic Mini Handbag"], photos: ["womenHandbag"], colour: "Rose", fabric: "Leather", fit: "One size", brand: "Maison Kaya", basePrice: 2999, sizes: ["One Size"] },
+  "women-accessories": { names: ["Pearl Accent Accessories", "Gold Frame Eyewear", "Classic Fashion Hat", "Minimal Style Edit"], photos: ["blackPearls", "mensAccessories"], colour: "Brown", fabric: "Mixed materials", fit: "One size", brand: "Kora Atelier", basePrice: 999, sizes: ["One Size"] },
+  "men-blazers": { names: ["Modern Tailored Blazer", "Classic Black Blazer", "Formal Suit Jacket", "Business Occasion Blazer"], photos: ["mensBlazer", "mensSuit"], colour: "Black", fabric: "Wool blend", fit: "Tailored fit", brand: "Northbay Men", basePrice: 4999, badge: "Bestseller" },
+  "men-trousers": { names: ["Tailored Formal Trousers", "Modern Straight Pants", "Classic Suit Trousers", "Relaxed Smart Trousers"], photos: ["mensSuit", "womenTrousers"], colour: "Black", fabric: "Tailored blend", fit: "Straight fit", brand: "Aurelle", basePrice: 2499 },
+  "men-tshirts": { names: ["Essential Crew-Neck Tee", "Classic Cotton T-shirt", "Relaxed Everyday Tee", "Minimal Jersey T-shirt"], photos: ["whiteTee"], colour: "Ivory", fabric: "Cotton jersey", fit: "Regular fit", brand: "Studio Vane", basePrice: 899 },
+  "men-shirts": { names: ["Classic White Shirt", "Smart Casual Button-Down", "Business Oxford Shirt", "Everyday Cotton Shirt"], photos: ["mensBlazer", "whiteTee"], colour: "Ivory", fabric: "Cotton poplin", fit: "Regular fit", brand: "Northbay Men", basePrice: 1699 },
+  "men-jeans": { names: ["Classic Denim Jeans", "Straight-Fit Blue Jeans", "Dark Wash Denim", "Relaxed Weekend Jeans"], photos: ["menDenim", "womenTrousers"], colour: "Denim", fabric: "Denim", fit: "Straight fit", brand: "Kora Atelier", basePrice: 2299 },
+  "men-kurtas": { names: ["Classic Pink Kurta", "Festive Traditional Kurta", "Cotton Occasion Kurta", "Modern Ethnic Kurta"], photos: ["menKurta"], colour: "Rose", fabric: "Cotton blend", fit: "Regular fit", brand: "Aurelle", basePrice: 1999 },
+  "men-jackets": { names: ["Denim Jacket", "Smart Casual Jacket", "Classic Layering Jacket", "Modern Everyday Outerwear"], photos: ["menDenim", "mensBlazer"], colour: "Denim", fabric: "Denim / cotton", fit: "Regular fit", brand: "Northbay Men", basePrice: 3299 },
+  "men-innerwear": { names: ["Cotton Essentials Tee", "Everyday Base Layer", "Soft Cotton Undershirt", "Comfort Essential Top"], photos: ["whiteTee"], colour: "Ivory", fabric: "Cotton", fit: "Comfort fit", brand: "Kora Atelier", basePrice: 599 },
+  "men-accessories": { names: ["Formal Accessories Set", "Classic Eyewear", "Minimal Style Accessories", "Everyday Grooming Edit"], photos: ["mensAccessories", "blackPearls"], colour: "Brown", fabric: "Mixed materials", fit: "One size", brand: "Studio Vane", basePrice: 1299, sizes: ["One Size"] },
+  "men-shoes": { names: ["Classic Leather Shoes", "Formal Lace-Ups", "Everyday Trainers", "Smart Casual Footwear"], photos: ["formalShoes", "heels"], colour: "Brown", fabric: "Leather / textile", fit: "Standard fit", brand: "Northbay Men", basePrice: 2999, sizes: ["6", "7", "8", "9", "10", "11"] },
+  "men-watches": { names: ["Classic Dress Watch", "Vintage Timepiece", "Minimal Everyday Watch", "Heritage Watch Edit"], photos: ["mensAccessories"], colour: "Brown", fabric: "Stainless steel / leather", fit: "One size", brand: "Aurelle", basePrice: 3499, sizes: ["One Size"] },
+};
+
+function buildCollection(sectionId: string, seed: CollectionSeed): Product[] {
+  const seedNumber = Array.from(sectionId).reduce((n, ch) => n + ch.charCodeAt(0), 20261120);
+  const R = rng(seedNumber);
+  return seed.names.map((name, i) => {
+    const price = Math.round((seed.basePrice * (0.82 + R() * 0.72)) / 100) * 100 - 1;
+    const mrp = Math.round((price * (1.18 + R() * 0.42)) / 100) * 100 - 1;
+    const photoKey = seed.photos[i % seed.photos.length];
+    const altKey = seed.photos.length > 1 ? seed.photos[(i + 1) % seed.photos.length] : undefined;
+    return {
+      id: `${sectionId}-${String(i + 1).padStart(3, "0")}`,
+      sectionId,
+      name,
+      brand: seed.brand,
+      price,
+      mrp,
+      rating: Math.round((4.0 + R() * 0.9) * 10) / 10,
+      reviews: Math.floor(12 + R() * 420),
+      colours: [C[seed.colour]],
+      sizes: seed.sizes ?? ALL_SIZES.filter(() => R() > 0.12),
+      stock: 3 + Math.floor(R() * 35),
+      fabric: seed.fabric,
+      fit: seed.fit,
+      style: "single",
+      description: `${name} in ${seed.fabric.toLowerCase()}, designed with a ${seed.fit.toLowerCase()} silhouette.`,
+      photos: gallery(photoKey, altKey),
+      badge: i === 0 ? (seed.badge ?? "New") : i === 1 ? "Bestseller" : undefined,
+    };
+  });
+}
+
 const DATA: Record<string, Product[]> = {
   "women-blazers": buildWomenBlazers(),
+  ...Object.fromEntries(Object.entries(COLLECTIONS).map(([id, seed]) => [id, buildCollection(id, seed)])),
 };
 
 export const catalog: CatalogService = {
