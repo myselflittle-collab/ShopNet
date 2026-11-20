@@ -1,7 +1,7 @@
 "use client";
 
 import type { BlazerStyle, Product } from "@/lib/catalog/types";
-import { ALL_COLOURS, ALL_SIZES } from "@/lib/catalog/mockCatalog";
+import { ALL_COLOURS } from "@/lib/catalog/mockCatalog";
 import { EMPTY_FILTERS, type FilterState, PRICE_BANDS } from "@/shop/filters";
 
 const STYLE_LABEL: Record<BlazerStyle, string> = {
@@ -19,12 +19,15 @@ export function Filters({
   products,
   value,
   onChange,
+  showStyle = true,
 }: {
   products: Product[];
   value: FilterState;
   onChange: (f: FilterState) => void;
+  showStyle?: boolean;
 }) {
   const brands = Array.from(new Set(products.map((p) => p.brand))).sort();
+  const sizes = Array.from(new Set(products.flatMap((p) => p.sizes))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   const colours = ALL_COLOURS.filter((c) => products.some((p) => p.colours.some((pc) => pc.name === c.name)));
 
   return (
@@ -39,7 +42,7 @@ export function Filters({
       <fieldset>
         <legend className="eyebrow mb-2">Size</legend>
         <div className="flex flex-wrap gap-1.5">
-          {ALL_SIZES.map((z) => (
+          {sizes.map((z) => (
             <button
               key={z}
               type="button"
@@ -107,7 +110,7 @@ export function Filters({
         </div>
       </fieldset>
 
-      <fieldset>
+      {showStyle && <fieldset>
         <legend className="eyebrow mb-2">Style</legend>
         <div className="space-y-1">
           {(Object.keys(STYLE_LABEL) as BlazerStyle[]).map((st) => (
@@ -122,7 +125,7 @@ export function Filters({
             </label>
           ))}
         </div>
-      </fieldset>
+      </fieldset>}
 
       <fieldset>
         <legend className="eyebrow mb-2">Brand</legend>
