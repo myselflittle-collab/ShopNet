@@ -1,43 +1,46 @@
 # ShopNet 3D asset sources
 
-This directory is reserved for locally stored GLB assets. Do not hotlink preview pages as if they were model files.
+## Runtime model library
 
-## Verified CC0 starting assets
+ShopNet currently loads approved GLB files through the same-origin route `/api/assets/<asset>`. The route is an explicit allow-list; it is not an unrestricted URL proxy. The GLB files are fetched from Grab3D and cached by the Next.js server.
 
-These source pages describe downloadable GLB files and explicitly state CC0 / public-domain terms. Download the GLB from the source page, retain the manifest/credit information, inspect it in Blender, optimise it, then place it under `public/assets/models/`.
+All model pages below state **CC0 1.0** and permit commercial use without attribution. They are described by Grab3D as *Lightweight Stylized* models with 2K PBR textures. They are useful for real 3D product silhouettes in the first interactive prototype, but they are **not photoreal scanned garments**. They must not be represented as the final photoreal quality bar.
 
-| Asset | Source page | Published file | Source-reported size | Intended use |
-|---|---|---|---:|---|
-| Standing mannequin | https://www.innerscene.com/tools/library/3d-parts/standing-mannequin-original-retail-fixture-84ea17f0 | standing-mannequin-original-retail-fixture.glb | 426 KB | Store mannequins |
-| Female dress form | https://www.innerscene.com/tools/library/3d-parts/female-dress-form-mannequin-365616e7 | female-dress-form-mannequin.glb | 1.9 MB | Women's tailoring and dress displays |
-| Straight clothing rack | https://www.innerscene.com/tools/library/3d-parts/straight-clothing-rack-original-retail-fixture-0a4e8040 | straight-clothing-rack-original-retail-fixture.glb | 344 KB | Garment rails |
-| Round clothing rack | https://www.innerscene.com/tools/library/3d-parts/round-clothing-rack-original-retail-fixture-628042a4 | round-clothing-rack-original-retail-fixture.glb | 381 KB | Boutique displays |
-| Glass display case | https://www.innerscene.com/tools/library/3d-parts/glass-display-case-original-retail-fixture-1575bba9 | glass-display-case-original-retail-fixture.glb | 722 KB | Watches and accessories |
-| Wall shelving bay | https://www.innerscene.com/tools/library/3d-parts/wall-shelving-bay-original-retail-fixture-30d3074b | wall-shelving-bay-original-retail-fixture.glb | 947 KB | Folded apparel and shoes |
-| Denim jacket on hanger | https://grab3d.com/models/props/jacket/ | jacket.glb | 2.0 MB (full) / 927 KB (light) | Example hanging outerwear garment |
+| ShopNet key | Model | Intended use | Source |
+|---|---|---|---|
+| `jacket` | Denim jacket on a wooden hanger / small rack | Jackets and outerwear rails | https://grab3d.com/models/props/jacket/ |
+| `hoodie` | Pink hoodie on a wooden hanger | Casualwear and outerwear | https://grab3d.com/models/props/hoodie/ |
+| `t-shirt` | Folded / flat-lay T-shirt pair | Folded T-shirt tables | https://grab3d.com/models/props/t-shirt/ |
+| `sports-jersey` | Sports jersey on a hanger and small rack | Sportswear displays | https://grab3d.com/models/sports/sports-jersey/ |
+| `sneaker` | Pair of canvas sneakers | Sneaker shelves | https://grab3d.com/models/props/sneaker/ |
+| `shoe` | Pair of brown leather lace-up shoes | Formal footwear display | https://grab3d.com/models/props/shoe/ |
+| `handbag` | Pink leather handbag with gold hardware | Handbag shelves | https://grab3d.com/models/props/handbag/ |
+| `fedora` | Brown felt fedora | Hats and accessories | https://grab3d.com/models/props/fedora/ |
+| `glasses` | Gold round-frame glasses | Accessories cabinet | https://grab3d.com/models/props/glasses/ |
+| `pocket-watch` | Brass pocket watch | Watch / accessories cabinet | https://grab3d.com/models/props/pocket-watch/ |
 
-## Important asset rules
+Grab3D's developer documentation specifies download URLs in the form `https://grab3d.com/dl/<slug>/<file>` and says each model package includes its own `LICENSE.txt` and `manifest.json`: https://grab3d.com/developers/
 
-- These are source references, not files already installed in this repository.
-- The mannequin and rack models are fixtures, not substitutes for actual garments.
-- The denim jacket is one garment only; it does not supply a complete clothing collection.
-- Verify the licence shown at download time and keep the source's `LICENSE.txt` / manifest beside the asset.
-- Do not represent a mannequin, rack, or placeholder mesh as a realistic garment.
-- Do not commit downloaded models until they have been checked for scale, materials, orientation, polygon count and file size.
+## Important limitations
 
-## Proposed local layout
+- These files are remote runtime assets; the binary GLBs are **not committed** in this repository.
+- The models are stylised and modestly detailed. They replace abstract cubes with actual recognizable products, but do not meet a photorealistic final-store requirement.
+- Several categories currently reuse a model as a visual stand-in. Do not claim that this is a full SKU-level merchandise collection.
+- Product listing photography is separate from 3D GLB merchandise. The 2D shop should use suitable real product photographs with source/license records.
+- If a model is unavailable, the UI should log/report the missing asset; it must not silently replace the model with coloured blocks.
+- Before production, download the model package, retain its own `LICENSE.txt` and `manifest.json`, optimize a local copy with glTF-Transform, inspect scale/orientation/material maps in Blender, and self-host the final approved GLB.
+
+## Target local asset layout for the production pass
 
 ```text
 public/assets/models/
-  fixtures/
-    standing-mannequin-original-retail-fixture.glb
-    female-dress-form-mannequin.glb
-    straight-clothing-rack-original-retail-fixture.glb
-    round-clothing-rack-original-retail-fixture.glb
-    glass-display-case-original-retail-fixture.glb
-    wall-shelving-bay-original-retail-fixture.glb
   garments/
-    jacket.glb
+  footwear/
+  bags-accessories/
+  mannequins/
+  fixtures/
   LICENSES/
-    <source-provided licence and attribution files>
+    <original model LICENSE.txt and manifest.json files>
 ```
+
+The asset pipeline should retain original source manifests, file hashes and licence data. A source-page link alone does not mean the binary has been installed or QA-approved.
