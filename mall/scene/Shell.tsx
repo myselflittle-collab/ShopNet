@@ -5,8 +5,8 @@ import * as THREE from "three";
 import { BAY_FRONT_X, HALF_W, MALL } from "@/lib/config/mall";
 import { makeLabelTexture } from "./labelTexture";
 
-const FLOOR = "#d9d6d0";
-const CORRIDOR = "#cfcbc3";
+const FLOOR = "#d7d0c5";
+const CORRIDOR = "#c7beb0";
 const WALL = "#e7e4de";
 const CEIL = "#f1efeb";
 
@@ -56,23 +56,43 @@ export function Shell() {
       {/* floor */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0, zMid]}>
         <planeGeometry args={[MALL.width, len]} />
-        <meshStandardMaterial color={FLOOR} roughness={0.85} />
+        <meshStandardMaterial color={FLOOR} roughness={0.34} metalness={0.06} />
       </mesh>
       {/* corridor inlay */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.002, zMid]}>
         <planeGeometry args={[BAY_FRONT_X * 2 - 0.4, len]} />
-        <meshStandardMaterial color={CORRIDOR} roughness={0.6} />
+        <meshStandardMaterial color={CORRIDOR} roughness={0.26} metalness={0.1} />
       </mesh>
       {/* ceiling */}
       <mesh rotation-x={Math.PI / 2} position={[0, MALL.ceiling, zMid]}>
         <planeGeometry args={[MALL.width, len]} />
         <meshStandardMaterial color={CEIL} roughness={1} />
       </mesh>
-      {/* ceiling light strips over the corridor */}
+      {/* architectural ceiling lights over the walkway */}
       {lightStrips.map((z) => (
         <mesh key={z} position={[0, MALL.ceiling - 0.02, z]}>
           <boxGeometry args={[1.6, 0.03, 0.25]} />
-          <meshStandardMaterial color="#ffffff" emissive="#fff6e6" emissiveIntensity={1.4} />
+          <meshStandardMaterial color="#ffffff" emissive="#fff6e6" emissiveIntensity={1.5} />
+        </mesh>
+      ))}
+      {/* warm recessed cove lighting above both retail walls */}
+      {([-1, 1] as const).map((side) => (
+        <group key={side}>
+          <mesh position={[side * (BAY_FRONT_X + 0.65), MALL.ceiling - 0.035, zMid]}>
+            <boxGeometry args={[0.12, 0.035, len - 0.8]} />
+            <meshStandardMaterial color="#fff0d4" emissive="#f5c98b" emissiveIntensity={0.8} />
+          </mesh>
+          <mesh position={[side * (BAY_FRONT_X + 0.1), MALL.ceiling - 0.035, zMid]}>
+            <boxGeometry args={[0.08, 0.035, len - 0.8]} />
+            <meshStandardMaterial color="#ffffff" emissive="#fff7e8" emissiveIntensity={1.1} />
+          </mesh>
+        </group>
+      ))}
+      {/* small brass inlay lines make the central walkway read as polished retail stone */}
+      {([-1, 1] as const).map((side) => (
+        <mesh key={side} position={[side * (BAY_FRONT_X - 0.22), 0.006, zMid]}>
+          <boxGeometry args={[0.025, 0.008, len - 0.5]} />
+          <meshStandardMaterial color="#b99a6a" metalness={0.68} roughness={0.28} />
         </mesh>
       ))}
       {/* outer walls behind the bays */}
