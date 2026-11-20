@@ -10,8 +10,11 @@ export type ShopNetModel =
   | "t-shirt"
   | "sports-jersey"
   | "sneaker"
+  | "high-heels"
+  | "hiking-boots"
   | "shoe"
   | "handbag"
+  | "duffel-bag"
   | "fedora"
   | "glasses"
   | "pocket-watch";
