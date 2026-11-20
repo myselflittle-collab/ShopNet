@@ -132,9 +132,9 @@ export function ShopOverlay({ gender, category }: { gender: string; category: st
             )}
           </div>
 
-          {!s?.live ? (
+          {!s ? (
             <div className="panel max-w-[520px] p-6">
-              <p className="text-[15px]">This section opens in a later phase. Women&apos;s Blazers is the first section being built.</p>
+              <p className="text-[15px]">This store could not be found.</p>
               <button type="button" className="btn-primary mt-4" onClick={close}>Back to mall</button>
             </div>
           ) : (
