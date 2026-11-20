@@ -36,7 +36,7 @@ function hash(value: string) {
  */
 export function getStoreWallpaper(
   gender: "women" | "men",
-  sectionId = gender,
+  sectionId: string = gender,
 ): THREE.CanvasTexture | null {
   if (typeof document === "undefined") return null;
   const cacheKey = `${gender}:${sectionId}`;
