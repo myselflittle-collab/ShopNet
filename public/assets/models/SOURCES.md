@@ -13,8 +13,11 @@ All model pages below state **CC0 1.0** and permit commercial use without attrib
 | `t-shirt` | Folded / flat-lay T-shirt pair | Folded T-shirt tables | https://grab3d.com/models/props/t-shirt/ |
 | `sports-jersey` | Sports jersey on a hanger and small rack | Sportswear displays | https://grab3d.com/models/sports/sports-jersey/ |
 | `sneaker` | Pair of canvas sneakers | Sneaker shelves | https://grab3d.com/models/props/sneaker/ |
+| `high-heels` | Pair of pink leather pumps | Womens footwear shelves | https://grab3d.com/models/props/high-heels/ |
+| `hiking-boots` | Pair of hiking boots | Mens footwear shelves | https://grab3d.com/models/props/hiking-boots/ |
 | `shoe` | Pair of brown leather lace-up shoes | Formal footwear display | https://grab3d.com/models/props/shoe/ |
 | `handbag` | Pink leather handbag with gold hardware | Handbag shelves | https://grab3d.com/models/props/handbag/ |
+| `duffel-bag` | Blue canvas duffel bag | Travel bags display | https://grab3d.com/models/props/duffel-bag/ |
 | `fedora` | Brown felt fedora | Hats and accessories | https://grab3d.com/models/props/fedora/ |
 | `glasses` | Gold round-frame glasses | Accessories cabinet | https://grab3d.com/models/props/glasses/ |
 | `pocket-watch` | Brass pocket watch | Watch / accessories cabinet | https://grab3d.com/models/props/pocket-watch/ |
