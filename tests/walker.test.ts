@@ -57,3 +57,20 @@ test("scroll up walks forward, scroll down walks back", async () => {
   run(1);
   assert.ok(walker.z > z);
 });
+
+
+test("mouse look can rotate through a full 360 degrees without angle clamping", async () => {
+  const { addLook } = await import("../mall/navigation/walker");
+  setPose({ x: 0, z: 0, yaw: 0, pitch: 0 });
+  addLook(1200, 0, 0.0055);
+  run(1);
+  assert.ok(walker.yaw < -6, `yaw should pass one full revolution; got ${walker.yaw}`);
+});
+
+test("a normal wheel burst produces a clearly noticeable walking distance", async () => {
+  const { addWheel } = await import("../mall/navigation/walker");
+  setPose({ x: 0, z: 0, yaw: 0, pitch: 0 });
+  addWheel(-120);
+  run(1);
+  assert.ok(walker.z < -0.5, `expected a meaningful forward walk, got z=${walker.z}`);
+});
