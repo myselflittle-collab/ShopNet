@@ -37,7 +37,7 @@ export const PHOTO = {
   mensAccessories: { id: "photo-1780337092951-7d7fc330db71", alt: "Men's formal accessories laid out on a table", credit: c("Jonathan Borba", "jonathanborba", "_Jyf5flHfA0") },
 } as const;
 
-type PhotoKey = keyof typeof PHOTO;
+export type PhotoKey = keyof typeof PHOTO;
 
 /** Full look + a close-up crop of the same photo (+ another photo of the same garment where one exists). */
 export function gallery(main: PhotoKey, alt?: PhotoKey, focus = { fx: 0.5, fy: 0.45 }): ProductPhoto[] {
