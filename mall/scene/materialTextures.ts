@@ -20,77 +20,141 @@ function makeCanvasTexture(
   return texture;
 }
 
-/** Subtle, seamless art-deco wallpaper. Generated locally; no remote image request. */
-export function getStoreWallpaper(gender: "women" | "men"): THREE.CanvasTexture | null {
+function hash(value: string) {
+  let result = 2166136261;
+  for (const char of value) {
+    result ^= char.charCodeAt(0);
+    result = Math.imul(result, 16777619);
+  }
+  return result >>> 0;
+}
+
+/**
+ * Store-specific luxury finishes.
+ * Deliberately uses material grain, soft mineral mottling and subtle fluting;
+ * no repeating arches, window outlines or decorative wallpaper motifs.
+ */
+export function getStoreWallpaper(
+  gender: "women" | "men",
+  sectionId = gender,
+): THREE.CanvasTexture | null {
   if (typeof document === "undefined") return null;
-  const cached = wallpaperCache.get(gender);
+  const cacheKey = `${gender}:${sectionId}`;
+  const cached = wallpaperCache.get(cacheKey);
   if (cached) return cached;
 
-  const size = 512;
+  const womenPalettes = [
+    ["#d7c7b3", "#bca58d", "#f0e6d8"],
+    ["#cdb7a8", "#a98e7e", "#e7d8ca"],
+    ["#c9c0ad", "#a69a82", "#e8e0d0"],
+    ["#d8d0c2", "#b8a994", "#f0e9dd"],
+    ["#bdb7a8", "#958e7f", "#ded7c9"],
+  ];
+  const menPalettes = [
+    ["#77736d", "#494743", "#a29a8b"],
+    ["#76665a", "#4d4139", "#9a8876"],
+    ["#62696a", "#3e4749", "#939b98"],
+    ["#6c645a", "#403c36", "#948777"],
+    ["#77776e", "#4d5048", "#a0a095"],
+  ];
+  const palette = (gender === "women" ? womenPalettes : menPalettes)[hash(sectionId) % 5];
+  const size = 768;
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
-  const women = gender === "women";
   const base = ctx.createLinearGradient(0, 0, size, size);
-  if (women) {
-    base.addColorStop(0, "#eee8df");
-    base.addColorStop(0.52, "#e6ded2");
-    base.addColorStop(1, "#d9cdbd");
-  } else {
-    base.addColorStop(0, "#d9d8d3");
-    base.addColorStop(0.52, "#cbc9c3");
-    base.addColorStop(1, "#bdbab2");
-  }
+  base.addColorStop(0, palette[2]);
+  base.addColorStop(0.45, palette[0]);
+  base.addColorStop(1, palette[1]);
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, size, size);
 
-  // Fine linen-like grain, deterministic so the same finish is used across every bay.
-  let seed = women ? 71 : 113;
+  let seed = hash(sectionId) || 73;
   const random = () => {
     seed = (seed * 1664525 + 1013904223) >>> 0;
     return seed / 4294967296;
   };
-  for (let i = 0; i < 8500; i++) {
-    const alpha = 0.018 + random() * 0.035;
-    ctx.fillStyle = random() > 0.5
-      ? `rgba(255,255,255,${alpha})`
-      : `rgba(70,58,44,${alpha})`;
-    const x = random() * size;
-    const y = random() * size;
-    ctx.fillRect(x, y, 1 + random() * 2, 1);
-  }
 
-  // Quiet vertical pin lines and art-deco arches.
+  // Cloudy mineral variation, blurred into the surface instead of a printed motif.
   ctx.save();
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = women ? "rgba(157,125,83,0.22)" : "rgba(92,88,80,0.24)";
-  for (let x = 0; x <= size; x += 64) {
+  ctx.filter = "blur(30px)";
+  for (let i = 0; i < 38; i++) {
+    const radius = 45 + random() * 135;
     ctx.beginPath();
-    ctx.moveTo(x + 0.5, 0);
-    ctx.lineTo(x + 0.5, size);
-    ctx.stroke();
-  }
-  ctx.strokeStyle = women ? "rgba(177,145,103,0.25)" : "rgba(153,133,102,0.21)";
-  for (let y = -128; y < size + 128; y += 128) {
-    for (let x = -64; x < size + 64; x += 128) {
-      ctx.beginPath();
-      ctx.arc(x + 64, y + 64, 42, Math.PI, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x + 22, y + 64);
-      ctx.lineTo(x + 22, y + 116);
-      ctx.lineTo(x + 106, y + 116);
-      ctx.lineTo(x + 106, y + 64);
-      ctx.stroke();
-    }
+    ctx.ellipse(
+      random() * size,
+      random() * size,
+      radius,
+      radius * (0.35 + random() * 0.8),
+      random() * Math.PI,
+      0,
+      Math.PI * 2,
+    );
+    ctx.fillStyle = random() > 0.5
+      ? "rgba(255,248,235,0.13)"
+      : "rgba(42,35,28,0.10)";
+    ctx.fill();
   }
   ctx.restore();
 
-  const texture = makeCanvasTexture(canvas, 1.5, 1.15);
-  wallpaperCache.set(gender, texture);
+  // Fine tactile grain.
+  for (let i = 0; i < 18000; i++) {
+    const alpha = 0.012 + random() * 0.045;
+    ctx.fillStyle = random() > 0.5
+      ? `rgba(255,255,255,${alpha})`
+      : `rgba(24,22,20,${alpha})`;
+    const x = random() * size;
+    const y = random() * size;
+    const w = 1 + random() * 2.5;
+    ctx.fillRect(x, y, w, 1 + random());
+  }
+
+  const variant = hash(sectionId) % 3;
+  if (variant === 0) {
+    // Subtle mineral veins: widely spaced and low contrast.
+    ctx.save();
+    ctx.lineCap = "round";
+    for (let i = 0; i < 7; i++) {
+      const x = random() * size;
+      const y = random() * size;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.bezierCurveTo(
+        x + 90 + random() * 70, y + 30 + random() * 100,
+        x - 40 + random() * 160, y + 180 + random() * 100,
+        x + 180 + random() * 180, y + 260 + random() * 170,
+      );
+      ctx.strokeStyle = `rgba(245,231,209,${0.06 + random() * 0.07})`;
+      ctx.lineWidth = 1 + random() * 2.4;
+      ctx.stroke();
+    }
+    ctx.restore();
+  } else if (variant === 1) {
+    // Fine fluted plaster / textile grain.
+    ctx.save();
+    for (let x = 0; x < size; x += 7) {
+      ctx.fillStyle = x % 14 === 0
+        ? "rgba(255,248,236,0.055)"
+        : "rgba(25,22,18,0.035)";
+      ctx.fillRect(x, 0, 1, size);
+    }
+    ctx.restore();
+  } else {
+    // Very subtle brushed finish.
+    ctx.save();
+    for (let i = 0; i < 120; i++) {
+      const y = random() * size;
+      ctx.fillStyle = "rgba(255,248,236,0.025)";
+      ctx.fillRect(0, y, size, 1);
+    }
+    ctx.restore();
+  }
+
+  const texture = makeCanvasTexture(canvas, 1.0, 1.0);
+  wallpaperCache.set(cacheKey, texture);
   return texture;
 }
 
@@ -144,6 +208,6 @@ export function getPolishedStoneTexture(): THREE.CanvasTexture | null {
   }
   ctx.restore();
 
-  stoneTexture = makeCanvasTexture(canvas, 2, 2);
+  stoneTexture = makeCanvasTexture(canvas, 1.4, 1.4);
   return stoneTexture;
 }
