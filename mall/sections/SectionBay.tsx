@@ -105,7 +105,7 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
       {/* fascia + sign */}
       <mesh position={[frontX, 3.55, s.cz]}>
         <boxGeometry args={[0.12, 0.9, s.width]} />
-        <meshStandardMaterial color="#ddd8cf" roughness={0.8} />
+        <meshStandardMaterial map={wallpaper ?? undefined} color={WALL_TONE[s.gender]} roughness={0.82} />
       </mesh>
       <mesh position={[frontX - s.side * 0.07, 3.5, s.cz]} rotation-y={signRotY}>
         <planeGeometry args={[Math.min(3.2, s.width - 0.4), 0.53]} />
