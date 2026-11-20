@@ -43,16 +43,21 @@ function assetsFor(s: PlacedSection): DisplayAsset[] {
         { asset: "hoodie", position: [x, 0, back], scale: 0.76 },
       ];
     case "women-shoes":
-    case "men-shoes":
       return [
         { asset: "sneaker", position: [x, 0.38, front], scale: 1.0 },
-        { asset: "shoe", position: [x, 0.9, s.cz], scale: 0.95 },
-        { asset: "sneaker", position: [x, 1.42, back], scale: 0.82 },
+        { asset: "high-heels", position: [x, 0.9, s.cz], scale: 1.05 },
+        { asset: "shoe", position: [x, 1.42, back], scale: 0.88 },
+      ];
+    case "men-shoes":
+      return [
+        { asset: "shoe", position: [x, 0.38, front], scale: 1.0 },
+        { asset: "sneaker", position: [x, 0.9, s.cz], scale: 0.95 },
+        { asset: "hiking-boots", position: [x, 1.42, back], scale: 0.9 },
       ];
     case "women-handbags":
       return [
         { asset: "handbag", position: [x, 0.95, front], scale: 1.0 },
-        { asset: "handbag", position: [x, 1.35, s.cz], rotation: [0, Math.PI * 0.18, 0], scale: 0.82 },
+        { asset: "duffel-bag", position: [x, 1.0, s.cz], rotation: [0, Math.PI * 0.18, 0], scale: 0.72 },
         { asset: "handbag", position: [x, 0.95, back], rotation: [0, -Math.PI * 0.18, 0], scale: 0.9 },
       ];
     case "women-accessories":
