@@ -1,93 +1,174 @@
 "use client";
 
-import { Component, Suspense, useMemo, type ReactNode } from "react";
-import { useTexture } from "@react-three/drei";
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import type { PlacedSection } from "@/lib/config/sections";
 import { HALF_W } from "@/lib/config/mall";
 
-const FASHION_PHOTOS: Record<string, { image: string; alt: string }> = {
-  "women-blazers": { image: "photo-1559127452-829071a09516", alt: "Women's blazer campaign" },
-  "women-trousers": { image: "photo-1565325058701-b1cb0be324f3", alt: "Women's tailored trousers fashion photograph" },
-  "women-tshirts": { image: "photo-1616006897093-5e4635c0de35", alt: "Woman in a white crew-neck T-shirt" },
-  "women-shirts": { image: "photo-1616006897093-5e4635c0de35", alt: "Women's casual shirt styling" },
-  "women-dresses": { image: "photo-1610047402714-307d99a677db", alt: "Woman in a floral dress" },
-  "women-jeans": { image: "photo-1565325058701-b1cb0be324f3", alt: "Denim and trouser fashion photograph" },
-  "women-ethnic": { image: "photo-1610189013429-a703f4b245cf", alt: "Woman in a blue and yellow sari" },
-  "women-skirts": { image: "photo-1682397125309-56077754235d", alt: "Woman wearing a skirt and boots" },
-  "women-jackets": { image: "photo-1576828831022-ca41d3905fb7", alt: "Women's tailored jacket fashion photograph" },
-  "women-innerwear": { image: "photo-1616006897093-5e4635c0de35", alt: "Women's cotton apparel campaign" },
-  "women-shoes": { image: "photo-1704273944825-b9bcf7f85c59", alt: "Women's high heels displayed in a row" },
-  "women-handbags": { image: "photo-1681747685985-a401c271156c", alt: "Pink leather handbag product photograph" },
-  "women-accessories": { image: "photo-1589995358068-cf709addda7a", alt: "Fashion accessories styling" },
-  "men-blazers": { image: "photo-1543132220-4bf3de6e10ae", alt: "Man wearing a black blazer" },
-  "men-trousers": { image: "photo-1538978939284-4ecb3fc4ad5e", alt: "Man in a formal suit" },
-  "men-tshirts": { image: "photo-1542368826-9a7df1d9fd0b", alt: "Men's white shirt fashion photograph" },
-  "men-shirts": { image: "photo-1542368826-9a7df1d9fd0b", alt: "Man wearing a white shirt" },
-  "men-jeans": { image: "photo-1675442141177-b99b70652416", alt: "Men's denim fashion photograph" },
-  "men-kurtas": { image: "photo-1774437790995-9a8513532a25", alt: "Man wearing a pink traditional kurta" },
-  "men-jackets": { image: "photo-1675442141177-b99b70652416", alt: "Man wearing a denim jacket" },
-  "men-innerwear": { image: "photo-1542368826-9a7df1d9fd0b", alt: "Men's everyday apparel campaign" },
-  "men-accessories": { image: "photo-1780337092951-7d7fc330db71", alt: "Men's formal accessories flat lay" },
-  "men-shoes": { image: "photo-1616663308968-58162d332720", alt: "Brown leather formal shoes" },
-  "men-watches": { image: "photo-1780337092951-7d7fc330db71", alt: "Men's watch and formal accessories flat lay" },
+const FASHION_PHOTOS: Record<string, { image: string }> = {
+  "women-blazers": { image: "photo-1559127452-829071a09516" },
+  "women-trousers": { image: "photo-1565325058701-b1cb0be324f3" },
+  "women-tshirts": { image: "photo-1616006897093-5e4635c0de35" },
+  "women-shirts": { image: "photo-1616006897093-5e4635c0de35" },
+  "women-dresses": { image: "photo-1610047402714-307d99a677db" },
+  "women-jeans": { image: "photo-1565325058701-b1cb0be324f3" },
+  "women-ethnic": { image: "photo-1610189013429-a703f4b245cf" },
+  "women-skirts": { image: "photo-1682397125309-56077754235d" },
+  "women-jackets": { image: "photo-1576828831022-ca41d3905fb7" },
+  "women-innerwear": { image: "photo-1616006897093-5e4635c0de35" },
+  "women-shoes": { image: "photo-1704273944825-b9bcf7f85c59" },
+  "women-handbags": { image: "photo-1681747685985-a401c271156c" },
+  "women-accessories": { image: "photo-1589995358068-cf709addda7a" },
+  "men-blazers": { image: "photo-1543132220-4bf3de6e10ae" },
+  "men-trousers": { image: "photo-1538978939284-4ecb3fc4ad5e" },
+  "men-tshirts": { image: "photo-1542368826-9a7df1d9fd0b" },
+  "men-shirts": { image: "photo-1542368826-9a7df1d9fd0b" },
+  "men-jeans": { image: "photo-1675442141177-b99b70652416" },
+  "men-kurtas": { image: "photo-1774437790995-9a8513532a25" },
+  "men-jackets": { image: "photo-1675442141177-b99b70652416" },
+  "men-innerwear": { image: "photo-1542368826-9a7df1d9fd0b" },
+  "men-accessories": { image: "photo-1780337092951-7d7fc330db71" },
+  "men-shoes": { image: "photo-1616663308968-58162d332720" },
+  "men-watches": { image: "photo-1780337092951-7d7fc330db71" },
 };
 
-class PhotoErrorBoundary extends Component<
-  { children: ReactNode },
-  { failed: boolean }
-> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
+const WOMEN_COLORS = ["#b88978", "#8c746b", "#a88e75", "#77785f", "#ad8c99"];
+const MEN_COLORS = ["#6c7476", "#79695c", "#5e6262", "#897967", "#59616a"];
+
+function drawFallback(canvas: HTMLCanvasElement, section: PlacedSection) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const colors = section.gender === "women" ? WOMEN_COLORS : MEN_COLORS;
+  const seed = Array.from(section.id).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const accent = colors[seed % colors.length];
+  const dark = section.gender === "women" ? "#322b27" : "#22282b";
+  const light = section.gender === "women" ? "#e9ddd0" : "#d9d8d1";
+
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  gradient.addColorStop(0, dark);
+  gradient.addColorStop(0.54, accent);
+  gradient.addColorStop(1, light);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Editorial fallback: always visible before the photograph arrives.
+  ctx.save();
+  ctx.globalAlpha = 0.2;
+  ctx.fillStyle = "#f6ead6";
+  ctx.beginPath();
+  ctx.ellipse(760, 285, 245, 330, -0.28, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#f6ead6";
+  ctx.lineWidth = 3;
+  for (let i = 0; i < 8; i++) {
+    ctx.beginPath();
+    ctx.moveTo(600 + i * 42, 0);
+    ctx.lineTo(250 + i * 42, canvas.height);
+    ctx.stroke();
   }
-  componentDidCatch(error: Error) {
-    console.warn("ShopNet campaign image failed to load:", error.message);
-  }
-  render() {
-    return this.state.failed ? null : this.props.children;
-  }
+  ctx.restore();
+
+  const shade = ctx.createLinearGradient(0, canvas.height * 0.48, 0, canvas.height);
+  shade.addColorStop(0, "rgba(15,14,13,0)");
+  shade.addColorStop(1, "rgba(15,14,13,0.82)");
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#f8f3ea";
+  ctx.font = "600 24px Arial, sans-serif";
+  ctx.fillText("SHOPNET  /  THE FASHION MALL", 58, 72);
+  ctx.font = "500 70px Georgia, serif";
+  ctx.fillText(section.label.toUpperCase(), 58, 610, 900);
+  ctx.font = "500 22px Arial, sans-serif";
+  ctx.fillStyle = "#e8c997";
+  ctx.fillText(section.gender === "women" ? "WOMEN'S COLLECTION  ·  NEW SEASON" : "MEN'S COLLECTION  ·  NEW SEASON", 60, 662);
 }
 
-function LoadedPhotoPanel({ section }: { section: PlacedSection }) {
-  const entry = FASHION_PHOTOS[section.id];
-  const texture = useTexture(
-    `https://images.unsplash.com/${entry.image}?auto=format&fit=crop&w=900&h=1100&q=82`,
-  );
-  const material = useMemo(() => {
+function drawCover(ctx: CanvasRenderingContext2D, image: HTMLImageElement, width: number, height: number) {
+  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+  const cropW = width / scale;
+  const cropH = height / scale;
+  const sx = (image.naturalWidth - cropW) / 2;
+  const sy = (image.naturalHeight - cropH) / 2;
+  ctx.drawImage(image, sx, sy, cropW, cropH, 0, 0, width, height);
+}
+
+function CampaignMaterial({ section }: { section: PlacedSection }) {
+  const { canvas, texture } = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1200;
+    canvas.height = 900;
+    drawFallback(canvas, section);
+    const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = 8;
-    return new THREE.MeshBasicMaterial({ map: texture, toneMapped: false });
-  }, [texture]);
-  const x = section.side * (HALF_W - 0.11);
+    texture.needsUpdate = true;
+    return { canvas, texture };
+  }, [section.id, section.label, section.gender]);
+
+  useEffect(() => {
+    const entry = FASHION_PHOTOS[section.id];
+    if (!entry) return;
+
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      drawCover(ctx, image, canvas.width, canvas.height);
+      const shade = ctx.createLinearGradient(0, canvas.height * 0.54, 0, canvas.height);
+      shade.addColorStop(0, "rgba(10,10,10,0)");
+      shade.addColorStop(1, "rgba(10,10,10,0.76)");
+      ctx.fillStyle = shade;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "rgba(20,18,16,0.68)";
+      ctx.fillRect(0, 0, canvas.width, 105);
+      ctx.fillStyle = "#f8f2e9";
+      ctx.font = "600 25px Arial, sans-serif";
+      ctx.fillText("SHOPNET  /  THE FASHION MALL", 58, 66);
+      ctx.font = "500 72px Georgia, serif";
+      ctx.fillText(section.label.toUpperCase(), 58, 790, 1050);
+      ctx.font = "500 22px Arial, sans-serif";
+      ctx.fillStyle = "#ebc995";
+      ctx.fillText(section.gender === "women" ? "WOMEN'S COLLECTION  ·  NEW SEASON" : "MEN'S COLLECTION  ·  NEW SEASON", 60, 842);
+      texture.needsUpdate = true;
+    };
+    image.onerror = () => {
+      console.warn(`ShopNet campaign image unavailable for ${section.id}; keeping the designed campaign fallback.`);
+    };
+    image.src = `https://images.unsplash.com/${entry.image}?auto=format&fit=crop&w=1200&h=900&q=85`;
+    return () => {
+      image.onload = null;
+      image.onerror = null;
+    };
+  }, [canvas, texture, section]);
+
+  useEffect(() => () => texture.dispose(), [texture]);
+  return <meshBasicMaterial map={texture} toneMapped={false} />;
+}
+
+export function SectionPhotoPanel({ section }: { section: PlacedSection }) {
+  // Place the panel on the corridor-facing side of the feature wall; the previous
+  // position buried the image plane inside the wall thickness.
+  const x = section.side * (HALF_W - 0.21);
   const rotationY = section.side === -1 ? Math.PI / 2 : -Math.PI / 2;
 
   return (
-    <group position={[x, 2.0, section.cz]} rotation-y={rotationY}>
+    <group position={[x, 2.04, section.cz]} rotation-y={rotationY}>
       <mesh position={[0, 0, -0.055]}>
-        <boxGeometry args={[2.36, 2.56, 0.11]} />
-        <meshStandardMaterial color="#a88d61" metalness={0.62} roughness={0.28} />
+        <boxGeometry args={[3.18, 2.62, 0.12]} />
+        <meshStandardMaterial color="#9f835b" metalness={0.72} roughness={0.26} />
       </mesh>
-      <mesh position={[0, 0, 0.008]}>
-        <planeGeometry args={[2.2, 2.4]} />
-        <primitive object={material} attach="material" />
+      <mesh position={[0, 0, 0.012]}>
+        <planeGeometry args={[3.02, 2.46]} />
+        <CampaignMaterial section={section} />
       </mesh>
-      <mesh position={[0, -1.31, 0.012]}>
-        <boxGeometry args={[2.36, 0.035, 0.035]} />
-        <meshStandardMaterial color="#d2b77f" metalness={0.78} roughness={0.25} emissive="#7c6236" emissiveIntensity={0.18} />
-      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * 1.58, 0, 0.018]}>
+          <boxGeometry args={[0.035, 2.64, 0.035]} />
+          <meshStandardMaterial color="#f1d7a4" emissive="#d0a666" emissiveIntensity={0.85} metalness={0.65} roughness={0.22} />
+        </mesh>
+      ))}
     </group>
-  );
-}
-
-/** A real fashion photograph mounted as a framed campaign panel inside each storefront. */
-export function SectionPhotoPanel({ section }: { section: PlacedSection }) {
-  if (!FASHION_PHOTOS[section.id]) return null;
-  return (
-    <PhotoErrorBoundary>
-      <Suspense fallback={null}>
-        <LoadedPhotoPanel section={section} />
-      </Suspense>
-    </PhotoErrorBoundary>
   );
 }
