@@ -20,15 +20,15 @@ interface Tween {
 /** Tuned for human-paced walking and responsive, continuous mouse/touch look. */
 export const TUNING = {
   walkSpeed: 2.7, // m/s for keyboard / walk pad
-  wheelImpulse: 0.012, // velocity added per normalized wheel delta unit
+  wheelImpulse: 0.022, // stronger response for mouse wheel and trackpad gestures
   maxSpeed: 5.6,
-  damping: 3.2,
+  damping: 2.8,
   turnSpeedKeys: 2.4,
   /** radians per pixel of pointer-locked mouse movement */
-  mouseSensitivity: 0.005,
+  mouseSensitivity: 0.0055,
   /** radians per pixel of finger movement */
   touchSensitivity: 0.0065,
-  lookDamping: 22,
+  lookDamping: 24,
   pitchUp: (55 * Math.PI) / 180,
   pitchDown: (55 * Math.PI) / 180,
 } as const;
