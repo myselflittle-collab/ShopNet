@@ -6,11 +6,11 @@ import * as THREE from "three";
 import { HALF_W, MALL } from "@/lib/config/mall";
 import type { PlacedSection } from "@/lib/config/sections";
 import { useMallStore } from "@/lib/bridge/mallStore";
-import { sectionColours } from "@/lib/catalog/mockCatalog";
 import { openState } from "@/mall/transitions/openState";
 import { makeLabelTexture } from "@/mall/scene/labelTexture";
 import { BAY_INNER } from "./geometry";
 import { Fixture } from "./Fixtures";
+import { SectionPhotoPanel } from "./SectionPhotoPanel";
 
 const WALL_TONE = { women: "#e4dbd6", men: "#d8dbdf" } as const;
 const ACCENT_IDLE = new THREE.Color("#c9c2b5");
@@ -40,9 +40,6 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
     [s],
   );
   useEffect(() => () => sign.dispose(), [sign]);
-
-  // A live section's rail carries the same garments (colours) as its shop photos.
-  const colors = useMemo(() => (s.live ? sectionColours(s.id) : undefined), [s]);
 
   const accentMat = useRef<THREE.MeshStandardMaterial>(null);
   const floorGlow = useRef<THREE.MeshBasicMaterial>(null);
@@ -130,7 +127,8 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
       <group position={[0, 0, s.cz]}>
         <group ref={display}>
           <group position={[0, 0, -s.cz]}>
-            <Fixture s={s} colors={colors} />
+            <Fixture s={s} />
+            <SectionPhotoPanel section={s} />
           </group>
         </group>
       </group>
