@@ -94,10 +94,11 @@ function drawCover(ctx: CanvasRenderingContext2D, image: HTMLImageElement, width
 }
 
 function CampaignMaterial({ section }: { section: PlacedSection }) {
-  const { canvas, texture } = useMemo(() => {
+  const resource = useMemo(() => {
+    if (typeof document === "undefined") return null;
     const canvas = document.createElement("canvas");
-    canvas.width = 1200;
-    canvas.height = 900;
+    canvas.width = 900;
+    canvas.height = 675;
     drawFallback(canvas, section);
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
@@ -107,44 +108,47 @@ function CampaignMaterial({ section }: { section: PlacedSection }) {
   }, [section.id, section.label, section.gender]);
 
   useEffect(() => {
+    if (!resource) return;
     const entry = FASHION_PHOTOS[section.id];
     if (!entry) return;
 
     const image = new Image();
     image.crossOrigin = "anonymous";
     image.onload = () => {
-      const ctx = canvas.getContext("2d");
+      const ctx = resource.canvas.getContext("2d");
       if (!ctx) return;
-      drawCover(ctx, image, canvas.width, canvas.height);
-      const shade = ctx.createLinearGradient(0, canvas.height * 0.54, 0, canvas.height);
+      drawCover(ctx, image, resource.canvas.width, resource.canvas.height);
+      const shade = ctx.createLinearGradient(0, resource.canvas.height * 0.54, 0, resource.canvas.height);
       shade.addColorStop(0, "rgba(10,10,10,0)");
       shade.addColorStop(1, "rgba(10,10,10,0.76)");
       ctx.fillStyle = shade;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, resource.canvas.width, resource.canvas.height);
       ctx.fillStyle = "rgba(20,18,16,0.68)";
-      ctx.fillRect(0, 0, canvas.width, 105);
+      ctx.fillRect(0, 0, resource.canvas.width, 82);
       ctx.fillStyle = "#f8f2e9";
-      ctx.font = "600 25px Arial, sans-serif";
-      ctx.fillText("SHOPNET  /  THE FASHION MALL", 58, 66);
-      ctx.font = "500 72px Georgia, serif";
-      ctx.fillText(section.label.toUpperCase(), 58, 790, 1050);
-      ctx.font = "500 22px Arial, sans-serif";
+      ctx.font = "600 21px Arial, sans-serif";
+      ctx.fillText("SHOPNET  /  THE FASHION MALL", 44, 51);
+      ctx.font = "500 58px Georgia, serif";
+      ctx.fillText(section.label.toUpperCase(), 44, 592, 790);
+      ctx.font = "500 18px Arial, sans-serif";
       ctx.fillStyle = "#ebc995";
-      ctx.fillText(section.gender === "women" ? "WOMEN'S COLLECTION  ·  NEW SEASON" : "MEN'S COLLECTION  ·  NEW SEASON", 60, 842);
-      texture.needsUpdate = true;
+      ctx.fillText(section.gender === "women" ? "WOMEN'S COLLECTION  ·  NEW SEASON" : "MEN'S COLLECTION  ·  NEW SEASON", 46, 631);
+      resource.texture.needsUpdate = true;
     };
     image.onerror = () => {
       console.warn(`ShopNet campaign image unavailable for ${section.id}; keeping the designed campaign fallback.`);
     };
-    image.src = `https://images.unsplash.com/${entry.image}?auto=format&fit=crop&w=1200&h=900&q=85`;
+    image.src = `https://images.unsplash.com/${entry.image}?auto=format&fit=crop&w=900&h=675&q=82`;
     return () => {
       image.onload = null;
       image.onerror = null;
     };
-  }, [canvas, texture, section]);
+  }, [resource, section.id, section.label, section.gender]);
 
-  useEffect(() => () => texture.dispose(), [texture]);
-  return <meshBasicMaterial map={texture} toneMapped={false} />;
+  useEffect(() => () => resource?.texture.dispose(), [resource]);
+  return resource
+    ? <meshBasicMaterial map={resource.texture} toneMapped={false} />
+    : <meshBasicMaterial color="#4a4036" />;
 }
 
 export function SectionPhotoPanel({ section }: { section: PlacedSection }) {
