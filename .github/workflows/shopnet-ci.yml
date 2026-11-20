@@ -1,0 +1,41 @@
+name: ShopNet CI
+
+on:
+  push:
+    branches:
+      - main
+      - checkpoint/pre-repair-2026-11-20
+      - fix/immersive-mall-rework
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: shopnet-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Test walker and catalogue
+        run: npm test
+
+      - name: Build production app
+        run: npm run build
