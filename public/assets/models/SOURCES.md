@@ -21,6 +21,7 @@ All model pages below state **CC0 1.0** and permit commercial use without attrib
 | `fedora` | Brown felt fedora | Hats and accessories | https://grab3d.com/models/props/fedora/ |
 | `glasses` | Gold round-frame glasses | Accessories cabinet | https://grab3d.com/models/props/glasses/ |
 | `pocket-watch` | Brass pocket watch | Watch / accessories cabinet | https://grab3d.com/models/props/pocket-watch/ |
+| `dress-form-mannequin` | Antique linen dress form on a tripod | Womens dresses and skirts display form | https://grab3d.com/models/props/dress-form-mannequin/ |
 
 Grab3D's developer documentation specifies download URLs in the form `https://grab3d.com/dl/<slug>/<file>` and says each model package includes its own `LICENSE.txt` and `manifest.json`: https://grab3d.com/developers/
 
