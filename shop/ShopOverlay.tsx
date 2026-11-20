@@ -141,13 +141,13 @@ export function ShopOverlay({ gender, category }: { gender: string; category: st
             <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
               <aside className="hidden lg:block">
                 <div className="sticky top-4">
-                  <Filters products={products} value={filters} onChange={setFilters} />
+                  <Filters products={products} value={filters} onChange={setFilters} showStyle={s?.id === "women-blazers"} />
                 </div>
               </aside>
               <section className="min-w-0">
                 {list.length === 0 ? (
                   <div className="panel p-6 text-[14px]">
-                    No blazers match these filters.{" "}
+                    No products match these filters.{" "}
                     <button type="button" className="underline" onClick={() => setFilters(EMPTY_FILTERS)}>Clear filters</button>
                   </div>
                 ) : (
