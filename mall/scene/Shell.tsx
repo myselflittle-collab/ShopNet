@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { BAY_FRONT_X, HALF_W, MALL } from "@/lib/config/mall";
 import { makeLabelTexture } from "./labelTexture";
+import { getPolishedStoneTexture, getStoreWallpaper } from "./materialTextures";
 
 const FLOOR = "#d7d0c5";
 const CORRIDOR = "#c7beb0";
@@ -14,6 +15,8 @@ const CEIL = "#f1efeb";
 export function Shell() {
   const len = MALL.length + MALL.entranceZ + 4;
   const zMid = (MALL.entranceZ + 4 - MALL.length) / 2;
+  const stone = useMemo(() => getPolishedStoneTexture(), []);
+  const wallFinish = useMemo(() => getStoreWallpaper("women", "mall-limestone"), []);
 
   const signs = useMemo(() => {
     const w = makeLabelTexture([{ text: "WOMEN", size: 64, weight: 700, letterSpacing: 18 }], {
@@ -56,12 +59,12 @@ export function Shell() {
       {/* floor */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0, zMid]}>
         <planeGeometry args={[MALL.width, len]} />
-        <meshStandardMaterial color={FLOOR} roughness={0.34} metalness={0.06} />
+        <meshStandardMaterial map={stone ?? undefined} color={FLOOR} roughness={0.28} metalness={0.08} />
       </mesh>
       {/* corridor inlay */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.002, zMid]}>
         <planeGeometry args={[BAY_FRONT_X * 2 - 0.4, len]} />
-        <meshStandardMaterial color={CORRIDOR} roughness={0.26} metalness={0.1} />
+        <meshStandardMaterial map={stone ?? undefined} color={CORRIDOR} roughness={0.22} metalness={0.12} />
       </mesh>
       {/* ceiling */}
       <mesh rotation-x={Math.PI / 2} position={[0, MALL.ceiling, zMid]}>
@@ -99,7 +102,7 @@ export function Shell() {
       {[-1, 1].map((s) => (
         <mesh key={s} position={[s * HALF_W, MALL.ceiling / 2, zMid]}>
           <boxGeometry args={[0.2, MALL.ceiling, len]} />
-          <meshStandardMaterial color={WALL} roughness={0.95} />
+          <meshStandardMaterial map={wallFinish ?? undefined} color={WALL} roughness={0.82} />
         </mesh>
       ))}
       {/* far end wall */}
