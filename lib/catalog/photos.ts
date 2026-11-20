@@ -29,6 +29,12 @@ export const PHOTO = {
   orange: { id: "photo-1478803431644-b832801eefa7", alt: "Woman in an orange suit jacket", credit: c("accolorr", "accolorr", "XjIFw2ydEcU") },
   navyTan: { id: "photo-1576828831022-ca41d3905fb7", alt: "Woman in a navy and tan jacket", credit: c("Wesley Tingey", "wesleyphotography", "4WUwF9jVqMU") },
   blackSuit: { id: "photo-1707834102707-88d81a04e2f7", alt: "Woman in a black suit standing on a sidewalk", credit: c("Vital Sinkevich", "vitsinkevich", "9xrypURB1qM") },
+  whiteTee: { id: "photo-1616006897093-5e4635c0de35", alt: "Woman in a white crew-neck T-shirt", credit: c("The Graphic Space", "thegraphicspace", "FTrGeAy0RW4") },
+  skirt: { id: "photo-1682397125309-56077754235d", alt: "Woman wearing a skirt and boots", credit: c("Megan Ruth", "meganruthphoto", "dCEm2MVcTmc") },
+  heels: { id: "photo-1704273944825-b9bcf7f85c59", alt: "A row of women's high heel shoes on display", credit: c("150 Billi", "150billi", "gaeAO1uOF1g") },
+  mensSuit: { id: "photo-1538978939284-4ecb3fc4ad5e", alt: "Man wearing a formal suit", credit: c("Vimal Saxena", "v23071984", "9a-uOOkh6Rw") },
+  mensBlazer: { id: "photo-1543132220-4bf3de6e10ae", alt: "Man wearing a black blazer", credit: c("Redd Francisco", "reddfrancisco", "v6771a4avV4") },
+  mensAccessories: { id: "photo-1780337092951-7d7fc330db71", alt: "Men's formal accessories laid out on a table", credit: c("Jonathan Borba", "jonathanborba", "_Jyf5flHfA0") },
 } as const;
 
 type PhotoKey = keyof typeof PHOTO;
