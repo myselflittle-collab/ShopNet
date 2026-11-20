@@ -13,6 +13,7 @@ import { SectionPhotoPanel } from "./SectionPhotoPanel";
 import { getPolishedStoneTexture, getStoreWallpaper } from "@/mall/scene/materialTextures";
 
 const WALL_TONE = { women: "#e4dbd6", men: "#d8dbdf" } as const;
+const PIER_TONE = { women: "#bda88f", men: "#77736b" } as const;
 const ACCENT_IDLE = new THREE.Color("#c9c2b5");
 const ACCENT_HOT = new THREE.Color("#e3b66b");
 
@@ -20,8 +21,9 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
   const hovered = useMallStore((st) => st.hoveredId === s.id);
   const frontX = BAY_INNER.frontX(s);
   const centreX = BAY_INNER.centreX(s);
+  const rearX = s.side * (HALF_W - 0.13);
   const d = MALL.bayDepth;
-  const wallpaper = useMemo(() => getStoreWallpaper(s.gender), [s.gender]);
+  const wallpaper = useMemo(() => getStoreWallpaper(s.gender, s.id), [s.gender, s.id]);
   const stone = useMemo(() => getPolishedStoneTexture(), []);
 
   const sign = useMemo(
@@ -30,11 +32,11 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
         [
           { text: s.label.toUpperCase(), size: 44, weight: 700, letterSpacing: 6, color: "#24211d" },
           {
-            text: s.live ? `${s.gender === "women" ? "WOMEN" : "MEN"} · OPEN` : s.gender === "women" ? "WOMEN" : "MEN",
+            text: s.gender === "women" ? "WOMEN  ·  SHOPNET" : "MEN  ·  SHOPNET",
             size: 18,
             weight: 500,
-            letterSpacing: 6,
-            color: s.live ? "#9a6a1f" : "#7a746a",
+            letterSpacing: 5,
+            color: "#9a6a1f",
           },
         ],
         { width: 768, height: 128, bg: "#f6f3ee" },
@@ -46,86 +48,112 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
   const accentMat = useRef<THREE.MeshStandardMaterial>(null);
   const floorGlow = useRef<THREE.MeshBasicMaterial>(null);
   const display = useRef<THREE.Group>(null);
-  const doorL = useRef<THREE.Group>(null);
-  const doorR = useRef<THREE.Group>(null);
   const glow = useRef(0);
+
   useFrame((_, dt) => {
     const opening = openState.id === s.id;
     const target = hovered || opening ? 1 : 0;
     glow.current += (target - glow.current) * Math.min(1, dt * 8);
     const g = glow.current;
+
     if (accentMat.current) {
       accentMat.current.emissive.copy(ACCENT_IDLE).lerp(ACCENT_HOT, g);
-      accentMat.current.emissiveIntensity = 0.25 + g * 2.2;
+      accentMat.current.emissiveIntensity = 0.22 + g * 1.7;
     }
-    if (floorGlow.current) floorGlow.current.opacity = g * 0.55;
+    if (floorGlow.current) floorGlow.current.opacity = g * 0.38;
 
-    // opening: doors swing open, then the rail glides toward the corridor and spreads out
-    if (s.live) {
-      const tgt = opening ? openState.target : 0;
-      if (opening) {
-        openState.value += (tgt - openState.value) * (1 - Math.exp(-dt * 3.2));
-        if (Math.abs(tgt - openState.value) < 0.001) openState.value = tgt;
+    if (s.live && opening) {
+      openState.value += (openState.target - openState.value) * (1 - Math.exp(-dt * 3.2));
+      if (Math.abs(openState.target - openState.value) < 0.001) {
+        openState.value = openState.target;
       }
-      const v = opening ? openState.value : 0;
-      const doors = Math.min(1, v * 1.8);
-      const glide = Math.max(0, (v - 0.25) / 0.75);
-      const eased = glide * glide * (3 - 2 * glide);
-      if (doorL.current) doorL.current.rotation.y = -s.side * doors * 1.45;
-      if (doorR.current) doorR.current.rotation.y = s.side * doors * 1.45;
-      if (display.current) {
-        display.current.position.x = -s.side * eased * 1.25;
-        display.current.position.y = eased * 0.06;
-        display.current.scale.z = 1 + eased * 0.12;
-      }
+    }
+
+    const v = opening ? openState.value : 0;
+    const eased = v * v * (3 - 2 * v);
+    if (display.current) {
+      display.current.position.x = -s.side * eased * 0.52;
+      display.current.position.y = eased * 0.035;
+      display.current.scale.set(1 + eased * 0.025, 1 + eased * 0.025, 1);
     }
   });
 
   const signRotY = -s.side * (Math.PI / 2);
+  const pierXs = [frontX + s.side * 0.12, rearX];
 
   return (
     <group>
-      {/* side partitions */}
+      {/* Open boutique frontage: tall decorative piers replace the old full-height cubicle partitions. */}
+      {[s.z0, s.z1].map((z) =>
+        pierXs.map((x, index) => (
+          <group key={`${z}-${index}`} position={[x, 0, z]}>
+            <mesh position={[0, 1.62, 0]}>
+              <boxGeometry args={[0.2, 3.24, 0.22]} />
+              <meshStandardMaterial color={PIER_TONE[s.gender]} roughness={0.48} metalness={0.08} />
+            </mesh>
+            <mesh position={[0, 1.62, -s.side * 0.116]}>
+              <boxGeometry args={[0.215, 3.28, 0.018]} />
+              <meshStandardMaterial color="#b99a6a" metalness={0.72} roughness={0.28} />
+            </mesh>
+            <mesh position={[0, 3.28, 0]}>
+              <boxGeometry args={[0.27, 0.055, 0.29]} />
+              <meshStandardMaterial color="#d8c6a6" metalness={0.5} roughness={0.35} emissive="#9c7440" emissiveIntensity={0.08} />
+            </mesh>
+          </group>
+        )),
+      )}
+
+      {/* Deep feature wall: store-specific mineral / fluted finish, no repeated arch motif. */}
+      <mesh position={[rearX, 1.98, s.cz]}>
+        <boxGeometry args={[0.12, 3.96, s.width - 0.12]} />
+        <meshStandardMaterial map={wallpaper ?? undefined} color={WALL_TONE[s.gender]} roughness={0.78} />
+      </mesh>
+
+      {/* Stone floor is flush with the mall floor: no raised display plinth or table. */}
+      <mesh position={[centreX, 0.009, s.cz]}>
+        <boxGeometry args={[d - 0.06, 0.018, s.width - 0.08]} />
+        <meshStandardMaterial map={stone ?? undefined} color="#ddd5c9" roughness={0.3} metalness={0.04} />
+      </mesh>
+
+      {/* Brass boundary inlay defines the store without closing it with a wall or door. */}
       {[s.z0, s.z1].map((z) => (
-        <mesh key={z} position={[centreX, 1.6, z]}>
-          <boxGeometry args={[d, 3.2, 0.08]} />
-          <meshStandardMaterial map={wallpaper ?? undefined} color={WALL_TONE[s.gender]} roughness={0.82} />
+        <mesh key={z} position={[centreX, 0.022, z]}>
+          <boxGeometry args={[d - 0.16, 0.018, 0.035]} />
+          <meshStandardMaterial color="#b99a6a" metalness={0.76} roughness={0.24} />
         </mesh>
       ))}
-      {/* back wall panel */}
-      <mesh position={[s.side * (HALF_W - 0.13), 1.6, s.cz]}>
-        <boxGeometry args={[0.04, 3.2, s.width - 0.1]} />
-        <meshStandardMaterial map={wallpaper ?? undefined} color={WALL_TONE[s.gender]} roughness={0.82} />
+
+      {/* Full-width overhead fascia: the sign floats above an open storefront. */}
+      <mesh position={[frontX, 3.62, s.cz]}>
+        <boxGeometry args={[0.24, 0.62, s.width + 0.12]} />
+        <meshStandardMaterial color={WALL_TONE[s.gender]} roughness={0.58} />
       </mesh>
-      {/* raised floor */}
-      <mesh position={[centreX, 0.03, s.cz]}>
-        <boxGeometry args={[d - 0.1, 0.06, s.width - 0.1]} />
-        <meshStandardMaterial map={stone ?? undefined} color="#ddd5c9" roughness={0.34} metalness={0.04} />
+      <mesh position={[frontX - s.side * 0.132, 3.62, s.cz]} rotation-y={signRotY}>
+        <planeGeometry args={[Math.min(3.45, s.width - 0.25), 0.46]} />
+        <meshStandardMaterial map={sign} roughness={0.82} />
       </mesh>
-      {/* fascia + sign */}
-      <mesh position={[frontX, 3.55, s.cz]}>
-        <boxGeometry args={[0.12, 0.9, s.width]} />
-        <meshStandardMaterial map={wallpaper ?? undefined} color={WALL_TONE[s.gender]} roughness={0.82} />
+
+      {/* Warm linear light washes the feature wall rather than leaving a flat box. */}
+      <mesh position={[rearX - s.side * 0.085, 3.78, s.cz]}>
+        <boxGeometry args={[0.035, 0.055, s.width - 0.55]} />
+        <meshStandardMaterial color="#fff1d8" emissive="#ffcf87" emissiveIntensity={1.25} />
       </mesh>
-      <mesh position={[frontX - s.side * 0.07, 3.5, s.cz]} rotation-y={signRotY}>
-        <planeGeometry args={[Math.min(3.2, s.width - 0.4), 0.53]} />
-        <meshStandardMaterial map={sign} roughness={0.85} />
+      <mesh position={[rearX - s.side * 0.085, 0.24, s.cz]}>
+        <boxGeometry args={[0.025, 0.025, s.width - 0.55]} />
+        <meshStandardMaterial color="#c4a574" metalness={0.68} roughness={0.28} />
       </mesh>
-      {/* highlight strip along the opening */}
-      <mesh position={[frontX - s.side * 0.02, 3.08, s.cz]}>
-        <boxGeometry args={[0.05, 0.05, s.width - 0.2]} />
-        <meshStandardMaterial ref={accentMat} color="#d8d1c4" emissive={ACCENT_IDLE} emissiveIntensity={0.25} />
+
+      {/* Subtle animated trim and floor wash for intentional category targeting. */}
+      <mesh position={[frontX - s.side * 0.17, 3.22, s.cz]}>
+        <boxGeometry args={[0.04, 0.035, s.width - 0.28]} />
+        <meshStandardMaterial ref={accentMat} color="#d8d1c4" emissive={ACCENT_IDLE} emissiveIntensity={0.22} />
       </mesh>
-      <mesh position={[frontX - s.side * 0.02, 0.07, s.cz]}>
-        <boxGeometry args={[0.05, 0.02, s.width - 0.2]} />
-        <meshStandardMaterial color="#bdb5a8" />
+      <mesh position={[frontX + s.side * 0.5, 0.016, s.cz]} rotation-x={-Math.PI / 2}>
+        <planeGeometry args={[0.82, s.width - 0.35]} />
+        <meshBasicMaterial ref={floorGlow} color="#e8bd79" transparent opacity={0} depthWrite={false} />
       </mesh>
-      {/* targeting glow on the floor at the opening */}
-      <mesh position={[frontX - s.side * 0.55, 0.012, s.cz]} rotation-x={-Math.PI / 2}>
-        <planeGeometry args={[1.1, s.width - 0.3]} />
-        <meshBasicMaterial ref={floorGlow} color="#f2c27a" transparent opacity={0} depthWrite={false} />
-      </mesh>
-      {/* the display: moved as one piece when the section opens (scaled around the bay centre) */}
+
+      {/* Large editorial lightbox / campaign wall is pulled forward by the existing section transition. */}
       <group position={[0, 0, s.cz]}>
         <group ref={display}>
           <group position={[0, 0, -s.cz]}>
@@ -133,42 +161,6 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
           </group>
         </group>
       </group>
-      {s.live && (
-        <>
-          {/* glass boutique doors across the opening; they swing open when you enter */}
-          <group ref={doorL} position={[frontX, 0, s.z0 - 0.08]}>
-            <GlassDoor width={s.width / 2 - 0.08} dir={-1} />
-          </group>
-          <group ref={doorR} position={[frontX, 0, s.z1 + 0.08]}>
-            <GlassDoor width={s.width / 2 - 0.08} dir={1} />
-          </group>
-        </>
-      )}
-    </group>
-  );
-}
-
-/** One glass door leaf hinged at its outer edge; dir = which way it extends along z from the hinge. */
-function GlassDoor({ width, dir }: { width: number; dir: 1 | -1 }) {
-  const h = 2.9;
-  const cz = (dir * width) / 2;
-  return (
-    <group>
-      <mesh position={[0, h / 2 + 0.04, cz]}>
-        <boxGeometry args={[0.025, h, width]} />
-        <meshStandardMaterial color="#dfe9ec" transparent opacity={0.16} roughness={0.05} metalness={0.1} depthWrite={false} />
-      </mesh>
-      {[0.04, h + 0.04].map((y) => (
-        <mesh key={y} position={[0, y, cz]}>
-          <boxGeometry args={[0.025, 0.025, width]} />
-          <meshStandardMaterial color="#cdb684" metalness={0.3} roughness={0.45} />
-        </mesh>
-      ))}
-      {/* slim handle near the meeting edge (no full-height post, so the closed doors don't split the view) */}
-      <mesh position={[0, 1.15, dir * (width - 0.1)]}>
-        <boxGeometry args={[0.04, 0.42, 0.018]} />
-        <meshStandardMaterial color="#cdb684" metalness={0.3} roughness={0.45} />
-      </mesh>
     </group>
   );
 }
