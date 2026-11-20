@@ -174,7 +174,7 @@ export function ShopOverlay({ gender, category }: { gender: string; category: st
         <div className="fixed inset-0 z-50 flex lg:hidden" role="dialog" aria-label="Filters">
           <button type="button" className="flex-1 bg-ink/40" aria-label="Close filters" onClick={() => setDrawer(false)} />
           <div className="w-[min(340px,88vw)] overflow-y-auto bg-paper p-5">
-            <Filters products={products} value={filters} onChange={setFilters} />
+            <Filters products={products} value={filters} onChange={setFilters} showStyle={s?.id === "women-blazers"} />
             <button type="button" className="btn-primary mt-6 w-full" onClick={() => setDrawer(false)}>
               Show {list.length} styles
             </button>
