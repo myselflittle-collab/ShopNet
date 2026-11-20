@@ -35,6 +35,11 @@ export const PHOTO = {
   mensSuit: { id: "photo-1538978939284-4ecb3fc4ad5e", alt: "Man wearing a formal suit", credit: c("Vimal Saxena", "v23071984", "9a-uOOkh6Rw") },
   mensBlazer: { id: "photo-1543132220-4bf3de6e10ae", alt: "Man wearing a black blazer", credit: c("Redd Francisco", "reddfrancisco", "v6771a4avV4") },
   mensAccessories: { id: "photo-1780337092951-7d7fc330db71", alt: "Men's formal accessories laid out on a table", credit: c("Jonathan Borba", "jonathanborba", "_Jyf5flHfA0") },
+  womenTrousers: { id: "photo-1565325058701-b1cb0be324f3", alt: "Woman wearing tailored blue trousers", credit: { name: "Unsplash contributor", profile: "https://unsplash.com", page: "https://unsplash.com/license" } },
+  womenDress: { id: "photo-1610047402714-307d99a677db", alt: "Woman wearing a floral dress", credit: { name: "Unsplash contributor", profile: "https://unsplash.com", page: "https://unsplash.com/license" } },
+  womenHandbag: { id: "photo-1681747685985-a401c271156c", alt: "Pink leather handbag product photograph", credit: { name: "Unsplash contributor", profile: "https://unsplash.com", page: "https://unsplash.com/license" } },
+  menDenim: { id: "photo-1675442141177-b99b70652416", alt: "Man wearing a denim jacket", credit: { name: "Unsplash contributor", profile: "https://unsplash.com", page: "https://unsplash.com/license" } },
+  formalShoes: { id: "photo-1616663308968-58162d332720", alt: "Brown leather formal shoes", credit: { name: "Unsplash contributor", profile: "https://unsplash.com", page: "https://unsplash.com/license" } },
 } as const;
 
 export type PhotoKey = keyof typeof PHOTO;
