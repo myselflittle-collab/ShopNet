@@ -139,8 +139,9 @@ export function Controls() {
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       if (!walking()) return;
-      const dy = e.deltaMode === 1 ? e.deltaY * 32 : e.deltaY;
-      addWheel(Math.max(-120, Math.min(120, dy)));
+      const dy = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
+      // Keep trackpad micro-scrolls responsive while preserving capped mouse-wheel bursts.
+      addWheel(Math.max(-180, Math.min(180, dy)));
     };
     const typing = (t: EventTarget | null) =>
       t instanceof HTMLElement && (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA");
