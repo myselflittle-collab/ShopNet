@@ -157,7 +157,7 @@ export function addWheel(deltaY: number) {
   walker.vel = Math.max(-TUNING.maxSpeed, Math.min(TUNING.maxSpeed, walker.vel));
 }
 
-export function addLook(dx: number, dy: number, sensitivity = TUNING.mouseSensitivity) {
+export function addLook(dx: number, dy: number, sensitivity: number = TUNING.mouseSensitivity) {
   if (walker.tween) return;
   walker.targetYaw -= dx * sensitivity;
   walker.targetPitch = clampPitch(walker.targetPitch - dy * sensitivity);
