@@ -78,12 +78,16 @@ function assetsFor(s: PlacedSection): DisplayAsset[] {
       ];
     case "women-dresses":
     case "women-skirts":
+      return [
+        { asset: "dress-form-mannequin", position: [x, 0, front], scale: 0.92 },
+        { asset: "dress-form-mannequin", position: [x, 0, back], rotation: [0, Math.PI * 0.22, 0], scale: 0.86 },
+      ];
     case "women-innerwear":
     case "men-innerwear":
     default:
       return [
-        { asset: "jacket", position: [x, 0, front], scale: 0.72 },
-        { asset: "hoodie", position: [x, 0, s.cz], scale: 0.72 },
+        { asset: "hoodie", position: [x, 0, front], scale: 0.72 },
+        { asset: "t-shirt", position: [x, 0.82, s.cz], scale: 0.72 },
         { asset: "sports-jersey", position: [x, 0, back], scale: 0.72 },
       ];
   }
