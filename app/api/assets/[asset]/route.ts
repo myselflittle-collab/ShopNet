@@ -1,7 +1,6 @@
 /**
- * Allow-listed proxy for CC0 GLB assets from Grab3D.
- * Keeping the proxy same-origin avoids browser CORS issues and gives ShopNet cache control.
- * Only the named asset slugs below can be fetched; this is not an open proxy.
+ * Allow-listed same-origin proxy for CC0 GLB assets from Grab3D.
+ * This is intentionally not an open proxy. Only model slugs with verified source pages are allowed.
  */
 const MODEL_URLS: Record<string, string> = {
   jacket: "https://grab3d.com/dl/jacket/jacket.glb",
@@ -14,7 +13,6 @@ const MODEL_URLS: Record<string, string> = {
   fedora: "https://grab3d.com/dl/fedora/fedora.glb",
   glasses: "https://grab3d.com/dl/glasses/glasses.glb",
   "pocket-watch": "https://grab3d.com/dl/pocket-watch/pocket-watch.glb",
-  "dress-form-mannequin": "https://grab3d.com/dl/dress-form-mannequin/dress-form-mannequin.glb",
 };
 
 export const revalidate = 86400;
