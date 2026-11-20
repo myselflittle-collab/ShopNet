@@ -9,8 +9,8 @@ import { useMallStore } from "@/lib/bridge/mallStore";
 import { openState } from "@/mall/transitions/openState";
 import { makeLabelTexture } from "@/mall/scene/labelTexture";
 import { BAY_INNER } from "./geometry";
-import { Fixture } from "./Fixtures";
 import { SectionPhotoPanel } from "./SectionPhotoPanel";
+import { getPolishedStoneTexture, getStoreWallpaper } from "@/mall/scene/materialTextures";
 
 const WALL_TONE = { women: "#e4dbd6", men: "#d8dbdf" } as const;
 const ACCENT_IDLE = new THREE.Color("#c9c2b5");
@@ -21,6 +21,8 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
   const frontX = BAY_INNER.frontX(s);
   const centreX = BAY_INNER.centreX(s);
   const d = MALL.bayDepth;
+  const wallpaper = useMemo(() => getStoreWallpaper(s.gender), [s.gender]);
+  const stone = useMemo(() => getPolishedStoneTexture(), []);
 
   const sign = useMemo(
     () =>
@@ -87,18 +89,18 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
       {[s.z0, s.z1].map((z) => (
         <mesh key={z} position={[centreX, 1.6, z]}>
           <boxGeometry args={[d, 3.2, 0.08]} />
-          <meshStandardMaterial color="#d3cfc8" roughness={0.9} />
+          <meshStandardMaterial map={wallpaper ?? undefined} color={WALL_TONE[s.gender]} roughness={0.82} />
         </mesh>
       ))}
       {/* back wall panel */}
       <mesh position={[s.side * (HALF_W - 0.13), 1.6, s.cz]}>
         <boxGeometry args={[0.04, 3.2, s.width - 0.1]} />
-        <meshStandardMaterial color={WALL_TONE[s.gender]} roughness={0.9} />
+        <meshStandardMaterial map={wallpaper ?? undefined} color={WALL_TONE[s.gender]} roughness={0.82} />
       </mesh>
       {/* raised floor */}
       <mesh position={[centreX, 0.03, s.cz]}>
         <boxGeometry args={[d - 0.1, 0.06, s.width - 0.1]} />
-        <meshStandardMaterial color="#cdc6bb" roughness={0.7} />
+        <meshStandardMaterial map={stone ?? undefined} color="#ddd5c9" roughness={0.34} metalness={0.04} />
       </mesh>
       {/* fascia + sign */}
       <mesh position={[frontX, 3.55, s.cz]}>
@@ -127,7 +129,6 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
       <group position={[0, 0, s.cz]}>
         <group ref={display}>
           <group position={[0, 0, -s.cz]}>
-            <Fixture s={s} />
             <SectionPhotoPanel section={s} />
           </group>
         </group>
