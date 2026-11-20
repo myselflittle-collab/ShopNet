@@ -64,13 +64,17 @@ function LoadedPhotoPanel({ section }: { section: PlacedSection }) {
 
   return (
     <group position={[x, 2.0, section.cz]} rotation-y={rotationY}>
-      <mesh position={[0, 0, -0.035]}>
-        <boxGeometry args={[1.38, 1.82, 0.07]} />
-        <meshStandardMaterial color="#b79a69" metalness={0.58} roughness={0.34} />
+      <mesh position={[0, 0, -0.055]}>
+        <boxGeometry args={[2.36, 2.56, 0.11]} />
+        <meshStandardMaterial color="#a88d61" metalness={0.62} roughness={0.28} />
       </mesh>
-      <mesh position={[0, 0, 0.006]}>
-        <planeGeometry args={[1.27, 1.69]} />
+      <mesh position={[0, 0, 0.008]}>
+        <planeGeometry args={[2.2, 2.4]} />
         <primitive object={material} attach="material" />
+      </mesh>
+      <mesh position={[0, -1.31, 0.012]}>
+        <boxGeometry args={[2.36, 0.035, 0.035]} />
+        <meshStandardMaterial color="#d2b77f" metalness={0.78} roughness={0.25} emissive="#7c6236" emissiveIntensity={0.18} />
       </mesh>
     </group>
   );
