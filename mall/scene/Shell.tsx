@@ -11,7 +11,6 @@ import { MallWallContent } from "./MallWallContent";
 const FLOOR = "#d7d0c5";
 const CORRIDOR = "#c7beb0";
 const WALL = "#e7e4de";
-const CEIL = "#f1efeb";
 
 /** Greybox architecture: floor, ceiling, outer walls, end wall, entrance frame and zone signs. */
 export function Shell() {
