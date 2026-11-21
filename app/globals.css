@@ -143,7 +143,7 @@ input:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 2px;
 }
 
 .loading {
-  position: fixed; inset: 0; z-index: 60; display: grid; place-content: center; text-align: center;
+  position: fixed; inset: 0; z-index: 34; display: grid; place-content: center; text-align: center;
   background: #efece6; transition: opacity 0.6s ease, visibility 0.6s;
 }
 .loading.is-done { opacity: 0; visibility: hidden; }
@@ -261,6 +261,7 @@ input:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 2px;
   display: grid;
   place-items: center;
   padding: 28px;
+  pointer-events: auto;
   background:
     linear-gradient(90deg, rgb(24 21 18 / 0.58), rgb(24 21 18 / 0.16)),
     radial-gradient(ellipse at 52% 40%, #b7a58d 0%, #665b50 52%, #292520 100%);
@@ -342,4 +343,60 @@ input:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 2px;
 @keyframes welcome-arrive {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+
+/* The welcome screen sits above the loading layer from the first rendered frame. */
+.welcome-enter:disabled {
+  opacity: 0.52;
+  cursor: wait;
+  background: rgb(255 250 242 / 0.08);
+}
+.welcome-status {
+  margin-top: 15px;
+  min-height: 1.2em;
+  color: #ead8b8;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+/* Camera-look instructions remain close to the centre reticle so first-time visitors find them. */
+.camera-look-hint {
+  position: fixed;
+  z-index: 16;
+  left: 50%;
+  top: calc(50% - 62px);
+  transform: translateX(-50%);
+  max-width: min(92vw, 440px);
+  padding: 8px 13px;
+  border: 1px solid rgb(255 250 242 / 0.28);
+  border-radius: 999px;
+  background: rgb(22 24 29 / 0.76);
+  color: #fffaf2;
+  box-shadow: 0 5px 18px rgb(0 0 0 / 0.16);
+  backdrop-filter: blur(8px);
+  text-align: center;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: 0.085em;
+  pointer-events: none;
+  opacity: 0.92;
+  transition: opacity 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+.camera-look-hint.is-active {
+  border-color: rgb(99 217 255 / 0.62);
+  background: rgb(7 35 49 / 0.84);
+  color: #c5f5ff;
+}
+@media (max-width: 640px) {
+  .camera-look-hint {
+    top: calc(50% - 58px);
+    font-size: 9px;
+    letter-spacing: 0.045em;
+    padding: 7px 10px;
+  }
+  .welcome-screen {
+    padding: 18px;
+  }
 }
