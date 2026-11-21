@@ -94,6 +94,7 @@ function SectionVideoScreen({ section }: { section: PlacedSection }) {
   const [videoTexture, setVideoTexture] = useState<THREE.VideoTexture | null>(null);
   const [titleTexture, setTitleTexture] = useState<THREE.CanvasTexture | null>(null);
   const [frameReady, setFrameReady] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
 
   const fallbackMaterial = useMemo(
@@ -135,11 +136,16 @@ function SectionVideoScreen({ section }: { section: PlacedSection }) {
     setVideoTexture(texture);
 
     const onReady = () => setFrameReady(true);
+    const onPlaying = () => setPlaying(true);
+    const onPause = () => setPlaying(false);
     const onError = () => {
       setFailed(true);
       setFrameReady(false);
+      setPlaying(false);
     };
     video.addEventListener("loadeddata", onReady);
+    video.addEventListener("playing", onPlaying);
+    video.addEventListener("pause", onPause);
     video.addEventListener("error", onError);
 
     return () => {
@@ -147,6 +153,8 @@ function SectionVideoScreen({ section }: { section: PlacedSection }) {
       video.removeAttribute("src");
       video.load();
       video.removeEventListener("loadeddata", onReady);
+      video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("pause", onPause);
       video.removeEventListener("error", onError);
       texture.dispose();
       videoRef.current = null;
@@ -188,13 +196,13 @@ function SectionVideoScreen({ section }: { section: PlacedSection }) {
       </mesh>
       <mesh position={[0, 0, 0.012]}>
         <planeGeometry args={[3.08, 2.5]} />
-        {frameReady && !failed && videoTexture ? (
+        {playing && frameReady && !failed && videoTexture ? (
           <meshBasicMaterial map={videoTexture} toneMapped={false} />
         ) : (
           <primitive object={fallbackMaterial} attach="material" />
         )}
       </mesh>
-      {!frameReady && titleTexture && (
+      {!(playing && frameReady) && titleTexture && (
         <mesh position={[0, 0, 0.02]}>
           <planeGeometry args={[3.08, 2.5]} />
           <meshBasicMaterial map={titleTexture} transparent toneMapped={false} />
