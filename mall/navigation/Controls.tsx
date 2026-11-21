@@ -194,13 +194,6 @@ export function Controls() {
     };
   }, [gl]);
 
-  useFrame(() => {
-    if (useMallStore.getState().mode !== "walking") {
-      walker.steerX = 0;
-      walker.steerY = 0;
-    }
-  }, -2);
-
   useFrame((_, dt) => {
     if (useMallStore.getState().mode !== "walking") {
       walker.steerX = 0;
