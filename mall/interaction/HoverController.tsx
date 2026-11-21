@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { SECTIONS, SECTION_BY_ID } from "@/lib/config/sections";
+import { pathYawAt } from "@/lib/config/mall";
 import { useMallStore } from "@/lib/bridge/mallStore";
 import { walker } from "@/mall/navigation/walker";
 import { sectionAnchor, sectionHitBox } from "@/mall/sections/geometry";
@@ -79,7 +80,7 @@ function faceSection(id: string) {
   const tx = s.side * 2.6;
   const dx = tx - walker.x;
   const dz = s.cz - walker.z;
-  let yaw = Math.atan2(-dx, -dz);
+  let yaw = Math.atan2(-dx, -dz) - pathYawAt(walker.z);
   // nearest equivalent angle, so the head takes the short way round
   while (yaw - walker.targetYaw > Math.PI) yaw -= Math.PI * 2;
   while (yaw - walker.targetYaw < -Math.PI) yaw += Math.PI * 2;
