@@ -3,7 +3,7 @@
 import { memo, useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { HALF_W, MALL, pathCenterX } from "@/lib/config/mall";
+import { HALF_W, MALL, pathCenterX, pathYawAt } from "@/lib/config/mall";
 import type { PlacedSection } from "@/lib/config/sections";
 import { useMallStore } from "@/lib/bridge/mallStore";
 import { openState } from "@/mall/transitions/openState";
@@ -83,7 +83,7 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
   const pierXs = [frontX + s.side * 0.12, rearX];
 
   return (
-    <group position={[pathCenterX(s.cz), 0, 0]}>
+    <group position={[pathCenterX(s.cz), 0, 0]} rotation-y={pathYawAt(s.cz)}>
       <group>
       {/* Transparent holographic offer pillars replace solid square columns. */}
       {[s.z0, s.z1].map((z) =>
