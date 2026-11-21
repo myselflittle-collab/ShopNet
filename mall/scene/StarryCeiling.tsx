@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { pathCenterX } from "@/lib/config/mall";
+import type { MallQuality } from "@/mall/performance/quality";
 
 const VERTEX = `
 varying vec2 vUv;
@@ -98,9 +99,7 @@ void main() {
   gl_FragColor = vec4(sky, 1.0);
 }`;
 
-function createVaultGeometry(width: number, length: number, zMid: number, height: number, rise: number) {
-  const across = 48;
-  const along = 180;
+function createVaultGeometry(width: number, length: number, zMid: number, height: number, rise: number, across: number, along: number) {
   const positions: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
@@ -146,6 +145,7 @@ export function StarryCeiling({
   zMid,
   height,
   rise = 1.5,
+  quality,
 }: {
   width: number;
   length: number;
@@ -161,21 +161,22 @@ export function StarryCeiling({
     () => new THREE.ShaderMaterial({
       uniforms: { uTime: { value: 0 } },
       vertexShader: VERTEX,
-      fragmentShader: FRAGMENT,
+      fragmentShader: quality === "high" ? FRAGMENT : FAST_FRAGMENT,
       side: THREE.DoubleSide,
       depthWrite: false,
       toneMapped: false,
     }),
-    [],
+    [quality],
   );
 
   useEffect(() => {
+    if (quality !== "high") return;
     const video = document.createElement("video");
     video.src = "/videos/galaxy-ceiling.mp4";
     video.muted = true;
     video.loop = true;
     video.playsInline = true;
-    video.preload = "auto";
+    video.preload = "none";
     video.setAttribute("muted", "");
     video.setAttribute("playsinline", "");
     videoRef.current = video;
@@ -205,12 +206,12 @@ export function StarryCeiling({
       texture.dispose();
       videoRef.current = null;
     };
-  }, []);
+  }, [quality]);
 
   useFrame((_, dt) => {
     material.uniforms.uTime.value += dt;
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || quality !== "high") return;
     if (!document.hidden && !video.error && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.paused) {
       void video.play().catch(() => setVideoPlaying(false));
     } else if (document.hidden && !video.paused) {
