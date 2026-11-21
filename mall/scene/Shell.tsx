@@ -7,12 +7,13 @@ import { makeLabelTexture } from "./labelTexture";
 import { getPolishedStoneTexture, getStoreWallpaper } from "./materialTextures";
 import { StarryCeiling } from "./StarryCeiling";
 import { MallWallContent } from "./MallWallContent";
+import type { MallQuality } from "@/mall/performance/quality";
 
 const FLOOR = "#59616b";
 const CORRIDOR = "#333b46";
 const WALL = "#27323d";
 
-function makeCurvedFloor(width: number, zStart: number, zEnd: number, across = 22, along = 180) {
+function makeCurvedFloor(width: number, zStart: number, zEnd: number, across: number, along: number) {
   const positions: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
@@ -44,9 +45,7 @@ function makeCurvedFloor(width: number, zStart: number, zEnd: number, across = 2
   return geometry;
 }
 
-function makeCurvedSideWall(side: 1 | -1, zStart: number, zEnd: number, height: number) {
-  const along = 180;
-  const vertical = 5;
+function makeCurvedSideWall(side: 1 | -1, zStart: number, zEnd: number, height: number, along: number, vertical: number) {
   const positions: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
@@ -78,30 +77,32 @@ function makeCurvedSideWall(side: 1 | -1, zStart: number, zEnd: number, height: 
   return geometry;
 }
 
-function makeCoveCurve(side: 1 | -1, zStart: number, zEnd: number, y: number) {
+function makeCoveCurve(side: 1 | -1, zStart: number, zEnd: number, y: number, segments: number) {
   const points: THREE.Vector3[] = [];
-  for (let i = 0; i <= 90; i++) {
-    const t = i / 90;
+  for (let i = 0; i <= segments / 2; i++) {
+    const t = i / (segments / 2);
     const z = zStart + (zEnd - zStart) * t;
     points.push(new THREE.Vector3(pathCenterX(z) + side * (HALF_W - 0.18), y, z));
   }
   const curve = new THREE.CatmullRomCurve3(points);
-  return new THREE.TubeGeometry(curve, 180, 0.027, 8, false);
+  return new THREE.TubeGeometry(curve, segments, 0.027, 6, false);
 }
 
 /** Curved architectural shell, with a vaulted animated galaxy canopy. */
-export function Shell() {
+export function Shell({ quality }: { quality: MallQuality }) {
   const zStart = MALL.entranceZ + 4;
   const zEnd = -MALL.length - 4;
   const length = zStart - zEnd;
   const zMid = (zStart + zEnd) / 2;
 
-  const floor = useMemo(() => makeCurvedFloor(MALL.width, zStart, zEnd), [zStart, zEnd]);
-  const corridor = useMemo(() => makeCurvedFloor(CORRIDOR_WIDTH - 0.4, zStart, zEnd), [zStart, zEnd]);
-  const leftWall = useMemo(() => makeCurvedSideWall(-1, zStart, zEnd, MALL.ceiling), [zStart, zEnd]);
-  const rightWall = useMemo(() => makeCurvedSideWall(1, zStart, zEnd, MALL.ceiling), [zStart, zEnd]);
-  const leftCove = useMemo(() => makeCoveCurve(-1, zStart, zEnd, MALL.ceiling - 0.08), [zStart, zEnd]);
-  const rightCove = useMemo(() => makeCoveCurve(1, zStart, zEnd, MALL.ceiling - 0.08), [zStart, zEnd]);
+  const along = quality === "low" ? 64 : quality === "balanced" ? 104 : 150;
+  const across = quality === "low" ? 14 : quality === "balanced" ? 18 : 22;
+  const floor = useMemo(() => makeCurvedFloor(MALL.width, zStart, zEnd, across, along), [zStart, zEnd, across, along]);
+  const corridor = useMemo(() => makeCurvedFloor(CORRIDOR_WIDTH - 0.4, zStart, zEnd, Math.max(10, across - 4), along), [zStart, zEnd, across, along]);
+  const leftWall = useMemo(() => makeCurvedSideWall(-1, zStart, zEnd, MALL.ceiling, along, 3), [zStart, zEnd, along]);
+  const rightWall = useMemo(() => makeCurvedSideWall(1, zStart, zEnd, MALL.ceiling, along, 3), [zStart, zEnd, along]);
+  const leftCove = useMemo(() => makeCoveCurve(-1, zStart, zEnd, MALL.ceiling - 0.08, along), [zStart, zEnd, along]);
+  const rightCove = useMemo(() => makeCoveCurve(1, zStart, zEnd, MALL.ceiling - 0.08, along), [zStart, zEnd, along]);
 
   const stone = useMemo(() => getPolishedStoneTexture(), []);
   const wallFinish = useMemo(() => getStoreWallpaper("men", "mall-outer-wall"), []);
@@ -163,6 +164,7 @@ export function Shell() {
         zMid={zMid}
         height={MALL.ceiling}
         rise={MALL.ceilingRise}
+        quality={quality}
       />
 
       {/* Warm perimeter cove lights follow the curve rather than remaining ruler-straight. */}
