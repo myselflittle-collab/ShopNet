@@ -15,7 +15,6 @@ import { HoloFloorDisplay } from "./HoloFloorDisplay";
 import { getPolishedStoneTexture, getStoreWallpaper } from "@/mall/scene/materialTextures";
 
 const WALL_TONE = { women: "#e4dbd6", men: "#d8dbdf" } as const;
-const PIER_TONE = { women: "#bda88f", men: "#77736b" } as const;
 const ACCENT_IDLE = new THREE.Color("#c9c2b5");
 const ACCENT_HOT = new THREE.Color("#e3b66b");
 
