@@ -59,7 +59,7 @@ function createTitleCanvas(section: PlacedSection, kind: ScreenKind) {
   if (!ctx) return canvas;
 
   // Draw in the original 900x675 design coordinate system at a smaller texture size.
-  ctx.scale(2 / 3, 2 / 3);
+  const textureScale = canvas.width / 900;\n  ctx.scale(textureScale, textureScale);
   const shade = ctx.createLinearGradient(0, 400, 0, 675);
   shade.addColorStop(0, "rgba(0,0,0,0)");
   shade.addColorStop(1, "rgba(0,0,0,0.78)");
@@ -111,7 +111,7 @@ function SectionVideoScreen({
   const limits = QUALITY_LIMITS[quality];
 
   useEffect(() => {
-    const canvas = createTitleCanvas(section, kind);
+    const canvas = createTitleCanvas(section, kind, quality);
     const next = new THREE.CanvasTexture(canvas);
     next.colorSpace = THREE.SRGBColorSpace;
     next.anisotropy = quality === "high" ? 4 : 1;
