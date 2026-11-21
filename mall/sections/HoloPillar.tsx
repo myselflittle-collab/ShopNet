@@ -131,7 +131,7 @@ export function HoloPillar({
   }, [material, texture]);
 
   useFrame((_, dt) => {
-    texture.offset.y = (texture.offset.y - dt * 0.035) % 1;
+    texture.offset.y = (texture.offset.y + dt * 0.035) % 1;
   });
 
   const rotationY = section.side === -1 ? Math.PI / 2 : -Math.PI / 2;
@@ -150,7 +150,7 @@ export function HoloPillar({
           <meshStandardMaterial color="#8beeff" emissive="#21cfff" emissiveIntensity={1.2} metalness={0.4} roughness={0.2} />
         </mesh>
       ))}
-      <mesh position={[section.side * 0.158, 1.64, 0]} rotation-y={rotationY}>
+      <mesh position={[-section.side * 0.158, 1.64, 0]} rotation-y={rotationY}>
         <planeGeometry args={[0.31, 2.34]} />
         <meshBasicMaterial map={texture} transparent opacity={0.92} toneMapped={false} depthWrite={false} />
       </mesh>
