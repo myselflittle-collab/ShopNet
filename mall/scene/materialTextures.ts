@@ -1,21 +1,23 @@
 "use client";
 
 import * as THREE from "three";
+import type { MallQuality } from "@/mall/performance/quality";
 
 const wallpaperCache = new Map<string, THREE.CanvasTexture>();
-let stoneTexture: THREE.CanvasTexture | null = null;
+const stoneCache = new Map<MallQuality, THREE.CanvasTexture>();
 
 function makeCanvasTexture(
   canvas: HTMLCanvasElement,
   repeatX: number,
   repeatY: number,
+  anisotropy = 2,
 ): THREE.CanvasTexture {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(repeatX, repeatY);
-  texture.anisotropy = 8;
+  texture.anisotropy = anisotropy;
   texture.needsUpdate = true;
   return texture;
 }
@@ -37,9 +39,10 @@ function hash(value: string) {
 export function getStoreWallpaper(
   gender: "women" | "men",
   sectionId: string = gender,
+  quality: MallQuality = "balanced",
 ): THREE.CanvasTexture | null {
   if (typeof document === "undefined") return null;
-  const cacheKey = `${gender}:${sectionId}`;
+  const cacheKey = gender + ":" + sectionId + ":" + quality;
   const cached = wallpaperCache.get(cacheKey);
   if (cached) return cached;
 
@@ -58,7 +61,7 @@ export function getStoreWallpaper(
     ["#77776e", "#4d5048", "#a0a095"],
   ];
   const palette = (gender === "women" ? womenPalettes : menPalettes)[hash(sectionId) % 5];
-  const size = 768;
+  const size = quality === "high" ? 768 : quality === "balanced" ? 512 : 384;
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
@@ -81,7 +84,8 @@ export function getStoreWallpaper(
   // Cloudy mineral variation, blurred into the surface instead of a printed motif.
   ctx.save();
   ctx.filter = "blur(30px)";
-  for (let i = 0; i < 38; i++) {
+  const cloudCount = quality === "high" ? 38 : quality === "balanced" ? 24 : 15;
+  for (let i = 0; i < cloudCount; i++) {
     const radius = 45 + random() * 135;
     ctx.beginPath();
     ctx.ellipse(
@@ -101,7 +105,8 @@ export function getStoreWallpaper(
   ctx.restore();
 
   // Fine tactile grain.
-  for (let i = 0; i < 18000; i++) {
+  const grainCount = quality === "high" ? 18000 : quality === "balanced" ? 8500 : 4200;
+  for (let i = 0; i < grainCount; i++) {
     const alpha = 0.012 + random() * 0.045;
     ctx.fillStyle = random() > 0.5
       ? `rgba(255,255,255,${alpha})`
@@ -117,7 +122,7 @@ export function getStoreWallpaper(
     // Subtle mineral veins: widely spaced and low contrast.
     ctx.save();
     ctx.lineCap = "round";
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < (quality === "high" ? 7 : quality === "balanced" ? 5 : 3); i++) {
       const x = random() * size;
       const y = random() * size;
       ctx.beginPath();
@@ -153,17 +158,18 @@ export function getStoreWallpaper(
     ctx.restore();
   }
 
-  const texture = makeCanvasTexture(canvas, 1.0, 1.0);
+  const texture = makeCanvasTexture(canvas, 1.0, 1.0, quality === "high" ? 4 : 1);
   wallpaperCache.set(cacheKey, texture);
   return texture;
 }
 
 /** Fine, low-contrast stone veining for the mall and boutique floors. */
-export function getPolishedStoneTexture(): THREE.CanvasTexture | null {
+export function getPolishedStoneTexture(quality: MallQuality = "balanced"): THREE.CanvasTexture | null {
   if (typeof document === "undefined") return null;
-  if (stoneTexture) return stoneTexture;
+  const cached = stoneCache.get(quality);
+  if (cached) return cached;
 
-  const size = 768;
+  const size = quality === "high" ? 768 : quality === "balanced" ? 512 : 384;
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
@@ -182,7 +188,8 @@ export function getPolishedStoneTexture(): THREE.CanvasTexture | null {
     seed = (seed * 1664525 + 1013904223) >>> 0;
     return seed / 4294967296;
   };
-  for (let i = 0; i < 12000; i++) {
+  const stoneGrainCount = quality === "high" ? 12000 : quality === "balanced" ? 6000 : 3000;
+  for (let i = 0; i < stoneGrainCount; i++) {
     const alpha = 0.012 + random() * 0.026;
     ctx.fillStyle = random() > 0.52
       ? `rgba(255,255,255,${alpha})`
@@ -192,7 +199,7 @@ export function getPolishedStoneTexture(): THREE.CanvasTexture | null {
 
   ctx.save();
   ctx.lineCap = "round";
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < (quality === "high" ? 9 : quality === "balanced" ? 6 : 4); i++) {
     const x = random() * size;
     const y = random() * size;
     ctx.beginPath();
@@ -208,6 +215,7 @@ export function getPolishedStoneTexture(): THREE.CanvasTexture | null {
   }
   ctx.restore();
 
-  stoneTexture = makeCanvasTexture(canvas, 1.4, 1.4);
-  return stoneTexture;
+  const texture = makeCanvasTexture(canvas, 1.4, 1.4, quality === "high" ? 4 : 1);
+  stoneCache.set(quality, texture);
+  return texture;
 }
