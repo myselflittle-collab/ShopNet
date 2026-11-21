@@ -10,6 +10,7 @@ on:
       - feature/centerline-camera-doubletap
       - fix/welcome-camera-look-guidance
       - fix/camera-hint-and-video-import
+      - fix/video-playback-and-hint-hide
   pull_request:
     branches:
       - main
