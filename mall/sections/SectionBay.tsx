@@ -3,14 +3,15 @@
 import { memo, useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { HALF_W, MALL } from "@/lib/config/mall";
+import { HALF_W, MALL, pathCenterX } from "@/lib/config/mall";
 import type { PlacedSection } from "@/lib/config/sections";
 import { useMallStore } from "@/lib/bridge/mallStore";
 import { openState } from "@/mall/transitions/openState";
 import { makeLabelTexture } from "@/mall/scene/labelTexture";
 import { BAY_INNER } from "./geometry";
 import { SectionVideoPanel } from "./SectionVideoPanel";
-import { FloorSectionMarker } from "./FloorSectionMarker";
+import { HoloPillar } from "./HoloPillar";
+import { HoloFloorDisplay } from "./HoloFloorDisplay";
 import { getPolishedStoneTexture, getStoreWallpaper } from "@/mall/scene/materialTextures";
 
 const WALL_TONE = { women: "#e4dbd6", men: "#d8dbdf" } as const;
@@ -83,24 +84,12 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
   const pierXs = [frontX + s.side * 0.12, rearX];
 
   return (
-    <group>
-      {/* Open boutique frontage: tall decorative piers replace the old full-height cubicle partitions. */}
+    <group position={[pathCenterX(s.cz), 0, 0]}>
+      <group>
+      {/* Transparent holographic offer pillars replace solid square columns. */}
       {[s.z0, s.z1].map((z) =>
         pierXs.map((x, index) => (
-          <group key={`${z}-${index}`} position={[x, 0, z]}>
-            <mesh position={[0, 1.62, 0]}>
-              <boxGeometry args={[0.2, 3.24, 0.22]} />
-              <meshStandardMaterial color={PIER_TONE[s.gender]} roughness={0.48} metalness={0.08} />
-            </mesh>
-            <mesh position={[0, 1.62, -s.side * 0.116]}>
-              <boxGeometry args={[0.215, 3.28, 0.018]} />
-              <meshStandardMaterial color="#b99a6a" metalness={0.72} roughness={0.28} />
-            </mesh>
-            <mesh position={[0, 3.28, 0]}>
-              <boxGeometry args={[0.27, 0.055, 0.29]} />
-              <meshStandardMaterial color="#d8c6a6" metalness={0.5} roughness={0.35} emissive="#9c7440" emissiveIntensity={0.08} />
-            </mesh>
-          </group>
+          <HoloPillar key={String(z) + ':' + index} section={s} x={x} z={z} />
         )),
       )}
 
@@ -154,7 +143,7 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
         <meshBasicMaterial ref={floorGlow} color="#e8bd79" transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      {/* Large editorial lightbox / campaign wall is pulled forward by the existing section transition. */}
+      {/* Existing side-wall section film remains unchanged. */}
       <group position={[0, 0, s.cz]}>
         <group ref={display}>
           <group position={[0, 0, -s.cz]}>
@@ -162,7 +151,13 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
           </group>
         </group>
       </group>
-      <FloorSectionMarker section={s} />
+
+      {/* Second, larger overview video at the far end of this store. */}
+      <SectionVideoPanel section={s} kind='overview' />
+
+      {/* Transparent floor hologram is inside the store bay, never in the footpath. */}
+      <HoloFloorDisplay section={s} />
+      </group>
     </group>
   );
 }
