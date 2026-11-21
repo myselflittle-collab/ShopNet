@@ -1,9 +1,9 @@
-import { MALL, WALKABLE } from "@/lib/config/mall";
+import { MALL, WALKABLE, pathCenterX } from "@/lib/config/mall";
 
 export interface Pose {
   x: number;
   z: number;
-  /** 0 looks down the corridor (-z); yaw is deliberately unbounded for continuous 360° turns. */
+  /** Head yaw relative to the local direction of the curved mall centreline. */
   yaw: number;
   pitch: number;
 }
@@ -17,25 +17,22 @@ interface Tween {
   onDone?: () => void;
 }
 
-/** Tuned for human-paced walking and responsive, continuous mouse/touch look. */
 export const TUNING = {
-  walkSpeed: 2.7, // m/s for keyboard / walk pad
-  wheelImpulse: 0.035, // stronger response for mouse wheel and trackpad gestures
-  maxSpeed: 7.0,
-  damping: 2.2,
+  walkSpeed: 3.0,
+  wheelImpulse: 0.035,
+  maxSpeed: 6.8,
+  damping: 2.35,
   turnSpeedKeys: 2.4,
-  /** radians per pixel of pointer-locked mouse movement */
-  mouseSensitivity: 0.0055,
-  /** radians per pixel of finger movement */
+  mouseSensitivity: 0.0052,
   touchSensitivity: 0.0065,
   lookDamping: 24,
-  pitchUp: (55 * Math.PI) / 180,
-  pitchDown: (55 * Math.PI) / 180,
+  pitchUp: (48 * Math.PI) / 180,
+  pitchDown: (48 * Math.PI) / 180,
 } as const;
 
 export const walker = {
-  x: 0,
-  z: MALL.entranceZ as number,
+  x: pathCenterX(MALL.entranceZ),
+  z: MALL.entranceZ,
   yaw: 0,
   pitch: 0,
   targetYaw: 0,
@@ -81,12 +78,10 @@ export function tweenTo(to: Pose, dur: number, onDone?: () => void, ease = easeI
   walker.tween = { from: getPose(), to, start: performance.now(), dur, ease, onDone };
 }
 
-/** Keeps the walker inside the corridor. */
-export function clampToWalkable(x: number, z: number) {
-  return {
-    x: Math.min(WALKABLE.maxX, Math.max(WALKABLE.minX, x)),
-    z: Math.min(WALKABLE.maxZ, Math.max(WALKABLE.minZ, z)),
-  };
+/** Walking is constrained to the centreline; x is derived only from z. */
+export function clampToWalkable(_x: number, z: number) {
+  const safeZ = Math.max(WALKABLE.minZ, Math.min(WALKABLE.maxZ, z));
+  return { x: pathCenterX(safeZ), z: safeZ };
 }
 
 const clampPitch = (p: number) => Math.max(-TUNING.pitchDown, Math.min(TUNING.pitchUp, p));
@@ -112,42 +107,36 @@ export function stepWalker(dt: number) {
     return;
   }
 
-  const k = walker.keys;
-  let fwd = 0;
-  let side = 0;
-  if (k.has("KeyW") || k.has("ArrowUp")) fwd += 1;
-  if (k.has("KeyS") || k.has("ArrowDown")) fwd -= 1;
-  if (k.has("KeyD")) side += 1;
-  if (k.has("KeyA")) side -= 1;
-  if (k.has("ArrowLeft")) walker.targetYaw += TUNING.turnSpeedKeys * dt;
-  if (k.has("ArrowRight")) walker.targetYaw -= TUNING.turnSpeedKeys * dt;
-  fwd += walker.pad;
+  const keys = walker.keys;
+  let forward = 0;
+  if (keys.has("KeyW") || keys.has("ArrowUp")) forward += 1;
+  if (keys.has("KeyS") || keys.has("ArrowDown")) forward -= 1;
+  forward += walker.pad;
 
+  // A/D and arrow keys rotate the head; they never shift the customer's walking lane.
+  if (keys.has("KeyA") || keys.has("ArrowLeft")) walker.targetYaw += TUNING.turnSpeedKeys * dt;
+  if (keys.has("KeyD") || keys.has("ArrowRight")) walker.targetYaw -= TUNING.turnSpeedKeys * dt;
   if (walker.steerX !== 0) walker.targetYaw -= walker.steerX * 2.2 * dt;
   if (walker.steerY !== 0) walker.targetPitch = clampPitch(walker.targetPitch - walker.steerY * 1.2 * dt);
 
-  if (fwd !== 0) walker.vel += (fwd * TUNING.walkSpeed - walker.vel) * Math.min(1, dt * 7);
-  else walker.vel *= Math.exp(-TUNING.damping * dt);
-  if (side !== 0) walker.strafe += (side * TUNING.walkSpeed * 0.8 - walker.strafe) * Math.min(1, dt * 7);
-  else walker.strafe *= Math.exp(-TUNING.damping * dt);
+  if (forward !== 0) {
+    walker.vel += (forward * TUNING.walkSpeed - walker.vel) * Math.min(1, dt * 7);
+  } else {
+    walker.vel *= Math.exp(-TUNING.damping * dt);
+  }
 
   walker.vel = Math.max(-TUNING.maxSpeed, Math.min(TUNING.maxSpeed, walker.vel));
   if (Math.abs(walker.vel) < 0.002) walker.vel = 0;
-  if (Math.abs(walker.strafe) < 0.002) walker.strafe = 0;
 
-  const a = 1 - Math.exp(-TUNING.lookDamping * dt);
-  walker.yaw += (walker.targetYaw - walker.yaw) * a;
-  walker.pitch += (walker.targetPitch - walker.pitch) * a;
+  const lookBlend = 1 - Math.exp(-TUNING.lookDamping * dt);
+  walker.yaw += (walker.targetYaw - walker.yaw) * lookBlend;
+  walker.pitch += (walker.targetPitch - walker.pitch) * lookBlend;
 
-  const fx = -Math.sin(walker.yaw);
-  const fz = -Math.cos(walker.yaw);
-  const rx = Math.cos(walker.yaw);
-  const rz = -Math.sin(walker.yaw);
-  const nx = walker.x + (fx * walker.vel + rx * walker.strafe) * dt;
-  const nz = walker.z + (fz * walker.vel + rz * walker.strafe) * dt;
-  const c = clampToWalkable(nx, nz);
-  walker.x = c.x;
-  walker.z = c.z;
+  // Body travel is independent from where the head is looking.
+  const nextZ = walker.z - walker.vel * dt;
+  const next = clampToWalkable(walker.x, nextZ);
+  walker.x = next.x;
+  walker.z = next.z;
 }
 
 /** Scroll up (negative deltaY) walks forward; scroll down walks backward. */
