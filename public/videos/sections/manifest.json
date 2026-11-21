@@ -15,123 +15,176 @@
   "sections": [
     {
       "id": "women-blazers",
-      "src": "/videos/sections/women-blazers.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/women-blazers.mp4",
+      "overviewSrc": "/videos/sections/women-blazers-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "women-trousers",
-      "src": "/videos/sections/women-trousers.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/women-trousers.mp4",
+      "overviewSrc": "/videos/sections/women-trousers-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "women-tshirts",
-      "src": "/videos/sections/women-tshirts.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/women-tshirts.mp4",
+      "overviewSrc": "/videos/sections/women-tshirts-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "women-shirts",
-      "src": "/videos/sections/women-shirts.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/women-shirts.mp4",
+      "overviewSrc": "/videos/sections/women-shirts-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "women-dresses",
-      "src": "/videos/sections/women-dresses.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/women-dresses.mp4",
+      "overviewSrc": "/videos/sections/women-dresses-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "women-jeans",
-      "src": "/videos/sections/women-jeans.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/women-jeans.mp4",
+      "overviewSrc": "/videos/sections/women-jeans-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "women-ethnic",
-      "src": "/videos/sections/women-ethnic.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/women-ethnic.mp4",
+      "overviewSrc": "/videos/sections/women-ethnic-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "women-skirts",
-      "src": "/videos/sections/women-skirts.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/women-skirts.mp4",
+      "overviewSrc": "/videos/sections/women-skirts-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "women-jackets",
-      "src": "/videos/sections/women-jackets.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/women-jackets.mp4",
+      "overviewSrc": "/videos/sections/women-jackets-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "women-innerwear",
-      "src": "/videos/sections/women-innerwear.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/women-innerwear.mp4",
+      "overviewSrc": "/videos/sections/women-innerwear-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "women-shoes",
-      "src": "/videos/sections/women-shoes.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/women-shoes.mp4",
+      "overviewSrc": "/videos/sections/women-shoes-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "women-handbags",
-      "src": "/videos/sections/women-handbags.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/women-handbags.mp4",
+      "overviewSrc": "/videos/sections/women-handbags-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "women-accessories",
-      "src": "/videos/sections/women-accessories.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/women-accessories.mp4",
+      "overviewSrc": "/videos/sections/women-accessories-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "men-blazers",
-      "src": "/videos/sections/men-blazers.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/men-blazers.mp4",
+      "overviewSrc": "/videos/sections/men-blazers-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "men-trousers",
-      "src": "/videos/sections/men-trousers.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/men-trousers.mp4",
+      "overviewSrc": "/videos/sections/men-trousers-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "men-tshirts",
-      "src": "/videos/sections/men-tshirts.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/men-tshirts.mp4",
+      "overviewSrc": "/videos/sections/men-tshirts-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "men-shirts",
-      "src": "/videos/sections/men-shirts.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/men-shirts.mp4",
+      "overviewSrc": "/videos/sections/men-shirts-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "men-jeans",
-      "src": "/videos/sections/men-jeans.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/men-jeans.mp4",
+      "overviewSrc": "/videos/sections/men-jeans-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "men-kurtas",
-      "src": "/videos/sections/men-kurtas.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/men-kurtas.mp4",
+      "overviewSrc": "/videos/sections/men-kurtas-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "men-jackets",
-      "src": "/videos/sections/men-jackets.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/men-jackets.mp4",
+      "overviewSrc": "/videos/sections/men-jackets-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "men-innerwear",
-      "src": "/videos/sections/men-innerwear.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/men-innerwear.mp4",
+      "overviewSrc": "/videos/sections/men-innerwear-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "men-accessories",
-      "src": "/videos/sections/men-accessories.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/men-accessories.mp4",
+      "overviewSrc": "/videos/sections/men-accessories-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "men-shoes",
-      "src": "/videos/sections/men-shoes.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/men-shoes.mp4",
+      "overviewSrc": "/videos/sections/men-shoes-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     },
     {
       "id": "men-watches",
-      "src": "/videos/sections/men-watches.mp4",
-      "status": "awaiting-video"
+      "campaignSrc": "/videos/sections/men-watches.mp4",
+      "overviewSrc": "/videos/sections/men-watches-overview.mp4",
+      "campaignStatus": "awaiting-video",
+      "overviewStatus": "awaiting-video"
     }
-  ]
+  ],
+  "roof": {
+    "src": "/videos/galaxy-ceiling.mp4",
+    "status": "awaiting-video",
+    "use": "Optional curved galaxy-canopy film; procedural blue-galaxy shader is used until imported."
+  }
 }
