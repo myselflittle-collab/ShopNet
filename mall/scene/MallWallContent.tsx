@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
-import { HALF_W, MALL } from "@/lib/config/mall";
+import { HALF_W, MALL, pathCenterX, pathYawAt } from "@/lib/config/mall";
 
 const CAMPAIGNS = [
   {
@@ -151,8 +151,8 @@ function WallCampaignBoard({ index, side, z }: { index: number; side: 1 | -1; z:
     return () => next.dispose();
   }, [index]);
 
-  const x = side * (HALF_W - 0.16);
-  const rotationY = side === -1 ? Math.PI / 2 : -Math.PI / 2;
+  const x = pathCenterX(z) + side * (HALF_W - 0.16);
+  const rotationY = (side === -1 ? Math.PI / 2 : -Math.PI / 2) + pathYawAt(z);
 
   return (
     <group position={[x, 2.32, z]} rotation-y={rotationY}>
