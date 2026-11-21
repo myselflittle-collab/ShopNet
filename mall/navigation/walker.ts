@@ -81,10 +81,10 @@ export function tweenTo(to: Pose, dur: number, onDone?: () => void, ease = easeI
   walker.tween = { from: getPose(), to, start: performance.now(), dur, ease, onDone };
 }
 
-/** Keeps the walker inside the corridor. */
-export function clampToWalkable(x: number, z: number) {
+/** Walking is constrained to the exact centreline of the footpath. */
+export function clampToWalkable(_x: number, z: number) {
   return {
-    x: Math.min(WALKABLE.maxX, Math.max(WALKABLE.minX, x)),
+    x: 0,
     z: Math.min(WALKABLE.maxZ, Math.max(WALKABLE.minZ, z)),
   };
 }
@@ -114,13 +114,11 @@ export function stepWalker(dt: number) {
 
   const k = walker.keys;
   let fwd = 0;
-  let side = 0;
   if (k.has("KeyW") || k.has("ArrowUp")) fwd += 1;
   if (k.has("KeyS") || k.has("ArrowDown")) fwd -= 1;
-  if (k.has("KeyD")) side += 1;
-  if (k.has("KeyA")) side -= 1;
-  if (k.has("ArrowLeft")) walker.targetYaw += TUNING.turnSpeedKeys * dt;
-  if (k.has("ArrowRight")) walker.targetYaw -= TUNING.turnSpeedKeys * dt;
+  // A/D and left/right arrows rotate the head; they never move the body sideways.
+  if (k.has("KeyA") || k.has("ArrowLeft")) walker.targetYaw += TUNING.turnSpeedKeys * dt;
+  if (k.has("KeyD") || k.has("ArrowRight")) walker.targetYaw -= TUNING.turnSpeedKeys * dt;
   fwd += walker.pad;
 
   if (walker.steerX !== 0) walker.targetYaw -= walker.steerX * 2.2 * dt;
@@ -128,24 +126,19 @@ export function stepWalker(dt: number) {
 
   if (fwd !== 0) walker.vel += (fwd * TUNING.walkSpeed - walker.vel) * Math.min(1, dt * 7);
   else walker.vel *= Math.exp(-TUNING.damping * dt);
-  if (side !== 0) walker.strafe += (side * TUNING.walkSpeed * 0.8 - walker.strafe) * Math.min(1, dt * 7);
-  else walker.strafe *= Math.exp(-TUNING.damping * dt);
+  // The customer's body never strafes away from the centreline.
+  walker.strafe = 0;
 
   walker.vel = Math.max(-TUNING.maxSpeed, Math.min(TUNING.maxSpeed, walker.vel));
   if (Math.abs(walker.vel) < 0.002) walker.vel = 0;
-  if (Math.abs(walker.strafe) < 0.002) walker.strafe = 0;
 
   const a = 1 - Math.exp(-TUNING.lookDamping * dt);
   walker.yaw += (walker.targetYaw - walker.yaw) * a;
   walker.pitch += (walker.targetPitch - walker.pitch) * a;
 
-  const fx = -Math.sin(walker.yaw);
-  const fz = -Math.cos(walker.yaw);
-  const rx = Math.cos(walker.yaw);
-  const rz = -Math.sin(walker.yaw);
-  const nx = walker.x + (fx * walker.vel + rx * walker.strafe) * dt;
-  const nz = walker.z + (fz * walker.vel + rz * walker.strafe) * dt;
-  const c = clampToWalkable(nx, nz);
+  // Travel follows the mall axis (-Z), independently from the direction the customer looks.
+  const nz = walker.z - walker.vel * dt;
+  const c = clampToWalkable(0, nz);
   walker.x = c.x;
   walker.z = c.z;
 }
