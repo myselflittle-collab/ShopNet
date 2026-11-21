@@ -99,6 +99,7 @@ export function returnToMall() {
       openState.id = null;
       openState.value = 0;
       useMallStore.getState().setMode("walking");
+      useMallStore.getState().setLookMode("steer");
     },
     easeInOutCubic,
   );
