@@ -79,7 +79,7 @@ export function Hud() {
 
       {!welcome && ready && walking && !coarse && lookMode === "idle" && (
         <button type="button" className="resume-look" onClick={() => lookBridge.lock()}>
-          Resume camera control
+          Resume free-look · double-click to pause
         </button>
       )}
 
