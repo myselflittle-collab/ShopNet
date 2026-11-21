@@ -4,7 +4,7 @@ import { create } from "zustand";
 import type { Pose } from "@/mall/navigation/walker";
 
 export type MallMode = "walking" | "opening" | "shop" | "returning";
-/** how looking around works right now: idle = mouse free (click to start), locked = mouse captured, steer = fallback, touch */
+/** idle = look frozen; steer/touch = free-look active. No pointer-lock state is used. */
 export type LookMode = "idle" | "locked" | "steer" | "touch";
 
 interface MallState {
