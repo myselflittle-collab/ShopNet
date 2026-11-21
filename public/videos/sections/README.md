@@ -71,3 +71,18 @@ ShopNet/
 ```
 
 The mall requests a section video when the visitor approaches that section's screen. The video is muted, loops, and pauses when the visitor moves away or the tab is hidden.
+
+
+## Animated LCD text sequence
+
+Every section LCD plays its matching MP4 underneath a transparent animated text layer. The sequence follows the video time and repeats on the 8-second campaign loop:
+
+- **0–3 seconds:** large animated section name.
+- **3–6 seconds:** the name moves into a smaller heading; two section-specific lines appear with a typewriter effect.
+- **6–8 seconds:** a section-specific collection/offer headline appears with a horizontally moving ticker.
+
+The 24 distinct text sets are defined in `mall/sections/SectionVideoPanel.tsx` in the `CAMPAIGNS` object. You can edit each section's `title`, `lineOne`, `lineTwo`, `offerTitle`, and `offerTicker` there.
+
+The current ticker messages promote collection themes and styling ideas. They deliberately do not claim a discount, price reduction, or limited-time sale that has not been configured. Add real discount amounts only after the actual promotion has been decided.
+
+The animated overlay is drawn only while the visitor is within the screen's viewing range and updates at a limited rate to avoid unnecessarily rendering all 24 overlays continuously.
