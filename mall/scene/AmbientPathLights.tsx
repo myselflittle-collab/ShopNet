@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { BAY_FRONT_X, MALL } from "@/lib/config/mall";
+import { MALL } from "@/lib/config/mall";
 
 const VERTEX = `
 varying vec2 vUv;
@@ -55,25 +55,21 @@ export function AmbientPathLights() {
 
   const len = MALL.length + MALL.entranceZ + 4;
   const zMid = (MALL.entranceZ + 4 - MALL.length) / 2;
-  const offsets = [-0.23, -0.08, 0.08, 0.23];
+  // Four evenly spaced longitudinal ribbons, parallel to the centreline and fully inside the footpath.
+  const offsets = [-0.98, -0.33, 0.33, 0.98];
 
   return (
     <group>
-      {([-1, 1] as const).flatMap((side) =>
-        offsets.map((offset, index) => {
-          const material = materials[index];
-          return (
-            <mesh
-              key={`${side}-${offset}`}
-              rotation-x={-Math.PI / 2}
-              position={[side * (BAY_FRONT_X + offset), 0.018 + index * 0.001, zMid]}
-            >
-              <planeGeometry args={[0.055, len]} />
-              <primitive object={material} attach="material" />
-            </mesh>
-          );
-        }),
-      )}
+      {offsets.map((offset, index) => (
+        <mesh
+          key={offset}
+          rotation-x={-Math.PI / 2}
+          position={[offset, 0.018 + index * 0.001, zMid]}
+        >
+          <planeGeometry args={[0.055, len]} />
+          <primitive object={materials[index]} attach="material" />
+        </mesh>
+      ))}
     </group>
   );
 }
