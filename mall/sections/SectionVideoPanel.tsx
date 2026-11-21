@@ -44,7 +44,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "women-trousers": {
     style: "fit-blueprint",
     title: "FIND YOUR LINE",
-    eyebrow: "FIT STUDY Nº 02  /  WOMEN",
+    eyebrow: "WOMEN'S TROUSERS  /  FIT STUDY Nº 02",
     lineOne: "A silhouette that moves with you.",
     lineTwo: "Precision in every proportion.",
     offerTitle: "THE PERFECT-FIT SELECTION",
@@ -55,7 +55,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "women-tshirts": {
     style: "pop-art-playful",
     title: "TEE YOUR OWN WAY",
-    eyebrow: "THE EVERYDAY DROP",
+    eyebrow: "WOMEN'S T-SHIRTS  /  THE EVERYDAY DROP",
     lineOne: "A little colour. A lot of character.",
     lineTwo: "Make the everyday anything but ordinary.",
     offerTitle: "FRESH FITS, FRESH MOOD",
@@ -66,7 +66,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "women-shirts": {
     style: "swiss-shirt-catalogue",
     title: "THE MODERN SHIRT",
-    eyebrow: "WARDROBE STUDY  /  04",
+    eyebrow: "WOMEN'S SHIRTS  /  WARDROBE STUDY Nº 04",
     lineOne: "An essential, reconsidered.",
     lineTwo: "Clean lines for wherever the day goes.",
     offerTitle: "THE SHIRTING COLLECTION",
@@ -77,7 +77,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "women-dresses": {
     style: "romantic-runway",
     title: "MAKE AN ENTRANCE",
-    eyebrow: "THE OCCASION EDIT",
+    eyebrow: "WOMEN'S DRESSES  /  THE OCCASION EDIT",
     lineOne: "For moments that deserve a little more.",
     lineTwo: "Find the feeling before you find the dress.",
     offerTitle: "DRESS FOR THE MOMENT",
@@ -88,7 +88,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "women-jeans": {
     style: "denim-patchwork",
     title: "MADE TO MOVE",
-    eyebrow: "DENIM DEPARTMENT  /  WOMEN",
+    eyebrow: "WOMEN'S JEANS  /  DENIM DEPARTMENT",
     lineOne: "Your favourite fit starts here.",
     lineTwo: "Find your wash. Find your own way.",
     offerTitle: "THE DENIM ARCHIVE",
@@ -99,7 +99,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "women-ethnic": {
     style: "heritage-textile",
     title: "ROOTED IN BEAUTY",
-    eyebrow: "THE CRAFT & CELEBRATION EDIT",
+    eyebrow: "WOMEN'S ETHNIC WEAR  /  CRAFT & CELEBRATION",
     lineOne: "A meeting of colour, craft and culture.",
     lineTwo: "Tradition, interpreted in your own style.",
     offerTitle: "THE CELEBRATION COLLECTION",
@@ -110,7 +110,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "women-skirts": {
     style: "kinetic-skirt",
     title: "LET IT FLOW",
-    eyebrow: "MOVEMENT IN FORM  /  08",
+    eyebrow: "WOMEN'S SKIRTS  /  MOVEMENT IN FORM Nº 08",
     lineOne: "A little movement changes everything.",
     lineTwo: "Play with length, shape and proportion.",
     offerTitle: "THE MOVEMENT EDIT",
@@ -121,7 +121,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "women-jackets": {
     style: "utility-layering",
     title: "LAYER WITH INTENT",
-    eyebrow: "OUTERWEAR FIELD NOTES  /  09",
+    eyebrow: "WOMEN'S JACKETS  /  OUTERWEAR FIELD NOTES Nº 09",
     lineOne: "The layer that changes the whole look.",
     lineTwo: "Utility, shape and attitude in one move.",
     offerTitle: "THE OUTER LAYER INDEX",
@@ -132,7 +132,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "women-innerwear": {
     style: "soft-luxe",
     title: "COMFORT, CLOSE TO YOU",
-    eyebrow: "THE FEEL-GOOD FOUNDATION",
+    eyebrow: "WOMEN'S INNERWEAR  /  THE FEEL-GOOD FOUNDATION",
     lineOne: "The best style begins with how you feel.",
     lineTwo: "Soft essentials, made for your everyday.",
     offerTitle: "THE COMFORT COLLECTION",
@@ -143,7 +143,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "women-shoes": {
     style: "runway-motion",
     title: "STEP INTO YOUR MOMENT",
-    eyebrow: "THE SHOE ROOM  /  WOMEN",
+    eyebrow: "WOMEN'S SHOES  /  THE SHOE ROOM",
     lineOne: "The finishing touch has its own point of view.",
     lineTwo: "Find the pair that takes you somewhere.",
     offerTitle: "THE NEW-SEASON SHOE EDIT",
@@ -154,7 +154,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "women-handbags": {
     style: "house-luxury",
     title: "CARRY YOUR SIGNATURE",
-    eyebrow: "OBJECTS OF DESIRE  /  12",
+    eyebrow: "WOMEN'S HANDBAGS  /  OBJECTS OF DESIRE Nº 12",
     lineOne: "A beautiful detail, carried every day.",
     lineTwo: "Find the shape that feels unmistakably yours.",
     offerTitle: "THE HANDBAG SALON",
@@ -165,7 +165,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "women-accessories": {
     style: "jewel-specimen",
     title: "THE ART OF THE DETAIL",
-    eyebrow: "CURATED OBJECTS  /  WOMEN",
+    eyebrow: "WOMEN'S ACCESSORIES  /  CURATED OBJECTS",
     lineOne: "Small pieces. A very personal statement.",
     lineTwo: "Layer, pair and make the look your own.",
     offerTitle: "THE FINISHING TOUCHES",
@@ -187,7 +187,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "men-trousers": {
     style: "precision-trouser",
     title: "THE RIGHT PROPORTION",
-    eyebrow: "GARMENT SPECIFICATION  /  15",
+    eyebrow: "MEN'S TROUSERS  /  GARMENT SPECIFICATION Nº 15",
     lineOne: "The right fit changes everything.",
     lineTwo: "Ease through the day, without losing the line.",
     offerTitle: "THE TROUSER STUDY",
@@ -198,7 +198,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "men-tshirts": {
     style: "streetwear-type",
     title: "NO UNIFORM. JUST YOU.",
-    eyebrow: "OFF-DUTY DEPARTMENT  /  16",
+    eyebrow: "MEN'S T-SHIRTS  /  OFF-DUTY DEPARTMENT Nº 16",
     lineOne: "Make room for your own point of view.",
     lineTwo: "Everyday pieces. Unexpected energy.",
     offerTitle: "THE STREET-READY DROP",
@@ -209,7 +209,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "men-shirts": {
     style: "oxford-minimal",
     title: "ALWAYS WELL PUT",
-    eyebrow: "THE SHIRTING OFFICE  /  17",
+    eyebrow: "MEN'S SHIRTS  /  THE SHIRTING OFFICE Nº 17",
     lineOne: "Show up sharp, whatever the occasion.",
     lineTwo: "Classic layers with a modern point of view.",
     offerTitle: "THE SHARP-DRESSING EDIT",
@@ -220,7 +220,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "men-jeans": {
     style: "raw-denim",
     title: "WORN YOUR WAY",
-    eyebrow: "DENIM WORKSHOP  /  18",
+    eyebrow: "MEN'S JEANS  /  DENIM WORKSHOP Nº 18",
     lineOne: "Denim built around your everyday.",
     lineTwo: "Find the wash and fit that feels right.",
     offerTitle: "THE DENIM WORKSHOP",
@@ -231,7 +231,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "men-kurtas": {
     style: "modern-heritage",
     title: "A NEW KIND OF TRADITION",
-    eyebrow: "THE MODERN HERITAGE ROOM",
+    eyebrow: "MEN'S KURTAS  /  THE MODERN HERITAGE ROOM",
     lineOne: "Heritage details. A distinctly modern feel.",
     lineTwo: "Find your look for every celebration.",
     offerTitle: "THE CONTEMPORARY KURTA EDIT",
@@ -242,7 +242,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "men-jackets": {
     style: "urban-techwear",
     title: "BUILT FOR WHAT'S NEXT",
-    eyebrow: "URBAN OUTERWEAR  /  20",
+    eyebrow: "MEN'S JACKETS  /  URBAN OUTERWEAR Nº 20",
     lineOne: "Function meets a fearless silhouette.",
     lineTwo: "Make every layer part of the plan.",
     offerTitle: "THE OUTERWEAR SYSTEM",
@@ -253,7 +253,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "men-innerwear": {
     style: "quiet-comfort",
     title: "START WITH COMFORT",
-    eyebrow: "THE EVERYDAY FOUNDATION",
+    eyebrow: "MEN'S INNERWEAR  /  THE EVERYDAY FOUNDATION",
     lineOne: "Comfort is not an extra.",
     lineTwo: "It's where every good day begins.",
     offerTitle: "THE DAILY ESSENTIALS",
@@ -264,7 +264,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "men-accessories": {
     style: "industrial-spec",
     title: "DETAILS WITH PURPOSE",
-    eyebrow: "EQUIPMENT FOR EVERYDAY  /  22",
+    eyebrow: "MEN'S ACCESSORIES  /  EQUIPMENT FOR EVERYDAY Nº 22",
     lineOne: "The details are what make the look.",
     lineTwo: "Discover the pieces that feel like you.",
     offerTitle: "THE PERSONAL KIT",
@@ -275,7 +275,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "men-shoes": {
     style: "athletic-motion",
     title: "GO YOUR OWN WAY",
-    eyebrow: "THE FOOTWEAR DEPARTMENT  /  23",
+    eyebrow: "MEN'S SHOES  /  THE FOOTWEAR DEPARTMENT",
     lineOne: "Every step says something about your style.",
     lineTwo: "Find the pair for wherever you're headed.",
     offerTitle: "THE FOOTWEAR SELECTION",
@@ -286,7 +286,7 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   "men-watches": {
     style: "horology",
     title: "TIME, WELL SPENT",
-    eyebrow: "THE WATCH ROOM  /  24",
+    eyebrow: "MEN'S WATCHES  /  THE WATCH ROOM Nº 24",
     lineOne: "Make every moment part of your style.",
     lineTwo: "Discover the detail that stands the test of time.",
     offerTitle: "THE TIMEPIECE COLLECTION",
@@ -345,6 +345,10 @@ function drawText(
   ctx.globalAlpha *= alpha;
   ctx.font = `${weight} ${size}px ${font}`;
   ctx.fillStyle = color;
+  ctx.shadowColor = "rgba(0,0,0,0.34)";
+  ctx.shadowBlur = 5;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 1;
   ctx.textAlign = align;
   ctx.textBaseline = "alphabetic";
   ctx.fillText(text, x, y, maxWidth);
@@ -460,13 +464,11 @@ function drawCampaignOverlay(
 ) {
   const t = ((elapsed % CAMPAIGN_SECONDS) + CAMPAIGN_SECONDS) % CAMPAIGN_SECONDS;
   const titleP = easeOut(t / 0.68);
-  const copyP = easeInOut((t - campaign.copyStart) / 0.55);
   const copyOne = clamp01((t - campaign.copyStart - 0.24) / 0.9);
   const copyTwo = clamp01((t - campaign.copyStart - 0.86) / 1.0);
   const alphaOffer = easeOut((t - campaign.offerStart) / 0.36);
   const cx = width / 2;
   const cy = height / 2;
-  const bottom = height - 34;
   const a = campaign.accent;
   const s = campaign.secondary;
   const ink = campaign.ink;
