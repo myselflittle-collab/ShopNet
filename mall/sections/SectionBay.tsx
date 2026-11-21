@@ -25,7 +25,7 @@ function SectionBayImpl({ s, quality }: { s: PlacedSection; quality: MallQuality
   const centreX = BAY_INNER.centreX(s);
   const rearX = s.side * (HALF_W - 0.13);
   const d = MALL.bayDepth;
-  const wallpaper = useMemo(() => getStoreWallpaper(s.gender, s.id, quality), [s.gender, s.id]);
+  const wallpaper = useMemo(() => getStoreWallpaper(s.gender, s.id, quality), [s.gender, s.id, quality]);
   const stone = useMemo(() => getPolishedStoneTexture(quality), [quality]);
 
   const sign = useMemo(
