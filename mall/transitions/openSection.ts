@@ -3,7 +3,7 @@ import { useMallStore } from "@/lib/bridge/mallStore";
 import { lookBridge } from "@/lib/bridge/lookBridge";
 import { transitionOrigin } from "@/lib/bridge/transitionBridge";
 import { SECTION_BY_ID, sectionHref, viewingPose, type PlacedSection } from "@/lib/config/sections";
-import { MALL } from "@/lib/config/mall";
+import { MALL, pathCenterX } from "@/lib/config/mall";
 import { easeInOutCubic, easeInOutSine, getPose, setPose, tweenTo, walker } from "@/mall/navigation/walker";
 import { openState } from "./openState";
 
@@ -31,7 +31,7 @@ export function registerTransitionCamera(cam: THREE.Camera, w: number, h: number
 function displayScreenPoint(s: PlacedSection) {
   if (!camRef) return { x: sizeRef.w / 2, y: sizeRef.h / 2 };
   camRef.updateMatrixWorld();
-  const p = new THREE.Vector3(s.side * (MALL.width / 2 - 1.8), 1.35, s.cz).project(camRef);
+  const p = new THREE.Vector3(pathCenterX(s.cz) + s.side * (MALL.width / 2 - 1.8), 1.35, s.cz).project(camRef);
   return { x: (p.x * 0.5 + 0.5) * sizeRef.w, y: (-p.y * 0.5 + 0.5) * sizeRef.h };
 }
 
