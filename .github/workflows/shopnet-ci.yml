@@ -11,6 +11,7 @@ on:
       - fix/welcome-camera-look-guidance
       - fix/camera-hint-and-video-import
       - fix/video-playback-and-hint-hide
+      - feature/animated-section-lcd-campaigns
   pull_request:
     branches:
       - main
