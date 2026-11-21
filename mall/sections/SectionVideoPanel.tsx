@@ -51,15 +51,16 @@ function hasVideoSlot(id: string, limit: number) {
   return nearest.some(([candidateId]) => candidateId === id);
 }
 
-function createTitleCanvas(section: PlacedSection, kind: ScreenKind) {
+function createTitleCanvas(section: PlacedSection, kind: ScreenKind, quality: MallQuality) {
   const canvas = document.createElement("canvas");
-  canvas.width = 600;
-  canvas.height = 450;
+  canvas.width = quality === "low" ? 384 : quality === "balanced" ? 512 : 600;
+  canvas.height = quality === "low" ? 288 : quality === "balanced" ? 384 : 450;
   const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
 
   // Draw in the original 900x675 design coordinate system at a smaller texture size.
-  const textureScale = canvas.width / 900;\n  ctx.scale(textureScale, textureScale);
+  const textureScale = canvas.width / 900;
+  ctx.scale(textureScale, textureScale);
   const shade = ctx.createLinearGradient(0, 400, 0, 675);
   shade.addColorStop(0, "rgba(0,0,0,0)");
   shade.addColorStop(1, "rgba(0,0,0,0.78)");
