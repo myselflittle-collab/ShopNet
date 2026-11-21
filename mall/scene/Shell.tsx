@@ -33,7 +33,7 @@ function makeCurvedFloor(width: number, zStart: number, zEnd: number, across = 2
       const b = a + 1;
       const c = a + row;
       const d = c + 1;
-      indices.push(a, c, b, b, c, d);
+      indices.push(a, b, c, b, d, c);
     }
   }
   const geometry = new THREE.BufferGeometry();
