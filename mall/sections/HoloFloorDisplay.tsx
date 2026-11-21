@@ -120,7 +120,7 @@ export function HoloFloorDisplay({ section }: { section: PlacedSection }) {
   }, [texture, borderMaterial]);
 
   useFrame((_, dt) => {
-    texture.offset.y = (texture.offset.y - dt * 0.052) % 1;
+    texture.offset.y = (texture.offset.y + dt * 0.052) % 1;
     borderMaterial.opacity = 0.55 + Math.sin(performance.now() * 0.0015) * 0.16;
   });
 
