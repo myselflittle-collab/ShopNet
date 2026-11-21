@@ -8,6 +8,7 @@ on:
       - fix/immersive-mall-rework
       - restore/first-running-lights
       - feature/centerline-camera-doubletap
+      - fix/welcome-camera-look-guidance
   pull_request:
     branches:
       - main
