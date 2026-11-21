@@ -12,6 +12,7 @@ on:
       - fix/camera-hint-and-video-import
       - fix/video-playback-and-hint-hide
       - feature/animated-section-lcd-campaigns
+      - feature/unique-lcd-art-direction
   pull_request:
     branches:
       - main
