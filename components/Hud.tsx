@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useMallStore } from "@/lib/bridge/mallStore";
-import { lookBridge } from "@/lib/bridge/lookBridge";
 import { cartCount, useShopStore } from "@/lib/bridge/shopStore";
 import { SECTION_BY_ID } from "@/lib/config/sections";
 import { walker } from "@/mall/navigation/walker";
@@ -28,7 +27,6 @@ export function Hud() {
 
   const enterMall = () => {
     setWelcome(false);
-    lookBridge.lock();
   };
 
   const pad = (v: number) => ({
@@ -76,12 +74,6 @@ export function Hud() {
           </>
         )}
       </div>
-
-      {!welcome && ready && walking && !coarse && lookMode === "idle" && (
-        <button type="button" className="resume-look" onClick={() => lookBridge.lock()}>
-          Resume camera control
-        </button>
-      )}
 
       <header className={`hud-top ${hidden || welcome ? "is-hidden" : ""}`}>
         <Link href="/" className="font-display text-[20px] tracking-[0.28em]">SHOPNET</Link>
