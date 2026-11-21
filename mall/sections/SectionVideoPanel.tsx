@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { PlacedSection } from "@/lib/config/sections";
-import { HALF_W } from "@/lib/config/mall";
+import { HALF_W, MALL } from "@/lib/config/mall";
+
+type ScreenKind = "wall" | "overview";
 
 const VIDEO_SLOGANS: Record<string, string> = {
   "women-blazers": "OWN THE ROOM",
@@ -47,16 +49,16 @@ void main() {
   vec2 uv = vUv;
   float wave = 0.5 + 0.5 * sin(uv.y * 5.8 - uTime * 0.34 + sin(uv.x * 7.0) * 1.6);
   float sweep = exp(-abs(uv.x - fract(uTime * 0.035 + uv.y * 0.18)) * 18.0);
-  vec3 a = vec3(0.055, 0.075, 0.11);
-  vec3 b = vec3(0.34, 0.21, 0.17);
-  vec3 c = vec3(0.63, 0.43, 0.27);
+  vec3 a = vec3(0.025, 0.055, 0.09);
+  vec3 b = vec3(0.14, 0.25, 0.32);
+  vec3 c = vec3(0.42, 0.27, 0.46);
   vec3 color = mix(a, b, smoothstep(0.12, 0.88, wave));
-  color = mix(color, c, sweep * 0.32);
+  color = mix(color, c, sweep * 0.38);
   color += 0.035 * sin(uTime * 0.18 + uv.y * 10.0);
   gl_FragColor = vec4(color, 1.0);
 }`;
 
-function createTitleCanvas(section: PlacedSection) {
+function createTitleCanvas(section: PlacedSection, kind: ScreenKind, width: number, height: number) {
   const canvas = document.createElement("canvas");
   canvas.width = 900;
   canvas.height = 675;
@@ -74,7 +76,7 @@ function createTitleCanvas(section: PlacedSection) {
   ctx.fillStyle = "#edcf9c";
   ctx.font = "600 22px Arial, sans-serif";
   ctx.letterSpacing = "7px";
-  ctx.fillText("SHOPNET  /  SECTION FILM", 48, 58);
+  ctx.fillText(kind === "overview" ? "SHOPNET  /  STORE OVERVIEW" : "SHOPNET  /  SECTION FILM", 48, 58);
 
   ctx.fillStyle = "#fff8ef";
   ctx.font = "500 58px Georgia, serif";
@@ -87,7 +89,7 @@ function createTitleCanvas(section: PlacedSection) {
   return canvas;
 }
 
-function SectionVideoScreen({ section }: { section: PlacedSection }) {
+function SectionVideoScreen({ section, kind }: { section: PlacedSection; kind: ScreenKind }) {
   const camera = useThree((state) => state.camera);
   const group = useRef<THREE.Group>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -109,14 +111,18 @@ function SectionVideoScreen({ section }: { section: PlacedSection }) {
 
   useEffect(() => () => fallbackMaterial.dispose(), [fallbackMaterial]);
 
+  const isOverview = kind === "overview";
+  const width = isOverview ? 2.5 : 3.08;
+  const height = isOverview ? 1.62 : 2.5;
+
   useEffect(() => {
-    const canvas = createTitleCanvas(section);
+    const canvas = createTitleCanvas(section, kind, width, height);
     const next = new THREE.CanvasTexture(canvas);
     next.colorSpace = THREE.SRGBColorSpace;
     next.needsUpdate = true;
     setTitleTexture(next);
     return () => next.dispose();
-  }, [section.id, section.label]);
+  }, [section.id, section.label, kind, width, height]);
 
   useEffect(() => {
     const video = document.createElement("video");
@@ -159,7 +165,7 @@ function SectionVideoScreen({ section }: { section: PlacedSection }) {
       texture.dispose();
       videoRef.current = null;
     };
-  }, []);
+  }, [kind, section.id]);
 
   useFrame((_, dt) => {
     fallbackMaterial.uniforms.uTime.value += dt;
@@ -170,11 +176,13 @@ function SectionVideoScreen({ section }: { section: PlacedSection }) {
     parent.updateWorldMatrix(true, false);
     const screenPosition = parent.getWorldPosition(new THREE.Vector3());
     const cameraPosition = camera.getWorldPosition(new THREE.Vector3());
-    const inRange = screenPosition.distanceTo(cameraPosition) < 17 && !document.hidden;
+    const inRange = screenPosition.distanceTo(cameraPosition) < (isOverview ? 14 : 17) && !document.hidden;
 
     if (inRange && !failed) {
       if (!video.src) {
-        video.src = `/videos/sections/${section.id}.mp4`;
+        video.src = kind === "overview"
+          ? `/videos/sections/${section.id}-overview.mp4`
+          : `/videos/sections/${section.id}.mp4`;
         video.load();
       }
       if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.paused) {
@@ -185,17 +193,21 @@ function SectionVideoScreen({ section }: { section: PlacedSection }) {
     }
   });
 
-  const x = section.side * (HALF_W - 0.205);
-  const rotationY = section.side === -1 ? Math.PI / 2 : -Math.PI / 2;
+  const x = isOverview
+    ? section.side * (HALF_W - MALL.bayDepth / 2)
+    : section.side * (HALF_W - 0.205);
+  const z = isOverview ? section.z1 + 0.13 : section.cz;
+  const y = isOverview ? 2.08 : 2.04;
+  const rotationY = isOverview ? 0 : section.side === -1 ? Math.PI / 2 : -Math.PI / 2;
 
   return (
-    <group ref={group} position={[x, 2.04, section.cz]} rotation-y={rotationY}>
+    <group ref={group} position={[x, y, z]} rotation-y={rotationY}>
       <mesh position={[0, 0, -0.06]}>
-        <boxGeometry args={[3.24, 2.68, 0.13]} />
-        <meshStandardMaterial color="#171512" metalness={0.62} roughness={0.28} />
+        <boxGeometry args={[width + 0.16, height + 0.18, 0.13]} />
+        <meshStandardMaterial color="#171512" metalness={0.72} roughness={0.22} />
       </mesh>
       <mesh position={[0, 0, 0.012]}>
-        <planeGeometry args={[3.08, 2.5]} />
+        <planeGeometry args={[width, height]} />
         {playing && frameReady && !failed && videoTexture ? (
           <meshBasicMaterial map={videoTexture} toneMapped={false} />
         ) : (
@@ -204,24 +216,24 @@ function SectionVideoScreen({ section }: { section: PlacedSection }) {
       </mesh>
       {!(playing && frameReady) && titleTexture && (
         <mesh position={[0, 0, 0.02]}>
-          <planeGeometry args={[3.08, 2.5]} />
+          <planeGeometry args={[width, height]} />
           <meshBasicMaterial map={titleTexture} transparent toneMapped={false} />
         </mesh>
       )}
       {[-1, 1].map((side) => (
-        <mesh key={side} position={[side * 1.61, 0, 0.018]}>
-          <boxGeometry args={[0.035, 2.7, 0.035]} />
+        <mesh key={side} position={[side * (width / 2 + 0.035), 0, 0.018]}>
+          <boxGeometry args={[0.035, height + 0.2, 0.035]} />
           <meshStandardMaterial color="#e7c68f" emissive="#d8ad69" emissiveIntensity={0.8} metalness={0.68} roughness={0.24} />
         </mesh>
       ))}
-      <mesh position={[0, 1.36, 0.018]}>
-        <boxGeometry args={[3.24, 0.035, 0.035]} />
+      <mesh position={[0, height / 2 + 0.09, 0.018]}>
+        <boxGeometry args={[width + 0.16, 0.035, 0.035]} />
         <meshStandardMaterial color="#e7c68f" emissive="#d8ad69" emissiveIntensity={0.65} metalness={0.68} roughness={0.24} />
       </mesh>
     </group>
   );
 }
 
-export function SectionVideoPanel({ section }: { section: PlacedSection }) {
-  return <SectionVideoScreen section={section} />;
+export function SectionVideoPanel({ section, kind = "wall" }: { section: PlacedSection; kind?: ScreenKind }) {
+  return <SectionVideoScreen section={section} kind={kind} />;
 }
