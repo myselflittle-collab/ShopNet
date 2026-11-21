@@ -5,6 +5,8 @@ import * as THREE from "three";
 import { BAY_FRONT_X, HALF_W, MALL } from "@/lib/config/mall";
 import { makeLabelTexture } from "./labelTexture";
 import { getPolishedStoneTexture, getStoreWallpaper } from "./materialTextures";
+import { StarryCeiling } from "./StarryCeiling";
+import { MallWallContent } from "./MallWallContent";
 
 const FLOOR = "#d7d0c5";
 const CORRIDOR = "#c7beb0";
@@ -48,12 +50,6 @@ export function Shell() {
     [signs],
   );
 
-  const lightStrips = useMemo(() => {
-    const out: number[] = [];
-    for (let z = MALL.entranceZ; z > -MALL.length; z -= 4) out.push(z - 2);
-    return out;
-  }, []);
-
   return (
     <group>
       {/* floor */}
@@ -66,16 +62,13 @@ export function Shell() {
         <planeGeometry args={[BAY_FRONT_X * 2 - 0.4, len]} />
         <meshStandardMaterial map={stone ?? undefined} color={CORRIDOR} roughness={0.22} metalness={0.12} />
       </mesh>
-      {/* ceiling */}
-      <mesh rotation-x={Math.PI / 2} position={[0, MALL.ceiling, zMid]}>
-        <planeGeometry args={[MALL.width, len]} />
-        <meshStandardMaterial color={CEIL} roughness={1} />
-      </mesh>
-      {/* architectural ceiling lights over the walkway */}
-      {lightStrips.map((z) => (
-        <mesh key={z} position={[0, MALL.ceiling - 0.02, z]}>
-          <boxGeometry args={[1.6, 0.03, 0.25]} />
-          <meshStandardMaterial color="#ffffff" emissive="#fff6e6" emissiveIntensity={1.5} />
+      {/* live star ceiling replaces the blank roof and harsh fluorescent bars */}
+      <StarryCeiling width={MALL.width} length={len} zMid={zMid} height={MALL.ceiling - 0.012} />
+      {/* warm gold perimeter coves frame the sky */}
+      {([-1, 1] as const).map((side) => (
+        <mesh key={side} position={[side * (HALF_W - 0.12), MALL.ceiling - 0.025, zMid]}>
+          <boxGeometry args={[0.055, 0.04, len - 0.5]} />
+          <meshStandardMaterial color="#f4d9a6" emissive="#d6a969" emissiveIntensity={0.75} metalness={0.55} roughness={0.3} />
         </mesh>
       ))}
       {/* warm recessed cove lighting above both retail walls */}
@@ -105,6 +98,8 @@ export function Shell() {
           <meshStandardMaterial map={wallFinish ?? undefined} color={WALL} roughness={0.82} />
         </mesh>
       ))}
+      {/* campaign, offer and mall-information boards cover the long corridor walls */}
+      <MallWallContent />
       {/* far end wall */}
       <mesh position={[0, MALL.ceiling / 2, -MALL.length - 0.1]}>
         <boxGeometry args={[MALL.width, MALL.ceiling, 0.2]} />
