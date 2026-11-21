@@ -87,7 +87,7 @@ function createTickerTexture(section: PlacedSection, quality: MallQuality) {
         line = word;
       } else line = next;
     }
-    if (line) ctx.fillText(line, 256, lineY, 430);
+    if (line) ctx.fillText(line, w / 2, lineY * sy, w - 32);
     ctx.fillStyle = "#6beaff";
     ctx.font = "700 22px Arial";
     ctx.letterSpacing = "2px";
