@@ -489,7 +489,7 @@ function drawCampaignOverlay(
       drawText(ctx, "A STUDY IN", 54, 103, 200, 12, "Arial, sans-serif", s, "left", 600);
       drawText(ctx, campaign.title, 54, 151, 520, 39, "Georgia, serif", s, "left", 500);
       ctx.restore();
-      if (copyP > 0) {
+      if (copyOne > 0 || copyTwo > 0) {
         drawText(ctx, campaign.lineOne, 55, 352, 440, 17, "Arial, sans-serif", s, "left", 500, copyOne);
         drawText(ctx, campaign.lineTwo, 55, 379, 440, 15, "Arial, sans-serif", s, "left", 400, copyTwo);
       }
