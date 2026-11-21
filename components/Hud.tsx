@@ -11,7 +11,6 @@ import { walker } from "@/mall/navigation/walker";
 export function Hud() {
   const ready = useMallStore((s) => s.ready);
   const mode = useMallStore((s) => s.mode);
-  const lookMode = useMallStore((s) => s.lookMode);
   const hoveredId = useMallStore((s) => s.hoveredId);
   const bag = useShopStore(cartCount);
   const [coarse, setCoarse] = useState(false);
