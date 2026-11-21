@@ -11,6 +11,7 @@ import { SectionBay } from "./sections/SectionBay";
 import { Controls } from "./navigation/Controls";
 import { HoverController } from "./interaction/HoverController";
 import { HoverLight } from "./interaction/HoverLight";
+import { AmbientPathLights } from "./scene/AmbientPathLights";
 
 function ReadySignal() {
   const done = useRef(false);
@@ -40,6 +41,7 @@ export default function MallCanvas() {
     >
       <Lighting />
       <Shell />
+      <AmbientPathLights />
       {SECTIONS.map((s) => (
         <SectionBay key={s.id} s={s} />
       ))}
