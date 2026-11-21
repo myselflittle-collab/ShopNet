@@ -35,8 +35,9 @@ const VIDEO_POSTERS: Record<string, string> = {
 
 function makeFallbackTexture(section: PlacedSection) {
   const canvas = document.createElement("canvas");
+  // 16:9 fallback artwork matches the Google Flow campaign videos.
   canvas.width = 900;
-  canvas.height = 675;
+  canvas.height = 506;
   const ctx = canvas.getContext("2d");
   if (!ctx) return new THREE.CanvasTexture(canvas);
 
@@ -70,25 +71,29 @@ function makeFallbackTexture(section: PlacedSection) {
   }
   ctx.restore();
 
-  const shade = ctx.createLinearGradient(0, 390, 0, 675);
+  const shade = ctx.createLinearGradient(0, 290, 0, 506);
   shade.addColorStop(0, "rgba(0,0,0,0)");
   shade.addColorStop(1, "rgba(0,0,0,0.76)");
   ctx.fillStyle = shade;
-  ctx.fillRect(0, 0, 900, 675);
+  ctx.fillRect(0, 0, 900, 506);
   ctx.fillStyle = "#e9c994";
   ctx.font = "600 21px Arial";
   ctx.letterSpacing = "7px";
   ctx.fillText("SHOPNET  /  SECTION FILM", 48, 58);
   ctx.fillStyle = "#fff8ee";
   ctx.font = "500 58px Georgia";
-  ctx.fillText(VIDEO_POSTERS[section.id] ?? section.label.toUpperCase(), 48, 560, 800);
+  ctx.fillText(VIDEO_POSTERS[section.id] ?? section.label.toUpperCase(), 48, 414, 800);
   ctx.fillStyle = "#e9c994";
   ctx.font = "500 18px Arial";
   ctx.letterSpacing = "5px";
-  ctx.fillText("NEW SEASON  ·  DISCOVER THE COLLECTION", 50, 610);
+  ctx.fillText("NEW SEASON  ·  DISCOVER THE COLLECTION", 50, 462);
   return canvas;
 }
 
+const SCREEN_WIDTH = 3.08;
+const SCREEN_HEIGHT = (SCREEN_WIDTH * 9) / 16;
+const FRAME_WIDTH = 3.24;
+const FRAME_HEIGHT = SCREEN_HEIGHT + 0.18;
 function VideoScreen({ section }: { section: PlacedSection }) {
   const camera = useThree((state) => state.camera);
   const group = useRef<THREE.Group>(null);
@@ -171,21 +176,21 @@ function VideoScreen({ section }: { section: PlacedSection }) {
   return (
     <group ref={group} position={[x, 2.04, section.cz]} rotation-y={rotationY}>
       <mesh position={[0, 0, -0.06]}>
-        <boxGeometry args={[3.24, 2.68, 0.13]} />
+        <boxGeometry args={[FRAME_WIDTH, FRAME_HEIGHT, 0.13]} />
         <meshStandardMaterial color="#171512" metalness={0.62} roughness={0.28} />
       </mesh>
       <mesh position={[0, 0, 0.012]}>
-        <planeGeometry args={[3.08, 2.5]} />
+        <planeGeometry args={[SCREEN_WIDTH, SCREEN_HEIGHT]} />
         <meshBasicMaterial map={frameReady && !failed && videoTexture ? videoTexture : fallback} toneMapped={false} />
       </mesh>
       {[-1, 1].map((side) => (
-        <mesh key={side} position={[side * 1.61, 0, 0.018]}>
-          <boxGeometry args={[0.035, 2.7, 0.035]} />
+        <mesh key={side} position={[side * (FRAME_WIDTH / 2 - 0.015), 0, 0.018]}>
+          <boxGeometry args={[0.035, FRAME_HEIGHT + 0.02, 0.035]} />
           <meshStandardMaterial color="#e7c68f" emissive="#d8ad69" emissiveIntensity={0.8} metalness={0.68} roughness={0.24} />
         </mesh>
       ))}
-      <mesh position={[0, 1.36, 0.018]}>
-        <boxGeometry args={[3.24, 0.035, 0.035]} />
+      <mesh position={[0, SCREEN_HEIGHT / 2 + 0.09, 0.018]}>
+        <boxGeometry args={[FRAME_WIDTH, 0.035, 0.035]} />
         <meshStandardMaterial color="#e7c68f" emissive="#d8ad69" emissiveIntensity={0.65} metalness={0.68} roughness={0.24} />
       </mesh>
     </group>
