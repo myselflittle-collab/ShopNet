@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { pathCenterX } from "@/lib/config/mall";
@@ -154,6 +154,9 @@ export function StarryCeiling({
   rise?: number;
 }) {
   const geometry = useMemo(() => createVaultGeometry(width, length, zMid, height, rise), [width, length, zMid, height, rise]);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [videoTexture, setVideoTexture] = useState<THREE.VideoTexture | null>(null);
+  const [videoPlaying, setVideoPlaying] = useState(false);
   const material = useMemo(
     () => new THREE.ShaderMaterial({
       uniforms: { uTime: { value: 0 } },
@@ -166,9 +169,62 @@ export function StarryCeiling({
     [],
   );
 
+  useEffect(() => {
+    const video = document.createElement("video");
+    video.src = "/videos/galaxy-ceiling.mp4";
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.setAttribute("muted", "");
+    video.setAttribute("playsinline", "");
+    videoRef.current = video;
+
+    const texture = new THREE.VideoTexture(video);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.generateMipmaps = false;
+    setVideoTexture(texture);
+
+    const onPlaying = () => setVideoPlaying(true);
+    const onPause = () => setVideoPlaying(false);
+    const onError = () => setVideoPlaying(false);
+    video.addEventListener("playing", onPlaying);
+    video.addEventListener("pause", onPause);
+    video.addEventListener("error", onError);
+    video.load();
+
+    return () => {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+      video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("pause", onPause);
+      video.removeEventListener("error", onError);
+      texture.dispose();
+      videoRef.current = null;
+    };
+  }, []);
+
   useFrame((_, dt) => {
     material.uniforms.uTime.value += dt;
+    const video = videoRef.current;
+    if (!video) return;
+    if (!document.hidden && !video.error && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.paused) {
+      void video.play().catch(() => setVideoPlaying(false));
+    } else if (document.hidden && !video.paused) {
+      video.pause();
+    }
   });
 
-  return <mesh geometry={geometry} material={material} />;
+  return (
+    <mesh geometry={geometry}>
+      {videoPlaying && videoTexture ? (
+        <meshBasicMaterial map={videoTexture} side={THREE.DoubleSide} toneMapped={false} />
+      ) : (
+        <primitive object={material} attach="material" />
+      )}
+    </mesh>
+  );
 }
