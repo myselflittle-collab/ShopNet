@@ -1,4 +1,4 @@
-import { HALF_W, MALL } from "./mall";
+import { HALF_W, MALL, pathCenterX, pathYawAt } from "./mall";
 
 export type Gender = "women" | "men";
 export type FixtureKind = "rack" | "shelves" | "table" | "cabinet";
@@ -64,7 +64,8 @@ function place(list: SectionDef[], side: 1 | -1): PlacedSection[] {
     const z0 = z;
     const z1 = z - s.width;
     z = z1;
-    return { ...s, z0, z1, cz: (z0 + z1) / 2, cx: side * (HALF_W - MALL.bayDepth), side };
+    const cz = (z0 + z1) / 2;
+    return { ...s, z0, z1, cz, cx: pathCenterX(cz) + side * (HALF_W - MALL.bayDepth), side };
   });
 }
 
@@ -84,8 +85,9 @@ export function sectionHref(s: SectionDef): string {
 
 /** Where the camera stands to look straight into a bay (used for the open animation and deep links). */
 export function viewingPose(s: PlacedSection) {
-  const standX = s.side * (HALF_W - MALL.bayDepth - 1.1);
+  const standX = pathCenterX(s.cz) + s.side * (HALF_W - MALL.bayDepth - 1.1);
   // yaw 0 looks toward -z; looking toward +x (right) is yaw -PI/2, toward -x (left) is +PI/2
-  const yaw = s.side === 1 ? -Math.PI / 2 : Math.PI / 2;
+  const worldYaw = s.side === 1 ? -Math.PI / 2 : Math.PI / 2;
+  const yaw = worldYaw - pathYawAt(s.cz);
   return { x: standX, z: s.cz, yaw, pitch: -0.05 };
 }
