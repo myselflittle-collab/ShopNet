@@ -384,6 +384,13 @@ input:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 2px;
   opacity: 0.92;
   transition: opacity 180ms ease, border-color 180ms ease, background 180ms ease;
 }
+/* Explicit higher-specificity hide rule: the base hint opacity must not override is-hidden. */
+.camera-look-hint.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .camera-look-hint.is-active {
   border-color: rgb(99 217 255 / 0.62);
   background: rgb(7 35 49 / 0.84);
