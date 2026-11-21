@@ -7,7 +7,6 @@ import { sectionByRoute } from "@/lib/config/sections";
 import { catalog } from "@/lib/catalog/mockCatalog";
 import type { Product } from "@/lib/catalog/types";
 import { cartCount, useShopStore } from "@/lib/bridge/shopStore";
-import { lookBridge } from "@/lib/bridge/lookBridge";
 import { transitionOrigin } from "@/lib/bridge/transitionBridge";
 import { activeCount, applyFilters, EMPTY_FILTERS, type FilterState, type SortKey, SORTS } from "./filters";
 import { Filters } from "./components/Filters";
@@ -61,8 +60,6 @@ export function ShopOverlay({ gender, category }: { gender: string; category: st
     setPhase("closing");
     transitionOrigin.closedBySelf = true;
     useMallStore.getState().setShopVisible(false);
-    // pointer lock must be requested inside the click, so ask for it now; the mall applies it when it is ready
-    lookBridge.lock();
     setTimeout(() => router.push("/", { scroll: false }), CLOSE_MS);
   }, [phase, router]);
 
