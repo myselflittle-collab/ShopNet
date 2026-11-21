@@ -162,7 +162,7 @@ function SectionVideoScreen({
     parent.getWorldPosition(screenPosition);
     camera.getWorldPosition(cameraPosition);
     const distance = screenPosition.distanceTo(cameraPosition);
-    const inRange = !document.hidden && distance < limits.videoDistance;
+    const inRange = !document.hidden && !failed && distance < limits.videoDistance;
     registerCandidate(videoId, inRange ? distance : Number.POSITIVE_INFINITY);
 
     const wantsPlayback = inRange && !failed && hasVideoSlot(videoId, limits.maxVideoPlayers);
