@@ -105,7 +105,7 @@ export function Shell({ quality }: { quality: MallQuality }) {
   const rightCove = useMemo(() => makeCoveCurve(1, zStart, zEnd, MALL.ceiling - 0.08, along), [zStart, zEnd, along]);
 
   const stone = useMemo(() => getPolishedStoneTexture(quality), [quality]);
-  const wallFinish = useMemo(() => getStoreWallpaper("men", "mall-outer-wall", quality), []);
+  const wallFinish = useMemo(() => getStoreWallpaper("men", "mall-outer-wall", quality), [quality]);
 
   const signs = useMemo(() => {
     const women = makeLabelTexture([{ text: "WOMEN", size: 64, weight: 700, letterSpacing: 18 }], {
