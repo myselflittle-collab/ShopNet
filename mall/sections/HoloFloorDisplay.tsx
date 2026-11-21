@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { PlacedSection } from "@/lib/config/sections";
 import { BAY_FRONT_X } from "@/lib/config/mall";
+import type { MallQuality } from "@/mall/performance/quality";
 
 const SLOGANS: Record<string, string> = {
   "women-blazers": "OWN THE ROOM",
@@ -33,26 +34,30 @@ const SLOGANS: Record<string, string> = {
   "men-watches": "MAKE EVERY MOMENT COUNT",
 };
 
-function createTickerTexture(section: PlacedSection) {
+function createTickerTexture(section: PlacedSection, quality: MallQuality) {
   const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 1024;
+  canvas.width = quality === "high" ? 384 : 256;
+  canvas.height = quality === "high" ? 768 : 512;
   const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
 
   // Transparent canvas preserves the stone colour and grain below the hologram.
-  const glow = ctx.createRadialGradient(256, 512, 30, 256, 512, 430);
+  const w = canvas.width;
+  const h = canvas.height;
+  const sx = w / 512;
+  const sy = h / 1024;
+  const glow = ctx.createRadialGradient(w / 2, h / 2, 30 * sx, w / 2, h / 2, 430 * sx);
   glow.addColorStop(0, "rgba(33,201,255,0.16)");
   glow.addColorStop(1, "rgba(33,201,255,0)");
   ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, 512, 1024);
+  ctx.fillRect(0, 0, w, h);
 
   ctx.strokeStyle = "rgba(105,232,255,0.8)";
   ctx.lineWidth = 5;
-  ctx.strokeRect(20, 20, 472, 984);
+  ctx.strokeRect(10 * sx, 10 * sy, 492 * sx, 1004 * sy);
   ctx.strokeStyle = "rgba(192,246,255,0.28)";
   ctx.lineWidth = 2;
-  ctx.strokeRect(34, 34, 444, 956);
+  ctx.strokeRect(17 * sx, 17 * sy, 478 * sx, 990 * sy);
 
   const title = section.label.toUpperCase();
   const slogan = SLOGANS[section.id] ?? "FIND YOUR STYLE";
@@ -68,7 +73,7 @@ function createTickerTexture(section: PlacedSection) {
     ctx.fillStyle = "rgba(150,242,255,0.95)";
     ctx.font = "600 22px Arial";
     ctx.letterSpacing = "5px";
-    ctx.fillText(block.eyebrow, 256, y, 430);
+    ctx.fillText(block.eyebrow, w / 2, y * sy, w - 32);
     ctx.fillStyle = "#f4fcff";
     ctx.font = "600 40px Georgia";
     const words = block.main.split(" ");
@@ -77,7 +82,7 @@ function createTickerTexture(section: PlacedSection) {
     for (const word of words) {
       const next = line ? line + " " + word : word;
       if (ctx.measureText(next).width > 420 && line) {
-        ctx.fillText(line, 256, lineY, 430);
+        ctx.fillText(line, w / 2, lineY * sy, w - 32);
         lineY += 48;
         line = word;
       } else line = next;
@@ -86,28 +91,28 @@ function createTickerTexture(section: PlacedSection) {
     ctx.fillStyle = "#6beaff";
     ctx.font = "700 22px Arial";
     ctx.letterSpacing = "2px";
-    ctx.fillText(block.note, 256, y + 180, 430);
+    ctx.fillText(block.note, w / 2, (y + 180) * sy, w - 32);
     if (index < blocks.length - 1) {
       ctx.strokeStyle = "rgba(108,226,255,0.42)";
       ctx.beginPath();
-      ctx.moveTo(86, y + 240);
-      ctx.lineTo(426, y + 240);
+      ctx.moveTo(43 * sx, (y + 240) * sy);
+      ctx.lineTo(469 * sx, (y + 240) * sy);
       ctx.stroke();
     }
   });
   return canvas;
 }
 
-export function HoloFloorDisplay({ section }: { section: PlacedSection }) {
+export function HoloFloorDisplay({ section, quality }: { section: PlacedSection; quality: MallQuality }) {
   const texture = useMemo(() => {
-    const canvas = createTickerTexture(section);
+    const canvas = createTickerTexture(section, quality);
     const next = new THREE.CanvasTexture(canvas);
     next.colorSpace = THREE.SRGBColorSpace;
     next.wrapT = THREE.RepeatWrapping;
-    next.anisotropy = 8;
+    next.anisotropy = quality === "high" ? 4 : 1;
     next.needsUpdate = true;
     return next;
-  }, [section.id, section.label, section.gender]);
+  }, [section.id, section.label, section.gender, quality]);
 
   const borderMaterial = useMemo(
     () => new THREE.MeshBasicMaterial({ color: "#62eaff", transparent: true, opacity: 0.76 }),
