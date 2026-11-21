@@ -99,6 +99,31 @@ void main() {
   gl_FragColor = vec4(sky, 1.0);
 }`;
 
+const FAST_FRAGMENT = `
+uniform float uTime;
+varying vec2 vUv;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
+void main() {
+  vec2 uv = vUv;
+  vec2 p = uv - vec2(0.5, 0.5);
+  float r = length(p);
+  float a = atan(p.y, p.x) + log(r + 0.08) * 3.2;
+  float arm = pow(max(0.0, 0.5 + 0.5 * cos(a * 3.0 - uTime * 0.012)), 3.0);
+  float cloud = 0.5 + 0.5 * sin(uv.x * 9.0 + sin(uv.y * 7.0 + uTime * 0.012));
+  float core = exp(-r * 7.0);
+  vec3 sky = vec3(0.003, 0.009, 0.035);
+  sky += vec3(0.015, 0.16, 0.58) * arm * cloud * exp(-r * 2.0) * 1.8;
+  sky += vec3(0.0, 0.43, 0.86) * core * 0.42;
+  sky += vec3(0.25, 0.07, 0.48) * arm * exp(-r * 2.6) * 0.42;
+  vec2 cell = floor(uv * vec2(120.0, 360.0));
+  vec2 local = fract(uv * vec2(120.0, 360.0)) - 0.5;
+  float seed = hash(cell);
+  float star = 1.0 - smoothstep(0.012, 0.045, length(local));
+  float twinkle = 0.76 + 0.24 * sin(uTime * (0.8 + seed * 1.8) + seed * 40.0);
+  sky += vec3(0.58, 0.82, 1.0) * star * step(0.88, seed) * twinkle * 1.8;
+  gl_FragColor = vec4(sky, 1.0);
+}
+`;
 function createVaultGeometry(width: number, length: number, zMid: number, height: number, rise: number, across: number, along: number) {
   const positions: number[] = [];
   const uvs: number[] = [];
@@ -152,8 +177,14 @@ export function StarryCeiling({
   zMid: number;
   height: number;
   rise?: number;
+  quality: MallQuality;
 }) {
-  const geometry = useMemo(() => createVaultGeometry(width, length, zMid, height, rise), [width, length, zMid, height, rise]);
+  const across = quality === "low" ? 18 : quality === "balanced" ? 30 : 44;
+  const along = quality === "low" ? 64 : quality === "balanced" ? 100 : 144;
+  const geometry = useMemo(
+    () => createVaultGeometry(width, length, zMid, height, rise, across, along),
+    [width, length, zMid, height, rise, across, along],
+  );
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [videoTexture, setVideoTexture] = useState<THREE.VideoTexture | null>(null);
   const [videoPlaying, setVideoPlaying] = useState(false);
