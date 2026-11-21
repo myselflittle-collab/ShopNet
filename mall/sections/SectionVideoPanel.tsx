@@ -6,105 +6,116 @@ import * as THREE from "three";
 import type { PlacedSection } from "@/lib/config/sections";
 import { HALF_W } from "@/lib/config/mall";
 
-const VIDEO_POSTERS: Record<string, string> = {
-  "women-blazers": "WOMEN'S TAILORING",
-  "women-trousers": "THE PERFECT FIT",
-  "women-tshirts": "EVERYDAY ESSENTIALS",
-  "women-shirts": "THE NEW CLASSICS",
-  "women-dresses": "DRESSED TO SHINE",
-  "women-jeans": "DENIM, REDEFINED",
-  "women-ethnic": "CRAFTED TRADITION",
-  "women-skirts": "MOVE WITH GRACE",
-  "women-jackets": "LAYER YOUR LOOK",
-  "women-innerwear": "COMFORT, FIRST",
-  "women-shoes": "STEP INTO STYLE",
-  "women-handbags": "CARRY YOUR STORY",
-  "women-accessories": "THE FINISHING TOUCH",
-  "men-blazers": "TAILORED CONFIDENCE",
-  "men-trousers": "MADE TO MOVE",
-  "men-tshirts": "THE DAILY UNIFORM",
-  "men-shirts": "SHARP BY NATURE",
-  "men-jeans": "DENIM ESSENTIALS",
-  "men-kurtas": "A MODERN HERITAGE",
-  "men-jackets": "BUILT FOR LAYERS",
-  "men-innerwear": "COMFORT, EVERY DAY",
-  "men-accessories": "DETAILS MATTER",
-  "men-shoes": "EVERY STEP COUNTS",
-  "men-watches": "TIMELESS DESIGN",
+const VIDEO_SLOGANS: Record<string, string> = {
+  "women-blazers": "OWN THE ROOM",
+  "women-trousers": "FIND YOUR PERFECT FIT",
+  "women-tshirts": "MAKE EVERYDAY ICONIC",
+  "women-shirts": "CONFIDENCE IN EVERY DETAIL",
+  "women-dresses": "MAKE AN ENTRANCE",
+  "women-jeans": "MOVE IN YOUR OWN WAY",
+  "women-ethnic": "CELEBRATE YOUR ROOTS",
+  "women-skirts": "LET YOUR STYLE FLOW",
+  "women-jackets": "LAYER ON CONFIDENCE",
+  "women-innerwear": "COMFORT IS YOUR POWER",
+  "women-shoes": "TAKE EVERY STEP BOLDLY",
+  "women-handbags": "CARRY WHAT MOVES YOU",
+  "women-accessories": "MAKE THE LOOK YOURS",
+  "men-blazers": "DRESS LIKE YOU MEAN IT",
+  "men-trousers": "MADE FOR YOUR NEXT MOVE",
+  "men-tshirts": "KEEP IT AUTHENTIC",
+  "men-shirts": "SHOW UP SHARP",
+  "men-jeans": "WRITE YOUR OWN RULES",
+  "men-kurtas": "TRADITION WITH ATTITUDE",
+  "men-jackets": "OWN EVERY SEASON",
+  "men-innerwear": "START WITH COMFORT",
+  "men-accessories": "THE DETAILS DEFINE YOU",
+  "men-shoes": "LEAVE YOUR MARK",
+  "men-watches": "MAKE EVERY MOMENT COUNT",
 };
 
-function makeFallbackTexture(section: PlacedSection) {
+const FALLBACK_VERTEX = `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+
+const FALLBACK_FRAGMENT = `
+uniform float uTime;
+varying vec2 vUv;
+void main() {
+  vec2 uv = vUv;
+  float wave = 0.5 + 0.5 * sin(uv.y * 5.8 - uTime * 0.34 + sin(uv.x * 7.0) * 1.6);
+  float sweep = exp(-abs(uv.x - fract(uTime * 0.035 + uv.y * 0.18)) * 18.0);
+  vec3 a = vec3(0.055, 0.075, 0.11);
+  vec3 b = vec3(0.34, 0.21, 0.17);
+  vec3 c = vec3(0.63, 0.43, 0.27);
+  vec3 color = mix(a, b, smoothstep(0.12, 0.88, wave));
+  color = mix(color, c, sweep * 0.32);
+  color += 0.035 * sin(uTime * 0.18 + uv.y * 10.0);
+  gl_FragColor = vec4(color, 1.0);
+}`;
+
+function createTitleCanvas(section: PlacedSection) {
   const canvas = document.createElement("canvas");
   canvas.width = 900;
   canvas.height = 675;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return new THREE.CanvasTexture(canvas);
+  if (!ctx) return canvas;
 
-  const women = section.gender === "women";
-  const g = ctx.createLinearGradient(0, 0, 900, 675);
-  if (women) {
-    g.addColorStop(0, "#1d1a1c");
-    g.addColorStop(0.55, "#8e7067");
-    g.addColorStop(1, "#d2b99f");
-  } else {
-    g.addColorStop(0, "#101820");
-    g.addColorStop(0.55, "#45545a");
-    g.addColorStop(1, "#aa9579");
-  }
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 900, 675);
-
-  ctx.save();
-  ctx.globalAlpha = 0.13;
-  ctx.fillStyle = "#f4e3c4";
-  ctx.beginPath();
-  ctx.ellipse(700, 220, 210, 310, -0.35, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "#f4e3c4";
-  ctx.lineWidth = 2;
-  for (let i = 0; i < 13; i++) {
-    ctx.beginPath();
-    ctx.moveTo(420 + i * 35, 0);
-    ctx.lineTo(100 + i * 35, 675);
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  const shade = ctx.createLinearGradient(0, 390, 0, 675);
+  const shade = ctx.createLinearGradient(0, 400, 0, 675);
   shade.addColorStop(0, "rgba(0,0,0,0)");
-  shade.addColorStop(1, "rgba(0,0,0,0.76)");
+  shade.addColorStop(1, "rgba(0,0,0,0.78)");
   ctx.fillStyle = shade;
   ctx.fillRect(0, 0, 900, 675);
-  ctx.fillStyle = "#e9c994";
-  ctx.font = "600 21px Arial";
+
+  ctx.fillStyle = "rgba(15,14,13,0.45)";
+  ctx.fillRect(0, 0, 900, 92);
+  ctx.fillStyle = "#edcf9c";
+  ctx.font = "600 22px Arial, sans-serif";
   ctx.letterSpacing = "7px";
   ctx.fillText("SHOPNET  /  SECTION FILM", 48, 58);
-  ctx.fillStyle = "#fff8ee";
-  ctx.font = "500 58px Georgia";
-  ctx.fillText(VIDEO_POSTERS[section.id] ?? section.label.toUpperCase(), 48, 560, 800);
-  ctx.fillStyle = "#e9c994";
-  ctx.font = "500 18px Arial";
-  ctx.letterSpacing = "5px";
-  ctx.fillText("NEW SEASON  ·  DISCOVER THE COLLECTION", 50, 610);
+
+  ctx.fillStyle = "#fff8ef";
+  ctx.font = "500 58px Georgia, serif";
+  ctx.fillText(section.label.toUpperCase(), 48, 548, 800);
+
+  ctx.fillStyle = "#edcf9c";
+  ctx.font = "600 19px Arial, sans-serif";
+  ctx.letterSpacing = "4px";
+  ctx.fillText(VIDEO_SLOGANS[section.id] ?? "DISCOVER YOUR STYLE", 50, 602, 800);
   return canvas;
 }
 
-function VideoScreen({ section }: { section: PlacedSection }) {
+function SectionVideoScreen({ section }: { section: PlacedSection }) {
   const camera = useThree((state) => state.camera);
   const group = useRef<THREE.Group>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [videoTexture, setVideoTexture] = useState<THREE.VideoTexture | null>(null);
+  const [titleTexture, setTitleTexture] = useState<THREE.CanvasTexture | null>(null);
   const [frameReady, setFrameReady] = useState(false);
   const [failed, setFailed] = useState(false);
-  const fallback = useMemo(() => {
-    const canvas = makeFallbackTexture(section);
-    const texture = new THREE.CanvasTexture(canvas instanceof HTMLCanvasElement ? canvas : document.createElement("canvas"));
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.needsUpdate = true;
-    return texture;
-  }, [section.id, section.label, section.gender]);
 
-  useEffect(() => () => fallback.dispose(), [fallback]);
+  const fallbackMaterial = useMemo(
+    () => new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 } },
+      vertexShader: FALLBACK_VERTEX,
+      fragmentShader: FALLBACK_FRAGMENT,
+      side: THREE.DoubleSide,
+    }),
+    [],
+  );
+
+  useEffect(() => () => fallbackMaterial.dispose(), [fallbackMaterial]);
+
+  useEffect(() => {
+    const canvas = createTitleCanvas(section);
+    const next = new THREE.CanvasTexture(canvas);
+    next.colorSpace = THREE.SRGBColorSpace;
+    next.needsUpdate = true;
+    setTitleTexture(next);
+    return () => next.dispose();
+  }, [section.id, section.label]);
 
   useEffect(() => {
     const video = document.createElement("video");
@@ -115,10 +126,12 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     video.setAttribute("muted", "");
     video.setAttribute("playsinline", "");
     videoRef.current = video;
+
     const texture = new THREE.VideoTexture(video);
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.minFilter = THREE.LinearFilter;
     texture.magFilter = THREE.LinearFilter;
+    texture.generateMipmaps = false;
     setVideoTexture(texture);
 
     const onReady = () => setFrameReady(true);
@@ -128,6 +141,7 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     };
     video.addEventListener("loadeddata", onReady);
     video.addEventListener("error", onError);
+
     return () => {
       video.pause();
       video.removeAttribute("src");
@@ -139,7 +153,8 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     };
   }, []);
 
-  useFrame(() => {
+  useFrame((_, dt) => {
+    fallbackMaterial.uniforms.uTime.value += dt;
     const video = videoRef.current;
     const parent = group.current;
     if (!video || !parent) return;
@@ -147,8 +162,7 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     parent.updateWorldMatrix(true, false);
     const screenPosition = parent.getWorldPosition(new THREE.Vector3());
     const cameraPosition = camera.getWorldPosition(new THREE.Vector3());
-    const distance = screenPosition.distanceTo(cameraPosition);
-    const inRange = distance < 23 && !document.hidden;
+    const inRange = screenPosition.distanceTo(cameraPosition) < 17 && !document.hidden;
 
     if (inRange && !failed) {
       if (!video.src) {
@@ -157,8 +171,6 @@ function VideoScreen({ section }: { section: PlacedSection }) {
       }
       if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.paused) {
         void video.play().catch(() => undefined);
-      } else if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA && video.error) {
-        setFailed(true);
       }
     } else if (!video.paused) {
       video.pause();
@@ -176,8 +188,18 @@ function VideoScreen({ section }: { section: PlacedSection }) {
       </mesh>
       <mesh position={[0, 0, 0.012]}>
         <planeGeometry args={[3.08, 2.5]} />
-        <meshBasicMaterial map={frameReady && !failed && videoTexture ? videoTexture : fallback} toneMapped={false} />
+        {frameReady && !failed && videoTexture ? (
+          <meshBasicMaterial map={videoTexture} toneMapped={false} />
+        ) : (
+          <primitive object={fallbackMaterial} attach="material" />
+        )}
       </mesh>
+      {!frameReady && titleTexture && (
+        <mesh position={[0, 0, 0.02]}>
+          <planeGeometry args={[3.08, 2.5]} />
+          <meshBasicMaterial map={titleTexture} transparent toneMapped={false} />
+        </mesh>
+      )}
       {[-1, 1].map((side) => (
         <mesh key={side} position={[side * 1.61, 0, 0.018]}>
           <boxGeometry args={[0.035, 2.7, 0.035]} />
@@ -193,5 +215,5 @@ function VideoScreen({ section }: { section: PlacedSection }) {
 }
 
 export function SectionVideoPanel({ section }: { section: PlacedSection }) {
-  return <VideoScreen section={section} />;
+  return <SectionVideoScreen section={section} />;
 }
