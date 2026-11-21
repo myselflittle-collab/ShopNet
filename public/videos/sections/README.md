@@ -1,10 +1,20 @@
-# ShopNet section videos
+# ShopNet video assets
 
-This folder contains the individual campaign films played on the video screen inside each 3D storefront.
+This folder supports three video groups: a curved galaxy canopy film, a campaign film for each storefront, and a store-overview film at the far end of each storefront.
 
-## Required filenames
+## 1. Galaxy canopy (optional)
 
-Import one video for each section using the exact filename:
+Import the galaxy video as:
+
+- `public/videos/galaxy-ceiling.mp4`
+
+The ceiling is a vaulted curved surface. This video is mapped across the full canopy and loops muted. Until it is present, a vivid animated blue/cyan/purple spiral-galaxy shader is used automatically.
+
+Recommended: 2560x1440 or 1920x1080, H.264 MP4, 24–30 fps, 12–25 seconds, no audio, slow nebula movement, dense stars, deep electric blue/cyan, purple and pink highlights. Keep the brightest spiral detail near the middle of the frame.
+
+## 2. Storefront campaign films
+
+These retain the existing wall-mounted LCD screen at the side wall of each store. Use the exact filenames:
 
 - `women-blazers.mp4`
 - `women-trousers.mp4`
@@ -31,25 +41,44 @@ Import one video for each section using the exact filename:
 - `men-shoes.mp4`
 - `men-watches.mp4`
 
-The corresponding screen is placed on that category's feature wall. The video starts muted and loops automatically when the visitor is within approximately 17 metres of the screen. It pauses when the visitor walks away or the browser tab is hidden.
+## 3. Store overview films
 
-## Recommended export settings
+Each store also has a separate, larger LCD at its far end. It is intended to explain the section, collection, current promotions, highlights and brand story. Use:
+
+- `women-blazers-overview.mp4`
+- `women-trousers-overview.mp4`
+- `women-tshirts-overview.mp4`
+- `women-shirts-overview.mp4`
+- `women-dresses-overview.mp4`
+- `women-jeans-overview.mp4`
+- `women-ethnic-overview.mp4`
+- `women-skirts-overview.mp4`
+- `women-jackets-overview.mp4`
+- `women-innerwear-overview.mp4`
+- `women-shoes-overview.mp4`
+- `women-handbags-overview.mp4`
+- `women-accessories-overview.mp4`
+- `men-blazers-overview.mp4`
+- `men-trousers-overview.mp4`
+- `men-tshirts-overview.mp4`
+- `men-shirts-overview.mp4`
+- `men-jeans-overview.mp4`
+- `men-kurtas-overview.mp4`
+- `men-jackets-overview.mp4`
+- `men-innerwear-overview.mp4`
+- `men-accessories-overview.mp4`
+- `men-shoes-overview.mp4`
+- `men-watches-overview.mp4`
+
+## Playback and export
 
 - Landscape 16:9.
-- 1920 × 1080 (1280 × 720 is acceptable for a smaller file).
-- MP4 / H.264 video, baseline or main profile.
-- 24–30 fps.
-- 8–15 seconds per seamless loop.
-- No audio track (autoplay is muted).
-- Aim for 3–8 MB per clip; use a lower bitrate if needed.
-- Keep the subject and text inside the central safe area so the screen crop does not cut them off.
+- 1920x1080 recommended; 1280x720 acceptable for smaller files.
+- MP4 / H.264, 24–30 fps.
+- 8–20 seconds for campaign loops; 20–45 seconds for overview films.
+- No audio track: autoplay is muted.
+- Use a slow editorial camera movement, fabric movement, model movement, or close-up product shots.
+- Keep essential text inside the central safe area; ShopNet's screens add section titles and branding.
+- Aim for 3–8 MB per short campaign; overview videos may be larger but should remain compressed.
 
-## Visual direction
-
-Generate one distinct campaign film per category, matching the collection shown by that storefront. Use a slow editorial camera move, fabric movement, model movement or product close-up. Avoid fast cuts, flashing and embedded captions; the screen itself adds the category title and ShopNet branding while the clip is loading.
-
-## Current behaviour before videos are imported
-
-The screens show a softly animated ShopNet campaign treatment with the category name. This is a temporary live graphic, not a static product photograph. Once the correctly named MP4 is placed in this folder, the screen automatically switches to that category's video when approached.
-
-The runtime video map is also recorded in `manifest.json`.
+Videos are loaded only when a visitor approaches a relevant screen and pause when the visitor leaves or switches browser tabs. The current code uses a separate fallback visual if a file is missing. The exact import map is recorded in `manifest.json`.
