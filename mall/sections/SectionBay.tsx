@@ -9,7 +9,7 @@ import { useMallStore } from "@/lib/bridge/mallStore";
 import { openState } from "@/mall/transitions/openState";
 import { makeLabelTexture } from "@/mall/scene/labelTexture";
 import { BAY_INNER } from "./geometry";
-import { SectionPhotoPanel } from "./SectionPhotoPanel";
+import { SectionVideoPanel } from "./SectionVideoPanel";
 import { getPolishedStoneTexture, getStoreWallpaper } from "@/mall/scene/materialTextures";
 
 const WALL_TONE = { women: "#e4dbd6", men: "#d8dbdf" } as const;
@@ -157,7 +157,7 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
       <group position={[0, 0, s.cz]}>
         <group ref={display}>
           <group position={[0, 0, -s.cz]}>
-            <SectionPhotoPanel section={s} />
+            <SectionVideoPanel section={s} />
           </group>
         </group>
       </group>
