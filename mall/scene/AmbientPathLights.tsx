@@ -66,7 +66,7 @@ export function AmbientPathLights() {
             <mesh
               key={`${side}-${offset}`}
               rotation-x={-Math.PI / 2}
-              position={[side * (BAY_FRONT_X + offset), 0.018 + index * 0.001, zMid]}
+              position={[side * (BAY_FRONT_X - 0.3 + offset), 0.018 + index * 0.001, zMid]}
             >
               <planeGeometry args={[0.055, len]} />
               <primitive object={material} attach="material" />
