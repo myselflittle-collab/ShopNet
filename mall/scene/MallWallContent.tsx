@@ -80,10 +80,11 @@ const CAMPAIGNS = [
 function makeCampaignTexture(index: number) {
   const item = CAMPAIGNS[index % CAMPAIGNS.length];
   const canvas = document.createElement("canvas");
-  canvas.width = 1200;
-  canvas.height = 520;
+  canvas.width = 800;
+  canvas.height = 347;
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
+  ctx.scale(2 / 3, 2 / 3);
 
   const gradient = ctx.createLinearGradient(0, 0, 1200, 520);
   gradient.addColorStop(0, item.palette[0]);
@@ -137,18 +138,27 @@ function makeCampaignTexture(index: number) {
   return canvas;
 }
 
+const CAMPAIGN_TEXTURE_CACHE = new Map<number, THREE.CanvasTexture>();
+
+function getCampaignTexture(index: number) {
+  const key = ((index % CAMPAIGNS.length) + CAMPAIGNS.length) % CAMPAIGNS.length;
+  const existing = CAMPAIGN_TEXTURE_CACHE.get(key);
+  if (existing) return existing;
+  const canvas = makeCampaignTexture(key);
+  if (!canvas) return null;
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 2;
+  texture.needsUpdate = true;
+  CAMPAIGN_TEXTURE_CACHE.set(key, texture);
+  return texture;
+}
+
 function WallCampaignBoard({ index, side, z }: { index: number; side: 1 | -1; z: number }) {
   const [texture, setTexture] = useState<THREE.CanvasTexture | null>(null);
 
   useEffect(() => {
-    const canvas = makeCampaignTexture(index);
-    if (!canvas) return;
-    const next = new THREE.CanvasTexture(canvas);
-    next.colorSpace = THREE.SRGBColorSpace;
-    next.anisotropy = 8;
-    next.needsUpdate = true;
-    setTexture(next);
-    return () => next.dispose();
+    setTexture(getCampaignTexture(index));
   }, [index]);
 
   const x = pathCenterX(z) + side * (HALF_W - 0.16);
