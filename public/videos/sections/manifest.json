@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "directory": "/videos/sections/",
+  "playback": {
+    "autoplay": true,
+    "muted": true,
+    "loop": true,
+    "playsInline": true,
+    "lazyLoadDistanceMeters": 17
+  },
+  "formats": [
+    ".mp4 (H.264) preferred",
+    ".webm (VP9) future enhancement"
+  ],
+  "sections": [
+    {
+      "id": "women-blazers",
+      "src": "/videos/sections/women-blazers.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "women-trousers",
+      "src": "/videos/sections/women-trousers.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "women-tshirts",
+      "src": "/videos/sections/women-tshirts.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "women-shirts",
+      "src": "/videos/sections/women-shirts.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "women-dresses",
+      "src": "/videos/sections/women-dresses.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "women-jeans",
+      "src": "/videos/sections/women-jeans.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "women-ethnic",
+      "src": "/videos/sections/women-ethnic.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "women-skirts",
+      "src": "/videos/sections/women-skirts.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "women-jackets",
+      "src": "/videos/sections/women-jackets.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "women-innerwear",
+      "src": "/videos/sections/women-innerwear.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "women-shoes",
+      "src": "/videos/sections/women-shoes.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "women-handbags",
+      "src": "/videos/sections/women-handbags.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "women-accessories",
+      "src": "/videos/sections/women-accessories.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "men-blazers",
+      "src": "/videos/sections/men-blazers.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "men-trousers",
+      "src": "/videos/sections/men-trousers.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "men-tshirts",
+      "src": "/videos/sections/men-tshirts.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "men-shirts",
+      "src": "/videos/sections/men-shirts.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "men-jeans",
+      "src": "/videos/sections/men-jeans.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "men-kurtas",
+      "src": "/videos/sections/men-kurtas.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "men-jackets",
+      "src": "/videos/sections/men-jackets.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "men-innerwear",
+      "src": "/videos/sections/men-innerwear.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "men-accessories",
+      "src": "/videos/sections/men-accessories.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "men-shoes",
+      "src": "/videos/sections/men-shoes.mp4",
+      "status": "awaiting-video"
+    },
+    {
+      "id": "men-watches",
+      "src": "/videos/sections/men-watches.mp4",
+      "status": "awaiting-video"
+    }
+  ]
+}
