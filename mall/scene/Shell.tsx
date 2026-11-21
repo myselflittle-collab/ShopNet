@@ -2,33 +2,116 @@
 
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { BAY_FRONT_X, HALF_W, MALL } from "@/lib/config/mall";
+import { BAY_FRONT_X, CORRIDOR_WIDTH, HALF_W, MALL, pathCenterX } from "@/lib/config/mall";
 import { makeLabelTexture } from "./labelTexture";
 import { getPolishedStoneTexture, getStoreWallpaper } from "./materialTextures";
 import { StarryCeiling } from "./StarryCeiling";
 import { MallWallContent } from "./MallWallContent";
 
-const FLOOR = "#d7d0c5";
-const CORRIDOR = "#c7beb0";
-const WALL = "#e7e4de";
+const FLOOR = "#59616b";
+const CORRIDOR = "#333b46";
+const WALL = "#27323d";
 
-/** Greybox architecture: floor, ceiling, outer walls, end wall, entrance frame and zone signs. */
+function makeCurvedFloor(width: number, zStart: number, zEnd: number, across = 22, along = 180) {
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  for (let j = 0; j <= along; j++) {
+    const v = j / along;
+    const z = zStart + (zEnd - zStart) * v;
+    const centre = pathCenterX(z);
+    for (let i = 0; i <= across; i++) {
+      const u = i / across;
+      positions.push(centre + (u - 0.5) * width, 0.002, z);
+      uvs.push(u, v);
+    }
+  }
+  const row = across + 1;
+  for (let j = 0; j < along; j++) {
+    for (let i = 0; i < across; i++) {
+      const a = j * row + i;
+      const b = a + 1;
+      const c = a + row;
+      const d = c + 1;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function makeCurvedSideWall(side: 1 | -1, zStart: number, zEnd: number, height: number) {
+  const along = 180;
+  const vertical = 5;
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  for (let j = 0; j <= along; j++) {
+    const v = j / along;
+    const z = zStart + (zEnd - zStart) * v;
+    const x = pathCenterX(z) + side * (HALF_W - 0.06);
+    for (let i = 0; i <= vertical; i++) {
+      const u = i / vertical;
+      positions.push(x, u * height, z);
+      uvs.push(v * 2, u);
+    }
+  }
+  const row = vertical + 1;
+  for (let j = 0; j < along; j++) {
+    for (let i = 0; i < vertical; i++) {
+      const a = j * row + i;
+      const b = a + 1;
+      const c = a + row;
+      const d = c + 1;
+      indices.push(a, b, c, b, d, c);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function makeCoveCurve(side: 1 | -1, zStart: number, zEnd: number, y: number) {
+  const points: THREE.Vector3[] = [];
+  for (let i = 0; i <= 90; i++) {
+    const t = i / 90;
+    const z = zStart + (zEnd - zStart) * t;
+    points.push(new THREE.Vector3(pathCenterX(z) + side * (HALF_W - 0.18), y, z));
+  }
+  const curve = new THREE.CatmullRomCurve3(points);
+  return new THREE.TubeGeometry(curve, 180, 0.027, 8, false);
+}
+
+/** Curved architectural shell, with a vaulted animated galaxy canopy. */
 export function Shell() {
-  const len = MALL.length + MALL.entranceZ + 4;
-  const zMid = (MALL.entranceZ + 4 - MALL.length) / 2;
+  const zStart = MALL.entranceZ + 4;
+  const zEnd = -MALL.length - 4;
+  const length = zStart - zEnd;
+  const zMid = (zStart + zEnd) / 2;
+
+  const floor = useMemo(() => makeCurvedFloor(MALL.width, zStart, zEnd), [zStart, zEnd]);
+  const corridor = useMemo(() => makeCurvedFloor(CORRIDOR_WIDTH - 0.4, zStart, zEnd), [zStart, zEnd]);
+  const leftWall = useMemo(() => makeCurvedSideWall(-1, zStart, zEnd, MALL.ceiling), [zStart, zEnd]);
+  const rightWall = useMemo(() => makeCurvedSideWall(1, zStart, zEnd, MALL.ceiling), [zStart, zEnd]);
+  const leftCove = useMemo(() => makeCoveCurve(-1, zStart, zEnd, MALL.ceiling - 0.08), [zStart, zEnd]);
+  const rightCove = useMemo(() => makeCoveCurve(1, zStart, zEnd, MALL.ceiling - 0.08), [zStart, zEnd]);
+
   const stone = useMemo(() => getPolishedStoneTexture(), []);
-  const wallFinish = useMemo(() => getStoreWallpaper("women", "mall-limestone"), []);
+  const wallFinish = useMemo(() => getStoreWallpaper("men", "mall-outer-wall"), []);
 
   const signs = useMemo(() => {
-    const w = makeLabelTexture([{ text: "WOMEN", size: 64, weight: 700, letterSpacing: 18 }], {
-      width: 512,
-      height: 128,
-      bg: "#f7f5f1",
+    const women = makeLabelTexture([{ text: "WOMEN", size: 64, weight: 700, letterSpacing: 18 }], {
+      width: 512, height: 128, bg: "#f7f5f1",
     });
-    const m = makeLabelTexture([{ text: "MEN", size: 64, weight: 700, letterSpacing: 18 }], {
-      width: 512,
-      height: 128,
-      bg: "#f7f5f1",
+    const men = makeLabelTexture([{ text: "MEN", size: 64, weight: 700, letterSpacing: 18 }], {
+      width: 512, height: 128, bg: "#f7f5f1",
     });
     const brand = makeLabelTexture(
       [
@@ -37,99 +120,92 @@ export function Shell() {
       ],
       { width: 1024, height: 256, bg: "#f7f5f1" },
     );
-    return { w, m, brand };
+    return { women, men, brand };
   }, []);
 
-  useEffect(
-    () => () => {
-      signs.w.dispose();
-      signs.m.dispose();
-      signs.brand.dispose();
-    },
-    [signs],
-  );
+  useEffect(() => () => {
+    signs.women.dispose();
+    signs.men.dispose();
+    signs.brand.dispose();
+    floor.dispose();
+    corridor.dispose();
+    leftWall.dispose();
+    rightWall.dispose();
+    leftCove.dispose();
+    rightCove.dispose();
+  }, [signs, floor, corridor, leftWall, rightWall, leftCove, rightCove]);
+
+  const entranceX = pathCenterX(MALL.entranceZ + 0.6);
+  const endX = pathCenterX(-MALL.length - 0.1);
 
   return (
     <group>
-      {/* floor */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0, zMid]}>
-        <planeGeometry args={[MALL.width, len]} />
-        <meshStandardMaterial map={stone ?? undefined} color={FLOOR} roughness={0.28} metalness={0.08} />
+      {/* Darker, simple polished stone walking surface follows the mall curve. */}
+      <mesh geometry={floor}>
+        <meshStandardMaterial map={stone ?? undefined} color={FLOOR} roughness={0.24} metalness={0.12} />
       </mesh>
-      {/* corridor inlay */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.002, zMid]}>
-        <planeGeometry args={[BAY_FRONT_X * 2 - 0.4, len]} />
-        <meshStandardMaterial map={stone ?? undefined} color={CORRIDOR} roughness={0.22} metalness={0.12} />
+      <mesh geometry={corridor}>
+        <meshStandardMaterial map={stone ?? undefined} color={CORRIDOR} roughness={0.2} metalness={0.16} />
       </mesh>
-      {/* live star ceiling replaces the blank roof and harsh fluorescent bars */}
-      <StarryCeiling width={MALL.width} length={len} zMid={zMid} height={MALL.ceiling - 0.012} />
-      {/* warm gold perimeter coves frame the sky */}
-      {([-1, 1] as const).map((side) => (
-        <mesh key={side} position={[side * (HALF_W - 0.12), MALL.ceiling - 0.025, zMid]}>
-          <boxGeometry args={[0.055, 0.04, len - 0.5]} />
-          <meshStandardMaterial color="#f4d9a6" emissive="#d6a969" emissiveIntensity={0.75} metalness={0.55} roughness={0.3} />
-        </mesh>
-      ))}
-      {/* warm recessed cove lighting above both retail walls */}
-      {([-1, 1] as const).map((side) => (
-        <group key={side}>
-          <mesh position={[side * (BAY_FRONT_X + 0.65), MALL.ceiling - 0.035, zMid]}>
-            <boxGeometry args={[0.12, 0.035, len - 0.8]} />
-            <meshStandardMaterial color="#fff0d4" emissive="#f5c98b" emissiveIntensity={0.8} />
-          </mesh>
-          <mesh position={[side * (BAY_FRONT_X + 0.1), MALL.ceiling - 0.035, zMid]}>
-            <boxGeometry args={[0.08, 0.035, len - 0.8]} />
-            <meshStandardMaterial color="#ffffff" emissive="#fff7e8" emissiveIntensity={1.1} />
-          </mesh>
-        </group>
-      ))}
-      {/* small brass inlay lines make the central walkway read as polished retail stone */}
-      {([-1, 1] as const).map((side) => (
-        <mesh key={side} position={[side * (BAY_FRONT_X - 0.22), 0.006, zMid]}>
-          <boxGeometry args={[0.025, 0.008, len - 0.5]} />
-          <meshStandardMaterial color="#b99a6a" metalness={0.68} roughness={0.28} />
-        </mesh>
-      ))}
-      {/* outer walls behind the bays */}
-      {[-1, 1].map((s) => (
-        <mesh key={s} position={[s * HALF_W, MALL.ceiling / 2, zMid]}>
-          <boxGeometry args={[0.2, MALL.ceiling, len]} />
-          <meshStandardMaterial map={wallFinish ?? undefined} color={WALL} roughness={0.82} />
-        </mesh>
-      ))}
-      {/* campaign, offer and mall-information boards cover the long corridor walls */}
+
+      {/* Curved outer walls follow the same centreline as stores and camera. */}
+      <mesh geometry={leftWall}>
+        <meshStandardMaterial map={wallFinish ?? undefined} color={WALL} roughness={0.76} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh geometry={rightWall}>
+        <meshStandardMaterial map={wallFinish ?? undefined} color={WALL} roughness={0.76} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* Large vaulted blue galaxy canopy. */}
+      <StarryCeiling
+        width={MALL.width}
+        length={length}
+        zMid={zMid}
+        height={MALL.ceiling}
+        rise={MALL.ceilingRise}
+      />
+
+      {/* Warm perimeter cove lights follow the curve rather than remaining ruler-straight. */}
+      <mesh geometry={leftCove}>
+        <meshStandardMaterial color="#f5d6a2" emissive="#d6a969" emissiveIntensity={1.1} metalness={0.58} roughness={0.26} />
+      </mesh>
+      <mesh geometry={rightCove}>
+        <meshStandardMaterial color="#f5d6a2" emissive="#d6a969" emissiveIntensity={1.1} metalness={0.58} roughness={0.26} />
+      </mesh>
+
       <MallWallContent />
-      {/* far end wall */}
-      <mesh position={[0, MALL.ceiling / 2, -MALL.length - 0.1]}>
+
+      {/* End-of-mall brand wall is centred on the curved route. */}
+      <mesh position={[endX, MALL.ceiling / 2, -MALL.length - 0.1]}>
         <boxGeometry args={[MALL.width, MALL.ceiling, 0.2]} />
-        <meshStandardMaterial color={WALL} roughness={0.95} />
+        <meshStandardMaterial color="#d1c9bc" roughness={0.72} />
       </mesh>
-      {/* brand panel on the far wall */}
-      <mesh position={[0, 2.4, -MALL.length + 0.01]}>
+      <mesh position={[endX, 2.4, -MALL.length + 0.01]}>
         <planeGeometry args={[4, 1]} />
         <meshStandardMaterial map={signs.brand} roughness={0.8} />
       </mesh>
-      {/* entrance frame */}
-      <group position={[0, 0, MALL.entranceZ + 0.6]}>
-        {[-1, 1].map((s) => (
-          <mesh key={s} position={[s * (BAY_FRONT_X + 0.25), MALL.ceiling / 2, 0]}>
+
+      {/* Entrance framing tracks the centreline start. */}
+      <group position={[entranceX, 0, MALL.entranceZ + 0.6]}>
+        {[-1, 1].map((side) => (
+          <mesh key={side} position={[side * (BAY_FRONT_X + 0.25), MALL.ceiling / 2, 0]}>
             <boxGeometry args={[0.5, MALL.ceiling, 0.5]} />
-            <meshStandardMaterial color="#c9c4ba" roughness={0.7} />
+            <meshStandardMaterial color="#77736c" metalness={0.25} roughness={0.42} />
           </mesh>
         ))}
         <mesh position={[0, MALL.ceiling - 0.3, 0]}>
           <boxGeometry args={[BAY_FRONT_X * 2 + 1, 0.6, 0.5]} />
-          <meshStandardMaterial color="#c9c4ba" roughness={0.7} />
+          <meshStandardMaterial color="#77736c" metalness={0.25} roughness={0.42} />
         </mesh>
       </group>
-      {/* gender signs hanging near the entrance */}
-      <mesh position={[-BAY_FRONT_X + 0.9, 3.35, MALL.entranceZ - 0.5]}>
+
+      <mesh position={[entranceX - BAY_FRONT_X + 0.9, 3.35, MALL.entranceZ - 0.5]}>
         <planeGeometry args={[1.6, 0.4]} />
-        <meshStandardMaterial map={signs.w} roughness={0.8} side={THREE.DoubleSide} />
+        <meshStandardMaterial map={signs.women} roughness={0.8} side={THREE.DoubleSide} />
       </mesh>
-      <mesh position={[BAY_FRONT_X - 0.9, 3.35, MALL.entranceZ - 0.5]}>
+      <mesh position={[entranceX + BAY_FRONT_X - 0.9, 3.35, MALL.entranceZ - 0.5]}>
         <planeGeometry args={[1.6, 0.4]} />
-        <meshStandardMaterial map={signs.m} roughness={0.8} side={THREE.DoubleSide} />
+        <meshStandardMaterial map={signs.men} roughness={0.8} side={THREE.DoubleSide} />
       </mesh>
     </group>
   );
