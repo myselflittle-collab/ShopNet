@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { PlacedSection } from "@/lib/config/sections";
 import { HALF_W, MALL } from "@/lib/config/mall";
+import { QUALITY_LIMITS, type MallQuality } from "@/mall/performance/quality";
 
 type ScreenKind = "wall" | "overview";
 
@@ -35,36 +36,30 @@ const VIDEO_SLOGANS: Record<string, string> = {
   "men-watches": "MAKE EVERY MOMENT COUNT",
 };
 
-const FALLBACK_VERTEX = `
-varying vec2 vUv;
-void main() {
-  vUv = uv;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}`;
+// A global candidate list keeps only the nearest one or two screens decoding video.
+const VIDEO_CANDIDATES = new Map<string, number>();
 
-const FALLBACK_FRAGMENT = `
-uniform float uTime;
-varying vec2 vUv;
-void main() {
-  vec2 uv = vUv;
-  float wave = 0.5 + 0.5 * sin(uv.y * 5.8 - uTime * 0.34 + sin(uv.x * 7.0) * 1.6);
-  float sweep = exp(-abs(uv.x - fract(uTime * 0.035 + uv.y * 0.18)) * 18.0);
-  vec3 a = vec3(0.025, 0.055, 0.09);
-  vec3 b = vec3(0.14, 0.25, 0.32);
-  vec3 c = vec3(0.42, 0.27, 0.46);
-  vec3 color = mix(a, b, smoothstep(0.12, 0.88, wave));
-  color = mix(color, c, sweep * 0.38);
-  color += 0.035 * sin(uTime * 0.18 + uv.y * 10.0);
-  gl_FragColor = vec4(color, 1.0);
-}`;
+function registerCandidate(id: string, distance: number) {
+  VIDEO_CANDIDATES.set(id, distance);
+}
 
-function createTitleCanvas(section: PlacedSection, kind: ScreenKind, width: number, height: number) {
+function hasVideoSlot(id: string, limit: number) {
+  const nearest = [...VIDEO_CANDIDATES.entries()]
+    .filter(([, distance]) => Number.isFinite(distance))
+    .sort((a, b) => a[1] - b[1])
+    .slice(0, limit);
+  return nearest.some(([candidateId]) => candidateId === id);
+}
+
+function createTitleCanvas(section: PlacedSection, kind: ScreenKind) {
   const canvas = document.createElement("canvas");
-  canvas.width = 900;
-  canvas.height = 675;
+  canvas.width = 600;
+  canvas.height = 450;
   const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
 
+  // Draw in the original 900x675 design coordinate system at a smaller texture size.
+  ctx.scale(2 / 3, 2 / 3);
   const shade = ctx.createLinearGradient(0, 400, 0, 675);
   shade.addColorStop(0, "rgba(0,0,0,0)");
   shade.addColorStop(1, "rgba(0,0,0,0.78)");
@@ -89,42 +84,45 @@ function createTitleCanvas(section: PlacedSection, kind: ScreenKind, width: numb
   return canvas;
 }
 
-function SectionVideoScreen({ section, kind }: { section: PlacedSection; kind: ScreenKind }) {
+function SectionVideoScreen({
+  section,
+  kind,
+  quality,
+}: {
+  section: PlacedSection;
+  kind: ScreenKind;
+  quality: MallQuality;
+}) {
   const camera = useThree((state) => state.camera);
   const group = useRef<THREE.Group>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoTextureRef = useRef<THREE.VideoTexture | null>(null);
   const [videoTexture, setVideoTexture] = useState<THREE.VideoTexture | null>(null);
   const [titleTexture, setTitleTexture] = useState<THREE.CanvasTexture | null>(null);
   const [frameReady, setFrameReady] = useState(false);
-  const [playing, setPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
-
-  const fallbackMaterial = useMemo(
-    () => new THREE.ShaderMaterial({
-      uniforms: { uTime: { value: 0 } },
-      vertexShader: FALLBACK_VERTEX,
-      fragmentShader: FALLBACK_FRAGMENT,
-      side: THREE.DoubleSide,
-    }),
-    [],
-  );
-
-  useEffect(() => () => fallbackMaterial.dispose(), [fallbackMaterial]);
+  const cameraPosition = useMemo(() => new THREE.Vector3(), []);
+  const screenPosition = useMemo(() => new THREE.Vector3(), []);
 
   const isOverview = kind === "overview";
   const width = isOverview ? 2.5 : 3.08;
   const height = isOverview ? 1.62 : 2.5;
+  const videoId = section.id + ":" + kind;
+  const limits = QUALITY_LIMITS[quality];
 
   useEffect(() => {
-    const canvas = createTitleCanvas(section, kind, width, height);
+    const canvas = createTitleCanvas(section, kind);
     const next = new THREE.CanvasTexture(canvas);
     next.colorSpace = THREE.SRGBColorSpace;
+    next.anisotropy = quality === "high" ? 4 : 1;
     next.needsUpdate = true;
     setTitleTexture(next);
     return () => next.dispose();
-  }, [section.id, section.label, kind, width, height]);
+  }, [section.id, section.label, kind, quality]);
 
   useEffect(() => {
+    if (quality === "low") return;
+
     const video = document.createElement("video");
     video.muted = true;
     video.loop = true;
@@ -134,53 +132,53 @@ function SectionVideoScreen({ section, kind }: { section: PlacedSection; kind: S
     video.setAttribute("playsinline", "");
     videoRef.current = video;
 
-    const texture = new THREE.VideoTexture(video);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.generateMipmaps = false;
-    setVideoTexture(texture);
-
     const onReady = () => setFrameReady(true);
-    const onPlaying = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
-    const onError = () => {
-      setFailed(true);
-      setFrameReady(false);
-      setPlaying(false);
-    };
+    const onPlaying = () => setFrameReady(true);
+    const onError = () => setFailed(true);
     video.addEventListener("loadeddata", onReady);
     video.addEventListener("playing", onPlaying);
-    video.addEventListener("pause", onPause);
     video.addEventListener("error", onError);
 
     return () => {
+      VIDEO_CANDIDATES.delete(videoId);
       video.pause();
       video.removeAttribute("src");
       video.load();
       video.removeEventListener("loadeddata", onReady);
       video.removeEventListener("playing", onPlaying);
-      video.removeEventListener("pause", onPause);
       video.removeEventListener("error", onError);
-      texture.dispose();
+      videoTextureRef.current?.dispose();
+      videoTextureRef.current = null;
       videoRef.current = null;
     };
-  }, [kind, section.id]);
+  }, [quality, videoId]);
 
-  useFrame((_, dt) => {
-    fallbackMaterial.uniforms.uTime.value += dt;
-    const video = videoRef.current;
+  useFrame(() => {
+    if (quality === "low") return;
     const parent = group.current;
-    if (!video || !parent) return;
+    const video = videoRef.current;
+    if (!parent || !video) return;
 
-    parent.updateWorldMatrix(true, false);
-    const screenPosition = parent.getWorldPosition(new THREE.Vector3());
-    const cameraPosition = camera.getWorldPosition(new THREE.Vector3());
-    const inRange = screenPosition.distanceTo(cameraPosition) < (isOverview ? 14 : 17) && !document.hidden;
+    parent.getWorldPosition(screenPosition);
+    camera.getWorldPosition(cameraPosition);
+    const distance = screenPosition.distanceTo(cameraPosition);
+    const inRange = !document.hidden && distance < limits.videoDistance;
+    registerCandidate(videoId, inRange ? distance : Number.POSITIVE_INFINITY);
 
-    if (inRange && !failed) {
+    const wantsPlayback = inRange && !failed && hasVideoSlot(videoId, limits.maxVideoPlayers);
+    if (wantsPlayback) {
+      // Allocate a VideoTexture and request the MP4 only after this screen wins a playback slot.
+      if (!videoTextureRef.current) {
+        const texture = new THREE.VideoTexture(video);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.generateMipmaps = false;
+        videoTextureRef.current = texture;
+        setVideoTexture(texture);
+      }
       if (!video.src) {
-        video.src = kind === "overview"
+        video.src = isOverview
           ? `/videos/sections/${section.id}-overview.mp4`
           : `/videos/sections/${section.id}.mp4`;
         video.load();
@@ -204,17 +202,17 @@ function SectionVideoScreen({ section, kind }: { section: PlacedSection; kind: S
     <group ref={group} position={[x, y, z]} rotation-y={rotationY}>
       <mesh position={[0, 0, -0.06]}>
         <boxGeometry args={[width + 0.16, height + 0.18, 0.13]} />
-        <meshStandardMaterial color="#171512" metalness={0.72} roughness={0.22} />
+        <meshBasicMaterial color="#171d27" />
       </mesh>
       <mesh position={[0, 0, 0.012]}>
         <planeGeometry args={[width, height]} />
-        {playing && frameReady && !failed && videoTexture ? (
+        {frameReady && videoTexture && !failed ? (
           <meshBasicMaterial map={videoTexture} toneMapped={false} />
         ) : (
-          <primitive object={fallbackMaterial} attach="material" />
+          <meshBasicMaterial color="#0b1b2c" />
         )}
       </mesh>
-      {!(playing && frameReady) && titleTexture && (
+      {!(frameReady && videoTexture && !failed) && titleTexture && (
         <mesh position={[0, 0, 0.02]}>
           <planeGeometry args={[width, height]} />
           <meshBasicMaterial map={titleTexture} transparent toneMapped={false} />
@@ -222,18 +220,26 @@ function SectionVideoScreen({ section, kind }: { section: PlacedSection; kind: S
       )}
       {[-1, 1].map((side) => (
         <mesh key={side} position={[side * (width / 2 + 0.035), 0, 0.018]}>
-          <boxGeometry args={[0.035, height + 0.2, 0.035]} />
-          <meshStandardMaterial color="#e7c68f" emissive="#d8ad69" emissiveIntensity={0.8} metalness={0.68} roughness={0.24} />
+          <boxGeometry args={[0.025, height + 0.16, 0.025]} />
+          <meshBasicMaterial color="#d4b77f" toneMapped={false} />
         </mesh>
       ))}
-      <mesh position={[0, height / 2 + 0.09, 0.018]}>
-        <boxGeometry args={[width + 0.16, 0.035, 0.035]} />
-        <meshStandardMaterial color="#e7c68f" emissive="#d8ad69" emissiveIntensity={0.65} metalness={0.68} roughness={0.24} />
+      <mesh position={[0, height / 2 + 0.07, 0.018]}>
+        <boxGeometry args={[width + 0.12, 0.025, 0.025]} />
+        <meshBasicMaterial color="#d4b77f" toneMapped={false} />
       </mesh>
     </group>
   );
 }
 
-export function SectionVideoPanel({ section, kind = "wall" }: { section: PlacedSection; kind?: ScreenKind }) {
-  return <SectionVideoScreen section={section} kind={kind} />;
+export function SectionVideoPanel({
+  section,
+  kind = "wall",
+  quality,
+}: {
+  section: PlacedSection;
+  kind?: ScreenKind;
+  quality: MallQuality;
+}) {
+  return <SectionVideoScreen section={section} kind={kind} quality={quality} />;
 }
