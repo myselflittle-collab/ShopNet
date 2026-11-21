@@ -4,6 +4,7 @@ import { memo, useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { HALF_W, MALL, pathCenterX, pathYawAt } from "@/lib/config/mall";
+import type { MallQuality } from "@/mall/performance/quality";
 import type { PlacedSection } from "@/lib/config/sections";
 import { useMallStore } from "@/lib/bridge/mallStore";
 import { openState } from "@/mall/transitions/openState";
@@ -18,7 +19,7 @@ const WALL_TONE = { women: "#e4dbd6", men: "#d8dbdf" } as const;
 const ACCENT_IDLE = new THREE.Color("#c9c2b5");
 const ACCENT_HOT = new THREE.Color("#e3b66b");
 
-function SectionBayImpl({ s }: { s: PlacedSection }) {
+function SectionBayImpl({ s, quality }: { s: PlacedSection; quality: MallQuality }) {
   const hovered = useMallStore((st) => st.hoveredId === s.id);
   const frontX = BAY_INNER.frontX(s);
   const centreX = BAY_INNER.centreX(s);
@@ -53,6 +54,7 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
 
   useFrame((_, dt) => {
     const opening = openState.id === s.id;
+    if (!hovered && !opening && glow.current < 0.001) return;
     const target = hovered || opening ? 1 : 0;
     glow.current += (target - glow.current) * Math.min(1, dt * 8);
     const g = glow.current;
@@ -80,17 +82,12 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
   });
 
   const signRotY = -s.side * (Math.PI / 2);
-  const pierXs = [frontX + s.side * 0.12, rearX];
 
   return (
     <group position={[pathCenterX(s.cz), 0, 0]} rotation-y={pathYawAt(s.cz)}>
       <group>
-      {/* Transparent holographic offer pillars replace solid square columns. */}
-      {[s.z0, s.z1].map((z) =>
-        pierXs.map((x, index) => (
-          <HoloPillar key={String(z) + ':' + index} section={s} x={x} z={z} />
-        )),
-      )}
+      {/* One efficient holographic information column per storefront. */}
+      <HoloPillar section={s} x={frontX + s.side * 0.12} z={s.cz} quality={quality} />
 
       {/* Deep feature wall: store-specific mineral / fluted finish, no repeated arch motif. */}
       <mesh position={[rearX, 1.98, s.cz]}>
@@ -146,16 +143,16 @@ function SectionBayImpl({ s }: { s: PlacedSection }) {
       <group position={[0, 0, s.cz]}>
         <group ref={display}>
           <group position={[0, 0, -s.cz]}>
-            <SectionVideoPanel section={s} />
+            <SectionVideoPanel section={s} quality={quality} />
           </group>
         </group>
       </group>
 
       {/* Second, larger overview video at the far end of this store. */}
-      <SectionVideoPanel section={s} kind='overview' />
+      <SectionVideoPanel section={s} kind='overview' quality={quality} />
 
       {/* Transparent floor hologram is inside the store bay, never in the footpath. */}
-      <HoloFloorDisplay section={s} />
+      <HoloFloorDisplay section={s} quality={quality} />
       </group>
     </group>
   );
