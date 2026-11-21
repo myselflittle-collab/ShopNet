@@ -32,7 +32,7 @@ export const TUNING = {
 
 export const walker = {
   x: pathCenterX(MALL.entranceZ),
-  z: MALL.entranceZ,
+  z: MALL.entranceZ as number,
   yaw: 0,
   pitch: 0,
   targetYaw: 0,
