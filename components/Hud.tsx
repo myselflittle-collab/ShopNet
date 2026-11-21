@@ -15,6 +15,7 @@ export function Hud() {
   const bag = useShopStore(cartCount);
   const [coarse, setCoarse] = useState(false);
   const [welcome, setWelcome] = useState(true);
+  const [hintVisible, setHintVisible] = useState(false);
 
   useEffect(() => {
     setCoarse(window.matchMedia("(pointer: coarse)").matches);
@@ -24,6 +25,17 @@ export function Hud() {
   const hidden = mode !== "walking";
   const target = hoveredId ? SECTION_BY_ID[hoveredId] : null;
   const lookActive = lookMode === "locked" || lookMode === "steer" || lookMode === "touch";
+
+  // Show the instruction briefly on entry and whenever camera-look mode toggles.
+  useEffect(() => {
+    if (welcome || !walking) {
+      setHintVisible(false);
+      return;
+    }
+    setHintVisible(true);
+    const timeout = window.setTimeout(() => setHintVisible(false), 4600);
+    return () => window.clearTimeout(timeout);
+  }, [welcome, walking, lookMode]);
 
   const enterMall = () => {
     if (!ready) return;
@@ -87,7 +99,7 @@ export function Hud() {
       </div>
 
       {!welcome && walking && (
-        <div className={"camera-look-hint " + (lookActive ? "is-active" : "") + (hidden ? " is-hidden" : "")} role="status" aria-live="polite">
+        <div className={"camera-look-hint " + (lookActive ? "is-active" : "") + ((!hintVisible || hidden) ? " is-hidden" : "")} role="status" aria-live="polite">
           {lookHint}
         </div>
       )}
