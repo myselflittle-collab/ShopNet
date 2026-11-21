@@ -9,6 +9,7 @@ on:
       - restore/first-running-lights
       - feature/centerline-camera-doubletap
       - fix/welcome-camera-look-guidance
+      - fix/camera-hint-and-video-import
   pull_request:
     branches:
       - main
