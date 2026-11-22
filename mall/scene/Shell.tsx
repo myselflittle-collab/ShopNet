@@ -1,142 +1,153 @@
 "use client";
-
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { BAY_FRONT_X, HALF_W, MALL } from "@/lib/config/mall";
+import { MALL, ATRIUM_EDGE_OFFSET } from "@/lib/config/mall";
 import { makeLabelTexture } from "./labelTexture";
 import { getPolishedStoneTexture, getStoreWallpaper } from "./materialTextures";
+import { makePathRibbonGeometry, makePathWallGeometry } from "@/mall/sections/geometry";
+import { pathFrameAt, pathOffsetAt } from "@/mall/navigation/path";
 
 const FLOOR = "#d7d0c5";
-const CORRIDOR = "#c7beb0";
-const WALL = "#e7e4de";
-const CEIL = "#f1efeb";
+const CEILING = "#f1efeb";
 
-/** Greybox architecture: floor, ceiling, outer walls, end wall, entrance frame and zone signs. */
 export function Shell() {
-  const len = MALL.length + MALL.entranceZ + 4;
-  const zMid = (MALL.entranceZ + 4 - MALL.length) / 2;
   const stone = useMemo(() => getPolishedStoneTexture(), []);
-  const wallFinish = useMemo(() => getStoreWallpaper("women", "mall-limestone"), []);
+  const entranceWall = useMemo(() => getStoreWallpaper("women", "shopnet-entrance-wallpaper"), []);
+  const womenBack = useMemo(() => makePathWallGeometry(8, MALL.womenEndS, -5.8, 0, MALL.ceiling), []);
+  const menBack = useMemo(() => makePathWallGeometry(MALL.plazaEndS, MALL.menEndS, 5.8, 0, MALL.ceiling), []);
+  const womenCore = useMemo(() => makePathWallGeometry(8, MALL.womenEndS, ATRIUM_EDGE_OFFSET, 0, MALL.ceiling), []);
+  const menCore = useMemo(() => makePathWallGeometry(MALL.plazaEndS, MALL.menEndS, -ATRIUM_EDGE_OFFSET, 0, MALL.ceiling), []);
+  const foyerLeft = useMemo(() => makePathWallGeometry(0, MALL.foyerEndS, -2, 0, MALL.ceiling), []);
+  const foyerRight = useMemo(() => makePathWallGeometry(0, MALL.foyerEndS, 2, 0, MALL.ceiling), []);
+  const floorPath = useMemo(() => makePathRibbonGeometry(0, MALL.length, -2, 2, 0), []);
+  const walkwayCeiling = useMemo(() => makePathRibbonGeometry(8, MALL.menEndS, -2, 2, MALL.ceiling), []);
+  const womenCeiling = useMemo(() => makePathRibbonGeometry(8, MALL.womenEndS, -5.8, ATRIUM_EDGE_OFFSET, MALL.ceiling), []);
+  const menCeiling = useMemo(() => makePathRibbonGeometry(MALL.plazaEndS, MALL.menEndS, -ATRIUM_EDGE_OFFSET, 5.8, MALL.ceiling), []);
+  const womenAtriumFloor = useMemo(() => makePathRibbonGeometry(8, MALL.womenEndS, 2, ATRIUM_EDGE_OFFSET, 0), []);
+  const menAtriumFloor = useMemo(() => makePathRibbonGeometry(MALL.plazaEndS, MALL.menEndS, -ATRIUM_EDGE_OFFSET, -2, 0), []);
 
   const signs = useMemo(() => {
-    const w = makeLabelTexture([{ text: "WOMEN", size: 64, weight: 700, letterSpacing: 18 }], {
-      width: 512,
-      height: 128,
-      bg: "#f7f5f1",
-    });
-    const m = makeLabelTexture([{ text: "MEN", size: 64, weight: 700, letterSpacing: 18 }], {
-      width: 512,
-      height: 128,
-      bg: "#f7f5f1",
-    });
-    const brand = makeLabelTexture(
-      [
-        { text: "SHOPNET", size: 80, weight: 800, letterSpacing: 20, color: "#1d1b18" },
-        { text: "FASHION MALL", size: 26, weight: 500, letterSpacing: 12, color: "#6b665d" },
-      ],
-      { width: 1024, height: 256, bg: "#f7f5f1" },
-    );
-    return { w, m, brand };
+    const women = makeLabelTexture([{ text: "WOMEN", size: 64, weight: 700, letterSpacing: 18 }], { width: 512, height: 128, bg: "#f7f5f1" });
+    const men = makeLabelTexture([{ text: "MEN", size: 64, weight: 700, letterSpacing: 18 }], { width: 512, height: 128, bg: "#f7f5f1" });
+    const brand = makeLabelTexture([
+      { text: "SHOPNET", size: 96, weight: 800, letterSpacing: 22, color: "#1d1b18" },
+      { text: "THE FASHION MALL", size: 28, weight: 500, letterSpacing: 12, color: "#8b6b42" },
+    ], { width: 1024, height: 280, bg: "#f7f5f1" });
+    return { women, men, brand };
   }, []);
 
-  useEffect(
-    () => () => {
-      signs.w.dispose();
-      signs.m.dispose();
-      signs.brand.dispose();
-    },
-    [signs],
-  );
+  useEffect(() => () => {
+    stone?.dispose();
+    signs.women.dispose();
+    signs.men.dispose();
+    signs.brand.dispose();
+    [womenBack, menBack, womenCore, menCore, foyerLeft, foyerRight, floorPath, walkwayCeiling, womenCeiling, menCeiling, womenAtriumFloor, menAtriumFloor]
+      .forEach((geometry) => geometry.dispose());
+  }, [stone, signs, womenBack, menBack, womenCore, menCore, foyerLeft, foyerRight, floorPath, walkwayCeiling, womenCeiling, menCeiling, womenAtriumFloor, menAtriumFloor]);
 
-  const lightStrips = useMemo(() => {
-    const out: number[] = [];
-    for (let z = MALL.entranceZ; z > -MALL.length; z -= 4) out.push(z - 2);
-    return out;
-  }, []);
+  const foyer = pathFrameAt(4);
+  const plaza = pathFrameAt(64.313);
 
   return (
     <group>
-      {/* floor */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0, zMid]}>
-        <planeGeometry args={[MALL.width, len]} />
-        <meshStandardMaterial map={stone ?? undefined} color={FLOOR} roughness={0.28} metalness={0.08} />
+      {/* 4 m walkway floor and the retained ceiling outline now follow the S-shaped path. */}
+      <mesh geometry={floorPath}>
+        <meshStandardMaterial map={stone ?? undefined} color={FLOOR} roughness={0.28} metalness={0.08} side={THREE.DoubleSide} />
       </mesh>
-      {/* corridor inlay */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.002, zMid]}>
-        <planeGeometry args={[BAY_FRONT_X * 2 - 0.4, len]} />
-        <meshStandardMaterial map={stone ?? undefined} color={CORRIDOR} roughness={0.22} metalness={0.12} />
+      <mesh geometry={walkwayCeiling}>
+        <meshStandardMaterial color={CEILING} roughness={1} side={THREE.DoubleSide} />
       </mesh>
-      {/* ceiling */}
-      <mesh rotation-x={Math.PI / 2} position={[0, MALL.ceiling, zMid]}>
-        <planeGeometry args={[MALL.width, len]} />
-        <meshStandardMaterial color={CEIL} roughness={1} />
+      <mesh geometry={womenCeiling}>
+        <meshStandardMaterial color={CEILING} roughness={1} side={THREE.DoubleSide} />
       </mesh>
-      {/* architectural ceiling lights over the walkway */}
-      {lightStrips.map((z) => (
-        <mesh key={z} position={[0, MALL.ceiling - 0.02, z]}>
-          <boxGeometry args={[1.6, 0.03, 0.25]} />
-          <meshStandardMaterial color="#ffffff" emissive="#fff6e6" emissiveIntensity={1.5} />
+      <mesh geometry={menCeiling}>
+        <meshStandardMaterial color={CEILING} roughness={1} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* Inner atrium edge floor bands remain inside the two S lobes. */}
+      <mesh geometry={womenAtriumFloor}>
+        <meshStandardMaterial map={stone ?? undefined} color="#c9c0b3" roughness={0.42} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh geometry={menAtriumFloor}>
+        <meshStandardMaterial map={stone ?? undefined} color="#c9c0b3" roughness={0.42} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* Opaque outer store backs and inner atrium-core walls provide the architecture for occlusion. */}
+      <mesh geometry={womenBack}>
+        <meshStandardMaterial map={entranceWall ?? undefined} color="#e4dbd6" roughness={0.82} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh geometry={menBack}>
+        <meshStandardMaterial map={entranceWall ?? undefined} color="#d8dbdf" roughness={0.82} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh geometry={womenCore}>
+        <meshStandardMaterial color="#d8d0c4" roughness={0.78} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh geometry={menCore}>
+        <meshStandardMaterial color="#d4d2cd" roughness={0.78} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* ShopNet-branded textured wallpaper on both entrance-side walls. */}
+      <mesh geometry={foyerLeft}>
+        <meshStandardMaterial map={entranceWall ?? undefined} color="#e7e0d7" roughness={0.74} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh geometry={foyerRight}>
+        <meshStandardMaterial map={entranceWall ?? undefined} color="#e7e0d7" roughness={0.74} side={THREE.DoubleSide} />
+      </mesh>
+      <group position={[foyer.x, 0, foyer.z]} rotation-y={foyer.yaw}>
+        <mesh position={[-1.98, 2.45, 0]} rotation-y={Math.PI / 2}>
+          <planeGeometry args={[5.2, 1.55]} />
+          <meshStandardMaterial map={signs.brand} roughness={0.58} metalness={0.16} side={THREE.DoubleSide} />
         </mesh>
-      ))}
-      {/* warm recessed cove lighting above both retail walls */}
-      {([-1, 1] as const).map((side) => (
-        <group key={side}>
-          <mesh position={[side * (BAY_FRONT_X + 0.65), MALL.ceiling - 0.035, zMid]}>
-            <boxGeometry args={[0.12, 0.035, len - 0.8]} />
-            <meshStandardMaterial color="#fff0d4" emissive="#f5c98b" emissiveIntensity={0.8} />
-          </mesh>
-          <mesh position={[side * (BAY_FRONT_X + 0.1), MALL.ceiling - 0.035, zMid]}>
-            <boxGeometry args={[0.08, 0.035, len - 0.8]} />
-            <meshStandardMaterial color="#ffffff" emissive="#fff7e8" emissiveIntensity={1.1} />
-          </mesh>
-        </group>
-      ))}
-      {/* small brass inlay lines make the central walkway read as polished retail stone */}
-      {([-1, 1] as const).map((side) => (
-        <mesh key={side} position={[side * (BAY_FRONT_X - 0.22), 0.006, zMid]}>
-          <boxGeometry args={[0.025, 0.008, len - 0.5]} />
-          <meshStandardMaterial color="#b99a6a" metalness={0.68} roughness={0.28} />
-        </mesh>
-      ))}
-      {/* outer walls behind the bays */}
-      {[-1, 1].map((s) => (
-        <mesh key={s} position={[s * HALF_W, MALL.ceiling / 2, zMid]}>
-          <boxGeometry args={[0.2, MALL.ceiling, len]} />
-          <meshStandardMaterial map={wallFinish ?? undefined} color={WALL} roughness={0.82} />
-        </mesh>
-      ))}
-      {/* far end wall */}
-      <mesh position={[0, MALL.ceiling / 2, -MALL.length - 0.1]}>
-        <boxGeometry args={[MALL.width, MALL.ceiling, 0.2]} />
-        <meshStandardMaterial color={WALL} roughness={0.95} />
-      </mesh>
-      {/* brand panel on the far wall */}
-      <mesh position={[0, 2.4, -MALL.length + 0.01]}>
-        <planeGeometry args={[4, 1]} />
-        <meshStandardMaterial map={signs.brand} roughness={0.8} />
-      </mesh>
-      {/* entrance frame */}
-      <group position={[0, 0, MALL.entranceZ + 0.6]}>
-        {[-1, 1].map((s) => (
-          <mesh key={s} position={[s * (BAY_FRONT_X + 0.25), MALL.ceiling / 2, 0]}>
-            <boxGeometry args={[0.5, MALL.ceiling, 0.5]} />
-            <meshStandardMaterial color="#c9c4ba" roughness={0.7} />
-          </mesh>
-        ))}
-        <mesh position={[0, MALL.ceiling - 0.3, 0]}>
-          <boxGeometry args={[BAY_FRONT_X * 2 + 1, 0.6, 0.5]} />
-          <meshStandardMaterial color="#c9c4ba" roughness={0.7} />
+        <mesh position={[1.98, 2.45, 0]} rotation-y={-Math.PI / 2}>
+          <planeGeometry args={[5.2, 1.55]} />
+          <meshStandardMaterial map={signs.brand} roughness={0.58} metalness={0.16} side={THREE.DoubleSide} />
         </mesh>
       </group>
-      {/* gender signs hanging near the entrance */}
-      <mesh position={[-BAY_FRONT_X + 0.9, 3.35, MALL.entranceZ - 0.5]}>
-        <planeGeometry args={[1.6, 0.4]} />
-        <meshStandardMaterial map={signs.w} roughness={0.8} side={THREE.DoubleSide} />
-      </mesh>
-      <mesh position={[BAY_FRONT_X - 0.9, 3.35, MALL.entranceZ - 0.5]}>
-        <planeGeometry args={[1.6, 0.4]} />
-        <meshStandardMaterial map={signs.m} roughness={0.8} side={THREE.DoubleSide} />
-      </mesh>
+
+      {/* Textured entrance pillars with brass details. */}
+      {[0.7, 7.2].flatMap((s) => [-1, 1].map((side) => {
+        const frame = pathFrameAt(s);
+        const point = pathOffsetAt(s, side * 1.82);
+        return (
+          <group key={`entrance-pillar-${s}-${side}`} position={[point.x, 0, point.z]} rotation-y={frame.yaw}>
+            <mesh position={[0, MALL.ceiling / 2, 0]}>
+              <boxGeometry args={[0.32, MALL.ceiling, 0.32]} />
+              <meshStandardMaterial map={entranceWall ?? undefined} color="#cbbba5" roughness={0.54} metalness={0.12} />
+            </mesh>
+            <mesh position={[0.17, MALL.ceiling / 2, 0]}>
+              <boxGeometry args={[0.025, MALL.ceiling, 0.34]} />
+              <meshStandardMaterial color="#c6a66f" metalness={0.72} roughness={0.25} emissive="#7c5a2e" emissiveIntensity={0.14} />
+            </mesh>
+          </group>
+        );
+      }))}
+
+      {/* Women | Men transition pillars remain outside the 4 m walkway. */}
+      {[-1, 1].map((side) => {
+        const point = pathOffsetAt(64.313, side * 1.82);
+        return (
+          <group key={side} position={[point.x, 0, point.z]} rotation-y={plaza.yaw}>
+            <mesh position={[0, MALL.ceiling / 2, 0]}>
+              <boxGeometry args={[0.38, MALL.ceiling, 0.42]} />
+              <meshStandardMaterial map={entranceWall ?? undefined} color="#d8c8ad" roughness={0.45} metalness={0.15} />
+            </mesh>
+            <mesh position={[0, 3.55, -side * 0.06]}>
+              <boxGeometry args={[0.42, 0.06, 0.48]} />
+              <meshStandardMaterial color="#d2b279" metalness={0.72} roughness={0.25} emissive="#a87d40" emissiveIntensity={0.25} />
+            </mesh>
+          </group>
+        );
+      })}
+      <group position={[plaza.x, 3.8, plaza.z]} rotation-y={plaza.yaw}>
+        <mesh>
+          <boxGeometry args={[0.12, 0.5, 3.2]} />
+          <meshStandardMaterial color="#1e2428" metalness={0.64} roughness={0.24} />
+        </mesh>
+        <mesh position={[0.075, 0, 0]} rotation-y={-Math.PI / 2}>
+          <planeGeometry args={[3.1, 0.38]} />
+          <meshStandardMaterial map={signs.brand} emissive="#a87d40" emissiveMap={signs.brand} emissiveIntensity={0.12} metalness={0.4} roughness={0.26} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
     </group>
   );
 }
