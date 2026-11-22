@@ -36,7 +36,7 @@ export function VideoPlaybackSystem() {
     const state = useMallStore.getState();
     updateVideoPlayback(
       camera,
-      -walker.z,
+      walker.s,
       state.mode === "walking" && !state.shopVisible,
       !document.hidden,
       mobile.current,
