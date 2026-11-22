@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { MALL } from "@/lib/config/mall";
 import { useMallStore } from "@/lib/bridge/mallStore";
@@ -12,9 +12,14 @@ import { selectTarget } from "@/mall/interaction/HoverController";
 const TAP_MOVE_PX = 8;
 const TAP_TIME_MS = 250;
 const DOUBLE_TAP_MS = 300;
+const TUTORIAL_FORWARD_END = 12.4;
+const TUTORIAL_BACK_END = 11.4;
+const W1_LOOK_MIN = (53.5 * Math.PI) / 180;
+const W1_LOOK_MAX = (117.5 * Math.PI) / 180;
+const TUTORIAL_LEFT_TARGET = (100 * Math.PI) / 180;
+const TUTORIAL_RIGHT_DELTA = (30 * Math.PI) / 180;
 
 interface ActiveTouch {
-  id: number;
   startX: number;
   startY: number;
   lastX: number;
@@ -23,10 +28,16 @@ interface ActiveTouch {
   startedAt: number;
 }
 
-/** The customer's body follows the S-path; head-look is independent and unwrapped. */
+function isW1InViewDirection() {
+  return walker.yaw >= W1_LOOK_MIN && walker.yaw <= W1_LOOK_MAX;
+}
+
 export function Controls() {
   const gl = useThree((state) => state.gl);
   const camera = useThree((state) => state.camera);
+  const t3StartYaw = useRef(0);
+  const t3MaximumYaw = useRef(0);
+  const t4InWindowSince = useRef(0);
 
   useEffect(() => {
     const element = gl.domElement;
@@ -51,8 +62,12 @@ export function Controls() {
     lookBridge.lock = requestPointerLock;
 
     const onPointerLockChange = () => {
-      if (document.pointerLockElement === element) getState().setLookMode("locked");
-      else if (getState().lookMode === "locked") getState().setLookMode("idle");
+      if (document.pointerLockElement === element) {
+        getState().setLookMode("locked");
+      } else if (getState().lookMode === "locked") {
+        // Escape or a browser interruption releases capture but leaves uncaptured look usable.
+        getState().setLookMode("steer");
+      }
     };
     const onPointerLockError = () => getState().setLookMode("steer");
 
@@ -83,14 +98,21 @@ export function Controls() {
       if (!isWalking()) return;
       event.preventDefault();
       event.stopPropagation();
+      const state = getState();
+      const step = state.tutorialStep;
+      if (step >= 1 && step <= 4) return;
+      if (step === 5 && !isW1InViewDirection()) {
+        state.setTutorialHint("Face the boutique, then double-click.");
+        return;
+      }
       if (document.pointerLockElement === element) document.exitPointerLock();
-      getState().setLookMode("idle");
+      if (step === 5) state.setTutorialComplete();
+      state.setLookMode("idle");
     };
 
     const onPointerDown = (event: PointerEvent) => {
       if (event.pointerType === "mouse") return;
       touches.set(event.pointerId, {
-        id: event.pointerId,
         startX: event.clientX,
         startY: event.clientY,
         lastX: event.clientX,
@@ -149,10 +171,18 @@ export function Controls() {
         return;
       }
 
-      // Empty walkway tap 1 does nothing. Tap 2 toggles look without delaying store taps.
+      // The walkway's first tap has no visible action, so store selection never waits for a double-tap.
       if (lastEmptyTap && now - lastEmptyTap <= DOUBLE_TAP_MS) {
         lastEmptyTap = 0;
-        getState().setLookMode(getState().lookMode === "touch" ? "idle" : "touch");
+        const state = getState();
+        const step = state.tutorialStep;
+        if (step >= 1 && step <= 4) return;
+        if (step === 5 && !isW1InViewDirection()) {
+          state.setTutorialHint("Face the boutique, then double-tap.");
+          return;
+        }
+        if (step === 5) state.setTutorialComplete();
+        state.setLookMode("idle");
       } else {
         lastEmptyTap = now;
       }
@@ -219,10 +249,60 @@ export function Controls() {
   }, [gl]);
 
   useFrame((_, delta) => {
-    if (useMallStore.getState().mode !== "walking") {
-      walker.pad = 0;
-    }
+    const state = useMallStore.getState();
+    if (state.mode !== "walking") walker.pad = 0;
+
+    const before = walker.s;
     stepWalker(delta);
+    const step = state.tutorialStep;
+
+    if (step === 1) {
+      if (walker.s >= TUTORIAL_FORWARD_END && walker.vel > 0) {
+        walker.s = TUTORIAL_FORWARD_END;
+        walker.vel = 0;
+        state.setTutorialStep(2);
+      }
+    } else if (step === 2) {
+      if (walker.s <= TUTORIAL_BACK_END && walker.vel < 0) {
+        walker.s = TUTORIAL_BACK_END;
+        walker.vel = 0;
+        t3StartYaw.current = walker.yaw;
+        state.setTutorialStep(3);
+      }
+    } else if (step === 3) {
+      walker.s = TUTORIAL_BACK_END;
+      walker.vel = 0;
+      if (walker.yaw > t3StartYaw.current && walker.yaw >= TUTORIAL_LEFT_TARGET) {
+        t3MaximumYaw.current = walker.yaw;
+        t4InWindowSince.current = 0;
+        state.setTutorialStep(4);
+      }
+    } else if (step === 4) {
+      walker.s = TUTORIAL_BACK_END;
+      walker.vel = 0;
+      t3MaximumYaw.current = Math.max(t3MaximumYaw.current, walker.yaw);
+      const turnedRightEnough = t3MaximumYaw.current - walker.yaw >= TUTORIAL_RIGHT_DELTA;
+      const insideW1Window = isW1InViewDirection();
+      if (turnedRightEnough && insideW1Window) {
+        if (!t4InWindowSince.current) t4InWindowSince.current = performance.now();
+        if (performance.now() - t4InWindowSince.current >= 300) {
+          state.setTutorialStep(5);
+        }
+      } else {
+        t4InWindowSince.current = 0;
+      }
+    } else if (step === 5) {
+      walker.s = TUTORIAL_BACK_END;
+      walker.vel = 0;
+    }
+
+    // T1/T2 must be completed by real movement; the subsequent look steps hold at s=11.4.
+    if (step >= 3 && step <= 5) {
+      walker.s = TUTORIAL_BACK_END;
+      walker.vel = 0;
+    }
+    if (walker.s === before && Math.abs(walker.vel) < 0.002) walker.vel = 0;
+
     const frame = pathFrameAt(walker.s);
     camera.position.set(frame.x, MALL.eyeHeight, frame.z);
     camera.rotation.set(walker.pitch, frame.yaw + walker.yaw, 0, "YXZ");
