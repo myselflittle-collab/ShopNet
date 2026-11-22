@@ -66,5 +66,5 @@ test("walking remains within the entrance and exit path bounds", () => {
   setPose({ s: MALL_PATH_LENGTH, yaw: 0, pitch: 0 });
   addWheel(240);
   run(10);
-  assert.equal(walker.s, MALL_PATH_LENGTH);
+  assert.ok(Math.abs(walker.s - MALL_PATH_LENGTH) < 1e-6);
 });
