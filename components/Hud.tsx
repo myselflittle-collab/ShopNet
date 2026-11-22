@@ -3,19 +3,22 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useMallStore } from "@/lib/bridge/mallStore";
+import { lookBridge } from "@/lib/bridge/lookBridge";
 import { cartCount, useShopStore } from "@/lib/bridge/shopStore";
 import { SECTION_BY_ID } from "@/lib/config/sections";
-import { walker } from "@/mall/navigation/walker";
+import { setPose, walker } from "@/mall/navigation/walker";
 
 export function Hud() {
   const ready = useMallStore((s) => s.ready);
   const mode = useMallStore((s) => s.mode);
   const lookMode = useMallStore((s) => s.lookMode);
   const hoveredId = useMallStore((s) => s.hoveredId);
+  const tutorialStep = useMallStore((s) => s.tutorialStep);
+  const tutorialComplete = useMallStore((s) => s.tutorialComplete);
+  const tutorialHint = useMallStore((s) => s.tutorialHint);
   const bag = useShopStore(cartCount);
   const [coarse, setCoarse] = useState(false);
   const [welcome, setWelcome] = useState(true);
-  const [hintVisible, setHintVisible] = useState(false);
 
   useEffect(() => {
     setCoarse(window.matchMedia("(pointer: coarse)").matches);
@@ -26,35 +29,37 @@ export function Hud() {
   const target = hoveredId ? SECTION_BY_ID[hoveredId] : null;
   const lookActive = lookMode === "locked" || lookMode === "steer" || lookMode === "touch";
 
-  // Show the instruction briefly on entry and whenever camera-look mode toggles.
-  useEffect(() => {
-    if (welcome || !walking) {
-      setHintVisible(false);
-      return;
-    }
-    setHintVisible(true);
-    const timeout = window.setTimeout(() => setHintVisible(false), 4600);
-    return () => window.clearTimeout(timeout);
-  }, [welcome, walking, lookMode]);
-
   const enterMall = () => {
     if (!ready) return;
-    useMallStore.getState().setLookMode("idle");
+    setPose({ s: 2, yaw: (20 * Math.PI) / 180, pitch: 0 });
+    useMallStore.getState().startTutorial();
+    if (coarse) {
+      useMallStore.getState().setLookMode("touch");
+    } else {
+      // This runs synchronously inside the Enter button gesture, satisfying pointer-lock activation rules.
+      lookBridge.lock();
+    }
     setWelcome(false);
   };
 
-  const lookHint = coarse
-    ? lookActive
-      ? "DRAG TO TURN YOUR HEAD · DOUBLE-TAP TO PAUSE"
-      : "DOUBLE-TAP TO LOOK AROUND"
-    : lookActive
-      ? "MOVE MOUSE TO TURN YOUR HEAD · DOUBLE-CLICK TO RELEASE"
-      : "DOUBLE-CLICK TO LOOK AROUND";
+  const resumeLook = () => {
+    if (coarse) useMallStore.getState().setLookMode("touch");
+    else lookBridge.lock();
+  };
 
-  const pad = (v: number) => ({
-    onPointerDown: (e: React.PointerEvent) => {
-      e.preventDefault();
-      walker.pad = v;
+  const tutorialText = (() => {
+    if (tutorialStep === 1) return coarse ? "Swipe up to walk forward" : "Scroll down to walk forward";
+    if (tutorialStep === 2) return coarse ? "Swipe down to walk backward" : "Scroll up to walk backward";
+    if (tutorialStep === 3) return coarse ? "Swipe left to look left" : "Move the mouse left to look left";
+    if (tutorialStep === 4) return coarse ? "Swipe right to look right" : "Move the mouse right to look right";
+    if (tutorialStep === 5) return coarse ? "Double-tap the walkway to stop free-look" : "Double-click to stop free-look";
+    return "";
+  })();
+
+  const pad = (value: number) => ({
+    onPointerDown: (event: React.PointerEvent) => {
+      event.preventDefault();
+      walker.pad = value;
     },
     onPointerUp: () => (walker.pad = 0),
     onPointerCancel: () => (walker.pad = 0),
@@ -76,13 +81,7 @@ export function Hud() {
             <p className="welcome-subtitle">THE FASHION MALL</p>
             <div className="welcome-rule" />
             <p className="welcome-copy">Explore. Discover. Find your style.</p>
-            <button
-              type="button"
-              className="welcome-enter"
-              onClick={enterMall}
-              disabled={!ready}
-              aria-disabled={!ready}
-            >
+            <button type="button" className="welcome-enter" onClick={enterMall} disabled={!ready} aria-disabled={!ready}>
               {ready ? "Enter the mall" : "Preparing the mall…"}
               <span aria-hidden="true">↗</span>
             </button>
@@ -98,17 +97,33 @@ export function Hud() {
         <span className="reticle-dot" />
       </div>
 
-      {!welcome && walking && (
-        <div className={"camera-look-hint " + (lookActive ? "is-active" : "") + ((!hintVisible || hidden) ? " is-hidden" : "")} role="status" aria-live="polite">
-          {lookHint}
+      {!welcome && walking && tutorialStep >= 1 && tutorialStep <= 5 && (
+        <div className="fixed bottom-7 left-1/2 z-40 w-[min(92vw,430px)] -translate-x-1/2 rounded-2xl border border-white/25 bg-[#171a1de8] px-5 py-4 text-center text-white shadow-2xl backdrop-blur-md">
+          <div className="mb-1 text-[10px] font-semibold tracking-[0.24em] text-[#d5b77f]">
+            NAVIGATION · STEP {tutorialStep} OF 5
+          </div>
+          <div className="text-base font-semibold tracking-wide">{tutorialText}</div>
+          <div className="mt-1 min-h-5 text-xs text-white/70" role="status" aria-live="polite">
+            {tutorialHint ?? "Complete this action to continue"}
+          </div>
         </div>
+      )}
+
+      {!welcome && walking && tutorialComplete && !lookActive && (
+        <button
+          type="button"
+          onClick={resumeLook}
+          className="fixed bottom-7 left-1/2 z-40 -translate-x-1/2 rounded-full border border-white/25 bg-[#171a1de8] px-5 py-3 text-sm font-semibold text-white shadow-xl backdrop-blur-md"
+        >
+          Look Around
+        </button>
       )}
 
       <div className={"target-label " + (target && walking && !welcome ? "is-on" : "")} role="status" aria-live="polite">
         {target && (
           <>
             <b>{target.gender === "women" ? "Women's" : "Men's"} {target.label}</b>
-            <span>{target.live ? (coarse ? "Tap to preview · tap Enter to open" : "Click to enter") : "Store preview"}</span>
+            <span>{target.live ? (coarse ? "Tap to open" : "Click to enter") : "Store preview"}</span>
           </>
         )}
       </div>
