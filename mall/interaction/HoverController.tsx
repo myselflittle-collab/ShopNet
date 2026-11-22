@@ -48,7 +48,7 @@ function pickCentre(current: string | null) {
 /** A single click/tap on a boutique selects and opens it immediately. */
 export function selectTarget(source: "mouse" | "touch", screen?: { x: number; y: number; w: number; h: number }): boolean {
   const state = useMallStore.getState();
-  if (state.mode !== "walking" || Math.abs(walker.vel) > HOVER_TIMING.maxClickSpeed) return false;
+  if (state.mode !== "walking" || !state.tutorialComplete || Math.abs(walker.vel) > HOVER_TIMING.maxClickSpeed) return false;
   let point = centre;
   if (screen) {
     ndc.set((screen.x / screen.w) * 2 - 1, -(screen.y / screen.h) * 2 + 1);
