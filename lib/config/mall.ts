@@ -3,7 +3,7 @@ export const FT = 0.3048;
 
 export const MALL = {
   width: 30 * FT, // 9.144 m total cross-section
-  length: 126.626, // S-shaped centreline length
+  length: 126.62536001725353, // S-shaped centreline length (rounds to 126.63 m)
   ceiling: 4.2,
   bayDepth: 3.8,
   bayWidth: 4,
