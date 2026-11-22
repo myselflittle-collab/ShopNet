@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { MALL, ATRIUM_EDGE_OFFSET } from "@/lib/config/mall";
 import { makeLabelTexture } from "./labelTexture";
 import { getPolishedStoneTexture, getStoreWallpaper } from "./materialTextures";
-import { makePathRibbonGeometry, makePathWallGeometry } from "@/mall/sections/geometry";
+import { makePathIslandGeometry, makePathRibbonGeometry, makePathWallGeometry } from "@/mall/sections/geometry";
 import { pathFrameAt, pathOffsetAt } from "@/mall/navigation/path";
 
 const FLOOR = "#d7d0c5";
@@ -24,7 +24,9 @@ export function Shell() {
   const womenCeiling = useMemo(() => makePathRibbonGeometry(8, MALL.womenEndS, -5.8, ATRIUM_EDGE_OFFSET, MALL.ceiling), []);
   const menCeiling = useMemo(() => makePathRibbonGeometry(MALL.plazaEndS, MALL.menEndS, -ATRIUM_EDGE_OFFSET, 5.8, MALL.ceiling), []);
   const womenAtriumFloor = useMemo(() => makePathRibbonGeometry(8, MALL.womenEndS, 2, ATRIUM_EDGE_OFFSET, 0), []);
+  const womenAtriumIsland = useMemo(() => makePathIslandGeometry(8, MALL.womenEndS, ATRIUM_EDGE_OFFSET), []);
   const menAtriumFloor = useMemo(() => makePathRibbonGeometry(MALL.plazaEndS, MALL.menEndS, -ATRIUM_EDGE_OFFSET, -2, 0), []);
+  const menAtriumIsland = useMemo(() => makePathIslandGeometry(MALL.plazaEndS, MALL.menEndS, -ATRIUM_EDGE_OFFSET), []);
 
   const signs = useMemo(() => {
     const women = makeLabelTexture([{ text: "WOMEN", size: 64, weight: 700, letterSpacing: 18 }], { width: 512, height: 128, bg: "#f7f5f1" });
@@ -41,7 +43,7 @@ export function Shell() {
     signs.women.dispose();
     signs.men.dispose();
     signs.brand.dispose();
-    [womenBack, menBack, womenCore, menCore, foyerLeft, foyerRight, floorPath, walkwayCeiling, womenCeiling, menCeiling, womenAtriumFloor, menAtriumFloor]
+    [womenBack, menBack, womenCore, menCore, foyerLeft, foyerRight, floorPath, walkwayCeiling, womenCeiling, menCeiling, womenAtriumFloor, menAtriumFloor, womenAtriumIsland, menAtriumIsland]
       .forEach((geometry) => geometry.dispose());
   }, [stone, signs, womenBack, menBack, womenCore, menCore, foyerLeft, foyerRight, floorPath, walkwayCeiling, womenCeiling, menCeiling, womenAtriumFloor, menAtriumFloor]);
 
