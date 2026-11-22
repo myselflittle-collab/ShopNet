@@ -8,6 +8,7 @@ import { updateVideoPlayback, releaseAllVideos } from "./videoPlayback";
 
 export function VideoPlaybackSystem() {
   const camera = useThree((state) => state.camera);
+  const scene = useThree((state) => state.scene);
   const elapsed = useRef(0);
   const mobile = useRef(false);
 
@@ -36,6 +37,7 @@ export function VideoPlaybackSystem() {
     const state = useMallStore.getState();
     updateVideoPlayback(
       camera,
+      scene,
       walker.s,
       state.mode === "walking" && !state.shopVisible && state.tutorialComplete,
       !document.hidden,
