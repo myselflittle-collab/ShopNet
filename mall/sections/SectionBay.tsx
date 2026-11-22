@@ -23,7 +23,7 @@ function SectionBayImpl({s}:{s:PlacedSection}){
  const clearOpening=s.width-returnWidth*2;
  const depth=STORE_BACK_OFFSET-STORE_FRONT_OFFSET;
  const centreX=s.side*(STORE_FRONT_OFFSET+STORE_BACK_OFFSET)/2;
- const wallpaper=useMemo(()=>getStoreWallpaper(s.gender,s.id),[s.gender,s.id]);
+ const wallpaper=useMemo(()=>getStoreWallpaper(s.gender),[s.gender,s.id]);
  const stone=useMemo(()=>getPolishedStoneTexture(),[]);
  const sign=useMemo(()=>makeLabelTexture([
   {text:s.label.toUpperCase(),size:s.width>=8?46:40,weight:700,letterSpacing:5,color:"#24211d"},
