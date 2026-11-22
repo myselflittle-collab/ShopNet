@@ -7,7 +7,7 @@ import { SECTIONS } from "@/lib/config/sections";
 import { useMallStore } from "@/lib/bridge/mallStore";
 import { Shell } from "./scene/Shell";
 import { Lighting } from "./scene/Lighting";
-import { SectionBay } from "./sections/SectionBay";
+import { SectionBay, SectionDividerFins } from "./sections/SectionBay";
 import { Controls } from "./navigation/Controls";
 import { HoverController } from "./interaction/HoverController";
 import { HoverLight } from "./interaction/HoverLight";
@@ -46,6 +46,7 @@ export default function MallCanvas() {
       {SECTIONS.map((s) => (
         <SectionBay key={s.id} s={s} />
       ))}
+      <SectionDividerFins />
       <HoverLight />
       <VideoPlaybackSystem />
       <Controls />
