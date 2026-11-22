@@ -1,80 +1,70 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { WALKABLE } from "../lib/config/mall";
+import { MALL_PATH_LENGTH, pathFrameAt } from "../mall/navigation/path";
 import { addLook, addWheel, setPose, stepWalker, walker } from "../mall/navigation/walker";
 
 const run = (seconds: number) => {
   for (let i = 0; i < seconds * 60; i++) stepWalker(1 / 60);
 };
 
-test("walking remains on the fixed centreline while looking left", () => {
-  setPose({ x: 0, z: -10, yaw: Math.PI / 2, pitch: 0 });
+test("S-path starts at the entrance and ends at the exit", () => {
+  const start = pathFrameAt(0);
+  const end = pathFrameAt(MALL_PATH_LENGTH);
+  assert.ok(Math.abs(start.x) < 0.02);
+  assert.ok(Math.abs(start.z) < 0.02);
+  assert.ok(Math.abs(start.yaw) < 0.02);
+  assert.ok(Math.abs(end.x - 50.03) < 0.1);
+  assert.ok(Math.abs(end.z + 0.59) < 0.1);
+  assert.ok(Math.abs(end.yaw) < 0.02);
+});
+
+test("walking down the path follows its centreline while looking left", () => {
+  setPose({ s: 18, yaw: Math.PI / 2, pitch: 0 });
   walker.keys.add("KeyW");
   run(2.5);
   walker.keys.clear();
-  assert.ok(walker.z < -12);
-  assert.equal(walker.x, 0);
+  assert.ok(walker.s > 19.5);
+  assert.ok(walker.s < 22);
+  assert.equal(walker.yaw, Math.PI / 2);
 });
 
-test("walking remains on the fixed centreline while looking right", () => {
-  setPose({ x: 0, z: -10, yaw: -Math.PI / 2, pitch: 0 });
-  walker.keys.add("KeyW");
-  run(2.5);
-  walker.keys.clear();
-  assert.ok(walker.z < -12);
-  assert.equal(walker.x, 0);
+test("head look does not change the customer's path position", () => {
+  setPose({ s: 36, yaw: 0, pitch: 0 });
+  addLook(-600, 0);
+  run(0.25);
+  assert.ok(walker.yaw > 2.5);
+  assert.equal(walker.s, 36);
 });
 
-test("A/D rotate the head and never move the customer's body sideways", () => {
-  setPose({ x: 0, z: -16, yaw: 0, pitch: 0 });
-  walker.keys.add("KeyA");
-  walker.keys.add("KeyW");
-  run(1.5);
-  walker.keys.clear();
-  assert.ok(walker.z < -17);
-  assert.ok(walker.yaw > 0);
-  assert.equal(walker.x, 0);
+test("scroll down moves forward and scroll up moves backward", () => {
+  setPose({ s: 30, yaw: 1.4, pitch: 0 });
+  addWheel(120);
+  run(1);
+  assert.ok(walker.s > 30);
+  const forward = walker.s;
+  addWheel(-240);
+  run(1);
+  assert.ok(walker.s < forward);
 });
 
-test("cannot pass the far end wall or leave through the entrance", () => {
-  setPose({ x: 0, z: -40, yaw: 0, pitch: 0 });
-  walker.keys.add("KeyW");
-  run(20);
-  walker.keys.clear();
-  assert.equal(walker.z, WALKABLE.minZ);
-  setPose({ x: 0, z: 0, yaw: 0, pitch: 0 });
-  walker.keys.add("KeyS");
+test("full 360-degree and multiple-turn look is unwrapped", () => {
+  setPose({ s: 60, yaw: 0, pitch: 0 });
+  addLook(-1400, 0);
+  run(0.1);
+  assert.ok(walker.yaw > 6);
+  const once = walker.yaw;
+  addLook(1400, 0);
+  run(0.1);
+  assert.ok(walker.yaw < once - 6);
+});
+
+test("walking remains within the entrance and exit path bounds", () => {
+  setPose({ s: 0, yaw: 0, pitch: 0 });
+  addWheel(-240);
   run(10);
-  walker.keys.clear();
-  assert.equal(walker.z, WALKABLE.maxZ);
-  assert.equal(walker.x, 0);
-});
-
-test("scroll up walks forward and scroll down walks back on the centreline", () => {
-  setPose({ x: 0, z: 0, yaw: 1.4, pitch: 0 });
-  addWheel(-120);
-  run(1);
-  assert.ok(walker.z < 0);
-  const z = walker.z;
-  addWheel(120);
-  addWheel(120);
-  run(1);
-  assert.ok(walker.z > z);
-  assert.equal(walker.x, 0);
-});
-
-test("mouse look can rotate through a full 360 degrees without angle clamping", () => {
-  setPose({ x: 0, z: 0, yaw: 0, pitch: 0 });
-  addLook(1200, 0, 0.0055);
-  run(1);
-  assert.ok(walker.yaw < -6, `yaw should pass one full revolution; got ${walker.yaw}`);
-  assert.equal(walker.x, 0);
-});
-
-test("a normal wheel burst produces a noticeable forward distance without lateral drift", () => {
-  setPose({ x: 0, z: 0, yaw: Math.PI / 3, pitch: 0 });
-  addWheel(-120);
-  run(1);
-  assert.ok(walker.z < -0.5, `expected a meaningful forward walk, got z=${walker.z}`);
-  assert.equal(walker.x, 0);
+  assert.equal(walker.s, 0);
+  setPose({ s: MALL_PATH_LENGTH, yaw: 0, pitch: 0 });
+  addWheel(240);
+  run(10);
+  assert.equal(walker.s, MALL_PATH_LENGTH);
 });

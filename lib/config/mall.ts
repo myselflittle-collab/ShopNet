@@ -1,35 +1,26 @@
-/**
- * Mall dimensions in metres.
- * Only MALL_WIDTH (30 ft) is confirmed. Everything else is provisional and
- * will be reviewed after walking the greybox.
- */
+/** ShopNet's fixed architectural dimensions, in metres. */
 export const FT = 0.3048;
 
 export const MALL = {
-  width: 30 * FT, // 9.144 m — confirmed
-  length: 56, // provisional
-  ceiling: 4.2, // provisional
-  bayDepth: 2.8, // provisional
-  bayWidth: 4, // provisional, standard bay frontage
+  width: 30 * FT, // 9.144 m total cross-section
+  length: 126.626, // S-shaped centreline length
+  ceiling: 4.2,
+  bayDepth: 3.8,
+  bayWidth: 4,
+  walkwayWidth: 4,
   eyeHeight: 1.62,
   walkerRadius: 0.35,
-  /** z where the first bay starts; the customer enters at z > 0 walking toward -z */
-  bayStartZ: 0,
-  entranceZ: 3.5,
+  entranceS: 2,
+  foyerEndS: 8,
+  womenEndS: 59.313,
+  plazaEndS: 69.313,
+  menEndS: 120.626,
 } as const;
 
 export const HALF_W = MALL.width / 2;
-/** x of the front edge of the bays (the corridor's sides) */
-export const BAY_FRONT_X = HALF_W - MALL.bayDepth;
-export const CORRIDOR_WIDTH = BAY_FRONT_X * 2;
-
-/** Walkable rectangle for the walker's centre (corridor + entrance), already inset by the walker radius. */
-export const WALKABLE = {
-  minX: -BAY_FRONT_X + MALL.walkerRadius,
-  maxX: BAY_FRONT_X - MALL.walkerRadius,
-  minZ: -MALL.length + MALL.walkerRadius + 0.4,
-  maxZ: MALL.entranceZ + 2.2,
-} as const;
-
-/** Small step-in zone in front of each bay so customers can get closer to a display. */
-export const STEP_IN = 0.9;
+/** Half of the 4 m clear walkway. */
+export const BAY_FRONT_X = MALL.walkwayWidth / 2;
+export const CORRIDOR_WIDTH = MALL.walkwayWidth;
+export const STORE_FRONT_OFFSET = 2;
+export const STORE_BACK_OFFSET = 5.8;
+export const ATRIUM_EDGE_OFFSET = 3.344;
