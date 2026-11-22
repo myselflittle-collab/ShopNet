@@ -5,7 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { MALL } from "@/lib/config/mall";
 import { useMallStore } from "@/lib/bridge/mallStore";
 import { lookBridge } from "@/lib/bridge/lookBridge";
-import { addLook, addWheel, stepWalker, TUNING, walker } from "./walker";
+import { addLook, addTouchWalk, addWheel, stepWalker, TUNING, walker } from "./walker";
 import { pathFrameAt } from "./path";
 import { selectTarget } from "@/mall/interaction/HoverController";
 
@@ -143,7 +143,7 @@ export function Controls() {
       if (touch.axis === "look" && getState().lookMode === "touch") {
         addLook(dx, 0, TUNING.touchSensitivity);
       } else if (touch.axis === "walk") {
-        walker.pad = Math.max(-1, Math.min(1, -dy / 120));
+        addTouchWalk(dy);
       }
     };
 
