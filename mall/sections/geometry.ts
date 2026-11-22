@@ -27,3 +27,21 @@ export function sectionAnchor(section:PlacedSection):THREE.Vector3{
  return new THREE.Vector3(section.side*2.18,2.55,0).applyMatrix4(sectionWorldMatrix(section));
 }
 export const BAY_INNER={frontX:(_s:PlacedSection)=>STORE_FRONT_OFFSET,backX:(_s:PlacedSection)=>STORE_BACK_OFFSET,centreX:(_s:PlacedSection)=>(STORE_FRONT_OFFSET+STORE_BACK_OFFSET)/2};
+
+
+/** Filled inner atrium island enclosed by a curved path offset and its end chord. */
+export function makePathIslandGeometry(s0: number, s1: number, lateral: number, sampleStep = 0.2) {
+  const samples = pathSamples(s0, s1, sampleStep);
+  const first = pathOffsetAt(samples[0].s, lateral);
+  const shape = new THREE.Shape();
+  shape.moveTo(first.x, -first.z);
+  for (let i = 1; i < samples.length; i++) {
+    const point = pathOffsetAt(samples[i].s, lateral);
+    shape.lineTo(point.x, -point.z);
+  }
+  shape.closePath();
+  const geometry = new THREE.ShapeGeometry(shape, 24);
+  geometry.rotateX(-Math.PI / 2);
+  geometry.computeVertexNormals();
+  return geometry;
+}
