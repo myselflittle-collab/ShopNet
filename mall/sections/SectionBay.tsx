@@ -3,7 +3,7 @@ import { memo,useEffect,useMemo,useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { MALL,STORE_BACK_OFFSET,STORE_FRONT_OFFSET } from "@/lib/config/mall";
-import type { PlacedSection } from "@/lib/config/sections";
+import { SECTIONS, type PlacedSection } from "@/lib/config/sections";
 import { useMallStore } from "@/lib/bridge/mallStore";
 import { openState } from "@/mall/transitions/openState";
 import { pathFrameAt } from "@/mall/navigation/path";
@@ -103,3 +103,51 @@ function SectionBayImpl({s}:{s:PlacedSection}){
  </group>;
 }
 export const SectionBay=memo(SectionBayImpl);
+
+
+/** Full-height 0.2 m fins fill the gaps between neighbouring boutique portal returns. */
+export function SectionDividerFins() {
+  const fins = useMemo(() => {
+    const result: Array<{ s: number; side: -1 | 1; key: string }> = [];
+    for (const side of [-1, 1] as const) {
+      const row = SECTIONS.filter((section) => section.side === side).sort((a, b) => a.sCenter - b.sCenter);
+      if (!row.length) continue;
+      result.push({ s: row[0].s0, side, key: `${side}-start` });
+      for (let i = 0; i < row.length - 1; i++) {
+        result.push({
+          s: (row[i].s1 + row[i + 1].s0) / 2,
+          side,
+          key: `${side}-${row[i].id}-${row[i + 1].id}`,
+        });
+      }
+      result.push({ s: row[row.length - 1].s1, side, key: `${side}-end` });
+    }
+    return result;
+  }, []);
+  const womenFinish = useMemo(() => getStoreWallpaper("women", "shopnet-divider-finish"), []);
+  const menFinish = useMemo(() => getStoreWallpaper("men", "shopnet-divider-finish"), []);
+
+  return (
+    <group>
+      {fins.map((fin) => {
+        const frame = pathFrameAt(fin.s);
+        return (
+          <group key={fin.key} position={[frame.x, 0, frame.z]} rotation-y={frame.yaw}>
+            <mesh position={[fin.side * ((STORE_FRONT_OFFSET + STORE_BACK_OFFSET) / 2), MALL.ceiling / 2, 0]}>
+              <boxGeometry args={[STORE_BACK_OFFSET - STORE_FRONT_OFFSET, MALL.ceiling, 0.2]} />
+              <meshStandardMaterial
+                map={(fin.side < 0 ? womenFinish : menFinish) ?? undefined}
+                color={fin.side < 0 ? WALL_TONE.women : WALL_TONE.men}
+                roughness={0.62}
+              />
+            </mesh>
+            <mesh position={[fin.side * (STORE_FRONT_OFFSET + 0.025), MALL.ceiling / 2, 0]}>
+              <boxGeometry args={[0.05, MALL.ceiling, 0.24]} />
+              <meshStandardMaterial color="#bd9d6b" metalness={0.72} roughness={0.25} />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
