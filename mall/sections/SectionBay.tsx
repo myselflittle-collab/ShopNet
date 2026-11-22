@@ -43,7 +43,7 @@ function SectionBayImpl({s}:{s:PlacedSection}){
   if(floorGlow.current)floorGlow.current.opacity=glow.current*0.32;
   if(s.id==="women-blazers" && revealScrim.current){
    const target=tutorialComplete?1:0;
-   scrimProgress.current+=(target-scrimProgress.current)*(1-Math.exp(-dt*1.45));
+   scrimProgress.current+=(target-scrimProgress.current)*(1-Math.exp(-dt*3.5));
    revealScrim.current.position.y=1.95+scrimProgress.current*2.0;
    revealScrim.current.visible=scrimProgress.current<0.995;
   }
