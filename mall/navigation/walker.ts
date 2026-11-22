@@ -78,6 +78,13 @@ export function addWheel(deltaY: number) {
   walker.vel = Math.max(-TUNING.maxSpeed, Math.min(TUNING.maxSpeed, walker.vel + deltaY * TUNING.wheelImpulse));
 }
 
+/** A vertical finger flick adds walking velocity; positive screen-up motion walks forward. */
+export function addTouchWalk(deltaY: number) {
+  if (walker.tween !== null || !Number.isFinite(deltaY)) return;
+  const impulse = -deltaY * 0.025;
+  walker.vel = Math.max(-TUNING.maxSpeed, Math.min(TUNING.maxSpeed, walker.vel + impulse));
+}
+
 export function addLook(dx: number, dy: number = 0, sensitivity: number = TUNING.mouseSensitivity) {
   if (walker.tween !== null) return;
   walker.yaw -= dx * sensitivity;
