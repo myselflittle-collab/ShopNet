@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { PlacedSection } from "@/lib/config/sections";
+import { HALF_W } from "@/lib/config/mall";
 import { registerVideoScreen } from "./videoPlayback";
 
 type CampaignStyle =
@@ -917,6 +918,8 @@ function VideoScreen({ section }: { section: PlacedSection }) {
   const group = useRef<THREE.Group>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const videoTextureRef = useRef<THREE.VideoTexture | null>(null);
+  const videoListenersRef = useRef<{ video: HTMLVideoElement; ready: () => void; error: () => void } | null>(null);
+  const playbackStateRef = useRef<"DORMANT" | "READY" | "PLAYING">("DORMANT");
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayTextureRef = useRef<THREE.CanvasTexture | null>(null);
   const [playbackState, setPlaybackState] = useState<"DORMANT" | "READY" | "PLAYING">("DORMANT");
@@ -924,6 +927,8 @@ function VideoScreen({ section }: { section: PlacedSection }) {
   const [frameReady, setFrameReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [overlayTexture, setOverlayTexture] = useState<THREE.CanvasTexture | null>(null);
+
+  playbackStateRef.current = playbackState;
 
   const fallback = useMemo(() => {
     const canvas = makeFallbackTexture(section);
@@ -937,29 +942,37 @@ function VideoScreen({ section }: { section: PlacedSection }) {
   }, [section.id, section.label, section.gender]);
   const campaign = useMemo(() => getCampaign(section), [section.id, section.label, section.gender]);
 
-  const releaseMedia = () => {
+  const releaseMedia = (updateState = true) => {
     const video = videoRef.current;
-    const texture = videoTextureRef.current;
+    const listeners = videoListenersRef.current;
+    if (video && listeners) {
+      video.removeEventListener("loadeddata", listeners.ready);
+      video.removeEventListener("error", listeners.error);
+    }
+    videoListenersRef.current = null;
     if (video) {
       video.pause();
       video.removeAttribute("src");
       video.load();
       videoRef.current = null;
     }
-    texture?.dispose();
+    videoTextureRef.current?.dispose();
     videoTextureRef.current = null;
-    setVideoTexture(null);
-    setFrameReady(false);
+    if (updateState) {
+      setVideoTexture(null);
+      setFrameReady(false);
+    }
   };
 
   useEffect(() => {
     const object = group.current;
     if (!object) return;
-    return registerVideoScreen(section.id, (section as PlacedSection & { sCenter?: number }).sCenter ?? 0, object, setPlaybackState);
-  }, [section.id]);
+    // Straight-corridor path coordinate for Stage 1; replaced by the S-path arc-length coordinate in Stage 3.
+    return registerVideoScreen(section.id, -section.cz, object, setPlaybackState);
+  }, [section.id, section.cz]);
 
   useEffect(() => () => {
-    releaseMedia();
+    releaseMedia(false);
     fallback.dispose();
     overlayTextureRef.current?.dispose();
   }, [fallback]);
@@ -988,6 +1001,19 @@ function VideoScreen({ section }: { section: PlacedSection }) {
       video.src = `/videos/sections/${section.id}.mp4`;
       videoRef.current = video;
 
+      const onReady = () => {
+        setFrameReady(true);
+        if (playbackStateRef.current === "PLAYING") void video?.play().catch(() => undefined);
+      };
+      const onError = () => {
+        setFailed(true);
+        setFrameReady(false);
+        video?.pause();
+      };
+      videoListenersRef.current = { video, ready: onReady, error: onError };
+      video.addEventListener("loadeddata", onReady);
+      video.addEventListener("error", onError);
+
       const texture = new THREE.VideoTexture(video);
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.minFilter = THREE.LinearFilter;
@@ -995,29 +1021,12 @@ function VideoScreen({ section }: { section: PlacedSection }) {
       texture.generateMipmaps = false;
       videoTextureRef.current = texture;
       setVideoTexture(texture);
-
-      const onReady = () => {
-        setFrameReady(true);
-        if (playbackState === "PLAYING") void video?.play().catch(() => undefined);
-      };
-      const onError = () => {
-        setFailed(true);
-        setFrameReady(false);
-        video?.pause();
-      };
-      video.addEventListener("loadeddata", onReady);
-      video.addEventListener("error", onError);
+      setFailed(false);
       video.load();
-      if (playbackState === "PLAYING") void video.play().catch(() => undefined);
-      return () => {
-        video?.removeEventListener("loadeddata", onReady);
-        video?.removeEventListener("error", onError);
-      };
     }
 
     if (playbackState === "PLAYING") {
-      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) void video.play().catch(() => undefined);
-      else void video.play().catch(() => undefined);
+      void video.play().catch(() => undefined);
     } else {
       video.pause();
     }
@@ -1079,8 +1088,11 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     };
   }, [playbackState, failed, campaign]);
 
+  const screenX = section.side * (HALF_W - 0.205);
+  const screenRotationY = section.side === -1 ? Math.PI / 2 : -Math.PI / 2;
+
   return (
-    <group ref={group}>
+    <group ref={group} position={[screenX, 2.04, section.cz]} rotation-y={screenRotationY}>
       <mesh position={[0, 0, -0.06]}>
         <boxGeometry args={[FRAME_WIDTH, FRAME_HEIGHT, 0.13]} />
         <meshStandardMaterial color="#171512" metalness={0.62} roughness={0.28} />
@@ -1108,7 +1120,6 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     </group>
   );
 }
-
 export function SectionVideoPanel({ section }: { section: PlacedSection }) {
   return <VideoScreen section={section} />;
 }

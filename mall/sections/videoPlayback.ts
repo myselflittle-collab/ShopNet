@@ -86,6 +86,7 @@ export function updateVideoPlayback(
   walking: boolean,
   pageVisible: boolean,
   mobile: boolean,
+  pathVelocity: number,
 ) {
   if (!walking || !pageVisible) {
     releaseAllVideos();
@@ -134,24 +135,25 @@ export function updateVideoPlayback(
   const readyLimit = mobile ? 1 : 2;
   const ready = new Set<string>();
 
-  // Keep the currently featured screen ready while the 150/600 ms hysteresis settles.
-  if (featured) ready.add(featured.id);
-
-  // Prepare the strongest other genuinely visible screen first.
+  // First prepare any other genuinely visible LCD that the customer is looking toward.
   for (const item of candidates) {
     if (ready.size >= readyLimit) break;
     if (item.entry.id !== featuredId) ready.add(item.entry.id);
   }
 
-  // Then prepare the next store in the direction of travel; path position is only a tie-breaker.
-  const direction = 0; // The visibility candidate remains the priority while the customer looks around.
-  const next = [...screens.values()]
-    .filter((entry) => !ready.has(entry.id))
-    .sort((a, b) => {
-      const da = Math.abs(a.pathS - pathS);
-      const db = Math.abs(b.pathS - pathS);
-      return da - db + direction;
-    })[0];
+  // Then prepare the next store in the direction of travel. If stationary, use nearest path distance.
+  const remaining = [...screens.values()].filter((entry) => entry.id !== featuredId && !ready.has(entry.id));
+  const next = remaining.sort((a, b) => {
+    const deltaA = a.pathS - pathS;
+    const deltaB = b.pathS - pathS;
+    if (Math.abs(pathVelocity) < 0.05) return Math.abs(deltaA) - Math.abs(deltaB);
+    const forwardA = deltaA * Math.sign(pathVelocity);
+    const forwardB = deltaB * Math.sign(pathVelocity);
+    const aAhead = forwardA >= 0;
+    const bAhead = forwardB >= 0;
+    if (aAhead !== bAhead) return aAhead ? -1 : 1;
+    return Math.abs(forwardA) - Math.abs(forwardB);
+  })[0];
   if (next && ready.size < readyLimit) ready.add(next.id);
 
   for (const entry of screens.values()) {

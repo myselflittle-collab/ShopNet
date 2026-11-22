@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useMallStore } from "@/lib/bridge/mallStore";
+import { walker } from "@/mall/navigation/walker";
 import { updateVideoPlayback, releaseAllVideos } from "./videoPlayback";
 
 export function VideoPlaybackSystem() {
@@ -35,10 +36,11 @@ export function VideoPlaybackSystem() {
     const state = useMallStore.getState();
     updateVideoPlayback(
       camera,
-      0,
+      -walker.z,
       state.mode === "walking" && !state.shopVisible,
       !document.hidden,
       mobile.current,
+      walker.vel,
     );
   }, -2);
 
