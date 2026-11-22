@@ -63,6 +63,7 @@ function buildPathTable(): PathFrame[] {
   for (const segment of SEGMENTS) {
     const count = Math.max(1, Math.ceil(segment.length / MALL_PATH_STEP));
     const h = segment.length / count;
+    const segmentStart = s;
     for (let i = 0; i < count; i++) {
       const u = (i + 0.5) / count;
       const curvature = segment.k0 + (segment.k1 - segment.k0) * u;
@@ -70,9 +71,10 @@ function buildPathTable(): PathFrame[] {
       x += Math.cos(midHeading) * h;
       y += Math.sin(midHeading) * h;
       heading += curvature * h;
-      s += h;
+      s = segmentStart + (i + 1) * h;
       table.push(makeFrame(s, x, y, heading, curvature));
     }
+    s = segmentStart + segment.length;
   }
   return table;
 }
