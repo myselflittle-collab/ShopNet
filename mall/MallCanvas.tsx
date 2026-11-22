@@ -33,7 +33,7 @@ export default function MallCanvas() {
       frameloop={mode === "shop" ? "demand" : "always"}
       dpr={[1, 1.75]}
       gl={{ antialias: true, powerPreference: "high-performance" }}
-      camera={{ fov: 62, near: 0.05, far: 120, position: [0, 1.62, 3.5] }}
+      camera={{ fov: 62, near: 0.05, far: 180, position: [0, 1.62, 3.5] }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
         gl.toneMappingExposure = 1.05;
