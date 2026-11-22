@@ -12,6 +12,7 @@ import { Controls } from "./navigation/Controls";
 import { HoverController } from "./interaction/HoverController";
 import { HoverLight } from "./interaction/HoverLight";
 import { AmbientPathLights } from "./scene/AmbientPathLights";
+import { VideoPlaybackSystem } from "./sections/VideoPlaybackSystem";
 
 function ReadySignal() {
   const done = useRef(false);
@@ -46,6 +47,7 @@ export default function MallCanvas() {
         <SectionBay key={s.id} s={s} />
       ))}
       <HoverLight />
+      <VideoPlaybackSystem />
       <Controls />
       <HoverController />
       <ReadySignal />
