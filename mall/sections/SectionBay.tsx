@@ -95,7 +95,7 @@ function SectionBayImpl({s}:{s:PlacedSection}){
   </mesh>
   <SectionVideoPanel section={s}/>
   {s.id==="women-blazers" && (
-   <mesh ref={revealScrim} visible={!tutorialComplete} position={[s.side*(STORE_FRONT_OFFSET+0.12),1.95,0]} rotation-y={-s.side*Math.PI/2}>
+   <mesh ref={revealScrim} position={[s.side*(STORE_FRONT_OFFSET+0.12),1.95,0]} rotation-y={-s.side*Math.PI/2}>
     <planeGeometry args={[clearOpening,3.45]}/>
     <meshStandardMaterial color="#d8c8ae" transparent opacity={0.58} roughness={0.32} metalness={0.12} depthWrite={false} side={THREE.DoubleSide}/>
    </mesh>
