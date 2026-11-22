@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { PlacedSection } from "@/lib/config/sections";
-import { HALF_W } from "@/lib/config/mall";
 import { registerVideoScreen } from "./videoPlayback";
 
 type CampaignStyle =
@@ -968,7 +967,7 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     const object = group.current;
     if (!object) return;
     // Straight-corridor path coordinate for Stage 1; replaced by the S-path arc-length coordinate in Stage 3.
-    return registerVideoScreen(section.id, -section.cz, object, setPlaybackState);
+    return registerVideoScreen(section.id, section.sCenter, object, setPlaybackState);
   }, [section.id, section.cz]);
 
   useEffect(() => () => {
@@ -1088,11 +1087,11 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     };
   }, [playbackState, failed, campaign]);
 
-  const screenX = section.side * (HALF_W - 0.205);
+  const screenX = section.side * 5.68;
   const screenRotationY = section.side === -1 ? Math.PI / 2 : -Math.PI / 2;
 
   return (
-    <group ref={group} position={[screenX, 2.04, section.cz]} rotation-y={screenRotationY}>
+    <group ref={group} position={[screenX, 2.04, 0]} rotation-y={screenRotationY}>
       <mesh position={[0, 0, -0.06]}>
         <boxGeometry args={[FRAME_WIDTH, FRAME_HEIGHT, 0.13]} />
         <meshStandardMaterial color="#171512" metalness={0.62} roughness={0.28} />

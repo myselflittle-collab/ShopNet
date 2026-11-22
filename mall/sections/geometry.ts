@@ -1,32 +1,29 @@
 import * as THREE from "three";
-import { BAY_FRONT_X, HALF_W, MALL } from "@/lib/config/mall";
+import { MALL, STORE_BACK_OFFSET, STORE_FRONT_OFFSET } from "@/lib/config/mall";
 import type { PlacedSection } from "@/lib/config/sections";
+import { pathFrameAt, pathOffsetAt, pathSamples } from "@/mall/navigation/path";
 
-/** Hover hit volume for a bay: covers the display area inside the opening. */
-export function sectionHitBox(s: PlacedSection, expand = 0): THREE.Box3 {
-  const front = s.side * (BAY_FRONT_X + 0.3);
-  const back = s.side * (HALF_W - 0.15);
-  const minX = Math.min(front, back);
-  const maxX = Math.max(front, back);
-  const pad = 0.15;
-  const box = new THREE.Box3(
-    new THREE.Vector3(minX, 0, s.z1 + pad),
-    new THREE.Vector3(maxX, 3.0, s.z0 - pad),
-  );
-  if (expand > 0) {
-    const size = box.getSize(new THREE.Vector3()).multiplyScalar(expand / 2);
-    box.expandByVector(size);
-  }
-  return box;
+export function makePathRibbonGeometry(s0:number,s1:number,lateralMin:number,lateralMax:number,y:number,sampleStep=0.25){
+ const samples=pathSamples(s0,s1,sampleStep), vertices:number[]=[], indices:number[]=[];
+ for(const frame of samples){const a=pathOffsetAt(frame.s,lateralMin),b=pathOffsetAt(frame.s,lateralMax);vertices.push(a.x,y,a.z,b.x,y,b.z);}
+ for(let i=0;i<samples.length-1;i++){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}
+ const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(vertices,3));g.setIndex(indices);g.computeVertexNormals();return g;
 }
-
-/** World point the floating preview card is pinned to (top of the bay opening). */
-export function sectionAnchor(s: PlacedSection): THREE.Vector3 {
-  return new THREE.Vector3(s.side * (BAY_FRONT_X + 0.4), 2.35, s.cz);
+export function makePathWallGeometry(s0:number,s1:number,lateral:number,bottom:number,top:number,sampleStep=0.25){
+ const samples=pathSamples(s0,s1,sampleStep),vertices:number[]=[],indices:number[]=[];
+ for(const frame of samples){const p=pathOffsetAt(frame.s,lateral);vertices.push(p.x,bottom,p.z,p.x,top,p.z);}
+ for(let i=0;i<samples.length-1;i++){const a=i*2;indices.push(a,a+2,a+1,a+1,a+2,a+3);}
+ const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(vertices,3));g.setIndex(indices);g.computeVertexNormals();return g;
 }
-
-export const BAY_INNER = {
-  frontX: (s: PlacedSection) => s.side * BAY_FRONT_X,
-  backX: (s: PlacedSection) => s.side * HALF_W,
-  centreX: (s: PlacedSection) => s.side * (BAY_FRONT_X + MALL.bayDepth / 2),
-};
+export function sectionWorldMatrix(section:PlacedSection){
+ const f=pathFrameAt(section.sCenter),p=new THREE.Vector3(f.x,0,f.z),q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),f.yaw);
+ return new THREE.Matrix4().compose(p,q,new THREE.Vector3(1,1,1));
+}
+export function sectionHitBox(section:PlacedSection,expand=0):THREE.Box3{
+ const a=section.side*(STORE_FRONT_OFFSET-0.15),b=section.side*(STORE_BACK_OFFSET+0.15);
+ return new THREE.Box3(new THREE.Vector3(Math.min(a,b),0,-section.width/2),new THREE.Vector3(Math.max(a,b),MALL.ceiling,section.width/2)).expandByScalar(expand);
+}
+export function sectionAnchor(section:PlacedSection):THREE.Vector3{
+ return new THREE.Vector3(section.side*2.18,2.55,0).applyMatrix4(sectionWorldMatrix(section));
+}
+export const BAY_INNER={frontX:(_s:PlacedSection)=>STORE_FRONT_OFFSET,backX:(_s:PlacedSection)=>STORE_BACK_OFFSET,centreX:(_s:PlacedSection)=>(STORE_FRONT_OFFSET+STORE_BACK_OFFSET)/2};
