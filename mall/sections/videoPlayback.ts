@@ -11,6 +11,7 @@ interface ScreenEntry {
 }
 
 const screens = new Map<string, ScreenEntry>();
+const visibilityRay = new THREE.Raycaster();
 let featuredId: string | null = null;
 let challengerId: string | null = null;
 let challengerSince = 0;
@@ -48,6 +49,7 @@ export function releaseAllVideos() {
 function evaluateScreen(
   entry: ScreenEntry,
   camera: THREE.Camera,
+  scene: THREE.Scene,
   frustum: THREE.Frustum,
   cameraPosition: THREE.Vector3,
   cameraForward: THREE.Vector3,
@@ -60,6 +62,16 @@ function evaluateScreen(
   const distance = toCamera.length();
   if (distance < 0.1 || distance > 42) return null;
   toCamera.multiplyScalar(1 / distance);
+
+  // Frustum membership alone is insufficient: a wall or the entrance scrim may block the LCD.
+  visibilityRay.set(cameraPosition, toCamera.clone().negate());
+  visibilityRay.near = 0.05;
+  visibilityRay.far = Math.max(0.1, distance + 0.05);
+  const firstHit = visibilityRay.intersectObjects(scene.children, true)[0];
+  if (!firstHit) return null;
+  let hitOwner: THREE.Object3D | null = firstHit.object;
+  while (hitOwner && hitOwner !== entry.object) hitOwner = hitOwner.parent;
+  if (hitOwner !== entry.object) return null;
 
   const normal = new THREE.Vector3(0, 0, 1).transformDirection(entry.object.matrixWorld);
   const facing = normal.dot(toCamera);
@@ -82,6 +94,7 @@ function evaluateScreen(
 /** Runs at 10 Hz: visibility and resource decisions are intentionally outside the render loop. */
 export function updateVideoPlayback(
   camera: THREE.Camera,
+  scene: THREE.Scene,
   pathS: number,
   walking: boolean,
   pageVisible: boolean,
@@ -101,7 +114,7 @@ export function updateVideoPlayback(
   const cameraForward = camera.getWorldDirection(new THREE.Vector3());
 
   const candidates = [...screens.values()]
-    .map((entry) => evaluateScreen(entry, camera, frustum, cameraPosition, cameraForward))
+    .map((entry) => evaluateScreen(entry, camera, scene, frustum, cameraPosition, cameraForward))
     .filter((item): item is NonNullable<typeof item> => item !== null)
     .sort((a, b) => b.score - a.score);
 
