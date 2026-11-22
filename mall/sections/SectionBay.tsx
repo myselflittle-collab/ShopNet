@@ -17,6 +17,7 @@ const ACCENT_HOT=new THREE.Color("#e3b66b");
 
 function SectionBayImpl({s}:{s:PlacedSection}){
  const hovered=useMallStore(st=>st.hoveredId===s.id);
+ const tutorialComplete=useMallStore(st=>st.tutorialComplete);
  const frame=useMemo(()=>pathFrameAt(s.sCenter),[s.sCenter]);
  const returnWidth=s.width>=8?1.2:0.6;
  const clearOpening=s.width-returnWidth*2;
@@ -30,13 +31,22 @@ function SectionBayImpl({s}:{s:PlacedSection}){
  ],{width:768,height:128,bg:"#f6f3ee"}),[s]);
  const accent=useRef<THREE.MeshStandardMaterial>(null);
  const floorGlow=useRef<THREE.MeshBasicMaterial>(null);
+ const revealScrim=useRef<THREE.Mesh>(null);
+ const scrimProgress=useRef(0);
  const glow=useRef(0);
- useEffect(()=>()=>{sign.dispose();stone?.dispose();},[sign,stone]);
+ // The polished floor texture is a shared cache entry; only this bay's sign texture is owned here.
+ useEffect(()=>()=>{sign.dispose();},[sign]);
  useFrame((_,dt)=>{
   const active=hovered||openState.id===s.id;
   glow.current+=(Number(active)-glow.current)*(1-Math.exp(-dt*8));
   if(accent.current){accent.current.emissive.copy(ACCENT_IDLE).lerp(ACCENT_HOT,glow.current);accent.current.emissiveIntensity=0.22+glow.current*1.7;}
   if(floorGlow.current)floorGlow.current.opacity=glow.current*0.32;
+  if(s.id==="women-blazers" && revealScrim.current){
+   const target=tutorialComplete?1:0;
+   scrimProgress.current+=(target-scrimProgress.current)*(1-Math.exp(-dt*1.45));
+   revealScrim.current.position.y=1.95+scrimProgress.current*2.0;
+   revealScrim.current.visible=scrimProgress.current<0.995;
+  }
  });
  const sideZ=s.width/2-returnWidth/2;
  const signRotation=-s.side*Math.PI/2;
@@ -84,6 +94,12 @@ function SectionBayImpl({s}:{s:PlacedSection}){
    <meshBasicMaterial ref={floorGlow} color="#e8bd79" transparent opacity={0} depthWrite={false}/>
   </mesh>
   <SectionVideoPanel section={s}/>
+  {s.id==="women-blazers" && !tutorialComplete && (
+   <mesh ref={revealScrim} position={[s.side*(STORE_FRONT_OFFSET+0.12),1.95,0]} rotation-y={-s.side*Math.PI/2}>
+    <planeGeometry args={[clearOpening,3.45]}/>
+    <meshStandardMaterial color="#d8c8ae" transparent opacity={0.58} roughness={0.32} metalness={0.12} depthWrite={false} side={THREE.DoubleSide}/>
+   </mesh>
+  )}
  </group>;
 }
 export const SectionBay=memo(SectionBayImpl);
