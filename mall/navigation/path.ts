@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-export const MALL_PATH_LENGTH = 126.626;
+export const MALL_PATH_LENGTH = 126.62536001725353;
 export const MALL_FOYER_END = 8;
 export const MALL_WOMEN_END = 59.313;
 export const MALL_PLAZA_END = 69.313;
