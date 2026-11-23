@@ -325,7 +325,7 @@ export function BenchmarkPanel() {
       if (!media.paused && !media.ended) playingMedia.add(media);
     });
 
-    const patchedPlay: typeof mediaPrototype.play = function () {
+    const patchedPlay: typeof mediaPrototype.play = function (this: HTMLMediaElement) {
       addMediaListeners(this);
       const promise = originalPlay.call(this);
       return promise.catch((error) => {
@@ -333,7 +333,7 @@ export function BenchmarkPanel() {
         throw error;
       });
     };
-    const patchedPause: typeof mediaPrototype.pause = function () {
+    const patchedPause: typeof mediaPrototype.pause = function (this: HTMLMediaElement) {
       playingMedia.delete(this);
       return originalPause.call(this);
     };
