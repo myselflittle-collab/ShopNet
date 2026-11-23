@@ -923,7 +923,6 @@ function VideoScreen({ section }: { section: PlacedSection }) {
   const overlayTextureRef = useRef<THREE.CanvasTexture | null>(null);
   const [playbackState, setPlaybackState] = useState<"DORMANT" | "READY" | "PLAYING">("DORMANT");
   const [videoTexture, setVideoTexture] = useState<THREE.VideoTexture | null>(null);
-  const [posterTexture, setPosterTexture] = useState<THREE.Texture | null>(null);
   const [frameReady, setFrameReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [overlayTexture, setOverlayTexture] = useState<THREE.CanvasTexture | null>(null);
@@ -942,34 +941,7 @@ function VideoScreen({ section }: { section: PlacedSection }) {
   }, [section.id, section.label, section.gender]);
   const campaign = useMemo(() => getCampaign(section), [section.id, section.label, section.gender]);
 
-  useEffect(() => {
-    let live = true;
-    let loaded: THREE.Texture | null = null;
-    new THREE.TextureLoader().load(
-      `/videos/posters/${section.id}.webp`,
-      (texture) => {
-        if (!live) {
-          texture.dispose();
-          return;
-        }
-        texture.colorSpace = THREE.SRGBColorSpace;
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        texture.generateMipmaps = false;
-        loaded = texture;
-        setPosterTexture(texture);
-      },
-      undefined,
-      () => {
-        // Keep the lightweight category fallback until the offline poster is generated.
-      },
-    );
-    return () => {
-      live = false;
-      loaded?.dispose();
-      setPosterTexture(null);
-    };
-  }, [section.id]);
+
 
   const releaseMedia = (updateState = true) => {
     const video = videoRef.current;
@@ -1028,22 +1000,14 @@ function VideoScreen({ section }: { section: PlacedSection }) {
       createdVideo.crossOrigin = "anonymous";
       createdVideo.setAttribute("muted", "");
       createdVideo.setAttribute("playsinline", "");
-      createdVideo.src = `/videos/optimized/${section.id}.mp4`;
+      createdVideo.src = `/videos/sections/${section.id}.mp4`;
       videoRef.current = createdVideo;
 
       const onReady = () => {
         setFrameReady(true);
         if (playbackStateRef.current === "PLAYING") void createdVideo.play().catch(() => undefined);
       };
-      let triedOriginal = false;
       const onError = () => {
-        // The source MP4 remains a safe fallback until the user runs the lossless preparation script.
-        if (!triedOriginal && videoRef.current === createdVideo) {
-          triedOriginal = true;
-          createdVideo.src = `/videos/sections/${section.id}.mp4`;
-          createdVideo.load();
-          return;
-        }
         setFailed(true);
         setFrameReady(false);
         createdVideo.pause();
@@ -1126,8 +1090,7 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     };
   }, [playbackState, failed, campaign]);
 
-  // Mount the display 26 cm inside the boutique from the back-wall face; the frame no longer intersects the wall.
-  // Keep the 16:9 face 11 cm in front of the outer-wall inner surface; it cannot be hidden by the wall.
+  // The 16:9 display face sits 11 cm inside the shop from the outer-wall inner surface, clear of the wall.
   const screenX = section.side * 5.59;
   const screenRotationY = section.side === -1 ? Math.PI / 2 : -Math.PI / 2;
 
@@ -1139,7 +1102,7 @@ function VideoScreen({ section }: { section: PlacedSection }) {
       </mesh>
       <mesh position={[0, 0, 0.012]}>
         <planeGeometry args={[SCREEN_WIDTH, SCREEN_HEIGHT]} />
-        <meshBasicMaterial map={frameReady && !failed && videoTexture ? videoTexture : posterTexture ?? fallback} toneMapped={false} />
+        <meshBasicMaterial map={frameReady && !failed && videoTexture ? videoTexture : fallback} toneMapped={false} />
       </mesh>
       {playbackState === "PLAYING" && overlayTexture && (
         <mesh position={[0, 0, 0.026]}>
