@@ -924,7 +924,6 @@ function VideoScreen({ section }: { section: PlacedSection }) {
   const [playbackState, setPlaybackState] = useState<"DORMANT" | "READY" | "PLAYING">("DORMANT");
   const [videoTexture, setVideoTexture] = useState<THREE.VideoTexture | null>(null);
   const [posterTexture, setPosterTexture] = useState<THREE.Texture | null>(null);
-  const [posterTexture, setPosterTexture] = useState<THREE.Texture | null>(null);
   const [frameReady, setFrameReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [overlayTexture, setOverlayTexture] = useState<THREE.CanvasTexture | null>(null);
@@ -942,34 +941,6 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     return texture;
   }, [section.id, section.label, section.gender]);
   const campaign = useMemo(() => getCampaign(section), [section.id, section.label, section.gender]);
-
-  useEffect(() => {
-    let active = true;
-    let loaded: THREE.Texture | null = null;
-    new THREE.TextureLoader().load(
-      `/videos/posters/${section.id}.webp`,
-      (texture) => {
-        if (!active) {
-          texture.dispose();
-          return;
-        }
-        texture.colorSpace = THREE.SRGBColorSpace;
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        texture.generateMipmaps = false;
-        loaded = texture;
-        setPosterTexture(texture);
-      },
-      undefined,
-      () => {
-        // The existing category fallback remains visible until the offline poster is generated.
-      },
-    );
-    return () => {
-      active = false;
-      loaded?.dispose();
-    };
-  }, [section.id]);
 
   useEffect(() => {
     let live = true;
@@ -1025,7 +996,7 @@ function VideoScreen({ section }: { section: PlacedSection }) {
   useEffect(() => {
     const object = group.current;
     if (!object) return;
-    // Straight-corridor path coordinate for Stage 1; replaced by the S-path arc-length coordinate in Stage 3.
+    // Register this storefront at its S-path arc-length position for visibility-based playback.
     return registerVideoScreen(section.id, section.sCenter, object, setPlaybackState);
   }, [section.id, section.cz]);
 
