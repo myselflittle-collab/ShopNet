@@ -3,6 +3,7 @@ export {};
 declare global {
   interface Window {
     __shopnetBenchRecording?: boolean;
+    __shopnetBenchFrameTimes?: number[];
     __shopnetBenchStats?: {
       drawCalls: number;
       triangles: number;
