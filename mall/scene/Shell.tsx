@@ -44,6 +44,17 @@ function IslandSet({ side, positions, gender }: {
               <boxGeometry args={[0.07, 1.1, 0.07]} />
               <meshStandardMaterial color={BRASS} metalness={0.68} roughness={0.3} emissive="#805c31" emissiveIntensity={0.12} />
             </mesh>
+            {/* A low timber bench completes the landscaped island without narrowing the walkway. */}
+            <mesh position={[side * 2.72, 0.23, 1.95]}>
+              <boxGeometry args={[0.94, 0.22, 1.18]} />
+              <meshStandardMaterial color={gender === "women" ? "#765d49" : "#45494a"} roughness={0.72} />
+            </mesh>
+            {[-0.38, 0.38].map((leg) => (
+              <mesh key={leg} position={[side * 2.72, 0.105, 1.95 + leg]}>
+                <boxGeometry args={[0.78, 0.18, 0.08]} />
+                <meshStandardMaterial color="#393330" metalness={0.12} roughness={0.72} />
+              </mesh>
+            ))}
           </group>
         );
       })}
@@ -169,8 +180,8 @@ export function Shell() {
       ))}
 
       {/* Atrium islands are open landscape/display elements, not white or black enclosed rooms. */}
-      <IslandSet side={1} positions={[18, 29, 40, 51]} gender="women" />
-      <IslandSet side={-1} positions={[78, 89, 100, 113]} gender="men" />
+      <IslandSet side={1} positions={[18, 29, 40, 51, 61, 66]} gender="women" />
+      <IslandSet side={-1} positions={[61, 66, 78, 89, 100, 113]} gender="men" />
     </group>
   );
 }
