@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { MALL_PATH_LENGTH, pathFrameAt } from "../mall/navigation/path";
-import { addLook, addWheel, setPose, stepWalker, walker } from "../mall/navigation/walker";
+import { addLook, addWheel, angleInRange, setPose, stepWalker, walker } from "../mall/navigation/walker";
 
 const run = (seconds: number) => {
   for (let i = 0; i < seconds * 60; i++) stepWalker(1 / 60);
@@ -52,6 +52,7 @@ test("full 360-degree and multiple-turn look is unwrapped", () => {
   addLook(-1400, 0);
   run(0.1);
   assert.ok(walker.yaw > 6);
+  assert.ok(angleInRange(walker.yaw, (53.5 * Math.PI) / 180, (117.5 * Math.PI) / 180));
   const once = walker.yaw;
   addLook(1400, 0);
   run(0.1);
