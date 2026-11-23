@@ -21,11 +21,11 @@ export const TUNING = {
 } as const;
 
 export const walker = {
-  s: MALL.entranceS,
-  yaw: 0,
-  pitch: 0,
-  vel: 0,
-  pad: 0,
+  s: MALL.entranceS as number,
+  yaw: 0 as number,
+  pitch: 0 as number,
+  vel: 0 as number,
+  pad: 0 as number,
   keys: new Set<string>(),
   tween: null as null,
 };
@@ -91,7 +91,7 @@ export function addTouchWalk(deltaY: number) {
   walker.vel = Math.max(-TUNING.maxSpeed, Math.min(TUNING.maxSpeed, walker.vel - deltaY * 0.035));
 }
 
-export function addLook(dx: number, dy = 0, sensitivity = TUNING.mouseSensitivity) {
+export function addLook(dx: number, dy = 0, sensitivity: number = TUNING.mouseSensitivity) {
   if (walker.tween !== null) return;
   walker.yaw -= dx * sensitivity;
   walker.pitch = clampPitch(walker.pitch - dy * sensitivity);
