@@ -3,6 +3,7 @@
 import * as THREE from "three";
 
 const wallpaperCache = new Map<string, THREE.CanvasTexture>();
+const ribbedWallCache = new Map<string, THREE.CanvasTexture>();
 let stoneTexture: THREE.CanvasTexture | null = null;
 
 function makeCanvasTexture(
@@ -210,4 +211,60 @@ export function getPolishedStoneTexture(): THREE.CanvasTexture | null {
 
   stoneTexture = makeCanvasTexture(canvas, 1.4, 1.4);
   return stoneTexture;
+}
+
+
+/** Warm or graphite vertical fluting for the tall atrium-core walls. */
+export function getRibbedWallTexture(gender: "women" | "men"): THREE.CanvasTexture | null {
+  if (typeof document === "undefined") return null;
+  const cached = ribbedWallCache.get(gender);
+  if (cached) return cached;
+
+  const size = 768;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  const palette = gender === "women"
+    ? { base: "#d8c9b8", light: "#f6eee2", mid: "#b39c85", dark: "#776655" }
+    : { base: "#77736c", light: "#aaa49a", mid: "#514d48", dark: "#302e2c" };
+
+  const background = ctx.createLinearGradient(0, 0, size, 0);
+  background.addColorStop(0, palette.light);
+  background.addColorStop(0.48, palette.base);
+  background.addColorStop(1, palette.mid);
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, size, size);
+
+  const ribWidth = 18;
+  for (let x = 0; x < size; x += ribWidth) {
+    const rib = ctx.createLinearGradient(x, 0, x + ribWidth, 0);
+    rib.addColorStop(0, palette.dark);
+    rib.addColorStop(0.12, palette.mid);
+    rib.addColorStop(0.34, palette.light);
+    rib.addColorStop(0.56, palette.base);
+    rib.addColorStop(0.82, palette.mid);
+    rib.addColorStop(1, palette.dark);
+    ctx.fillStyle = rib;
+    ctx.fillRect(x, 0, ribWidth, size);
+
+    ctx.fillStyle = "rgba(255,255,255,0.24)";
+    ctx.fillRect(x + 4, 0, 1.5, size);
+    ctx.fillStyle = "rgba(18,15,12,0.16)";
+    ctx.fillRect(x + ribWidth - 3, 0, 1.5, size);
+  }
+
+  // Fine horizontal reveals divide the fluted surface into architectural panels.
+  for (const y of [24, 744]) {
+    ctx.fillStyle = gender === "women" ? "rgba(117,88,61,0.30)" : "rgba(18,20,22,0.38)";
+    ctx.fillRect(0, y, size, 2);
+    ctx.fillStyle = "rgba(255,255,255,0.30)";
+    ctx.fillRect(0, y + 2, size, 1);
+  }
+
+  const texture = makeCanvasTexture(canvas, 1, 1);
+  ribbedWallCache.set(gender, texture);
+  return texture;
 }
