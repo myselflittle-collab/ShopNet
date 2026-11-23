@@ -120,7 +120,6 @@ export function SectionDividerFins() {
     }
     return items;
   }, []);
-  const material = useMemo(() => new THREE.MeshStandardMaterial({ color: "#655646", roughness: 0.66 }), []);
   return (
     <group>
       {fins.map((fin) => {
