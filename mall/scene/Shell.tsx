@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { MALL, STORE_BACK_OFFSET, STORE_FRONT_OFFSET, ATRIUM_EDGE_OFFSET } from "@/lib/config/mall";
+import { MALL } from "@/lib/config/mall";
 import { pathFrameAt, pathOffsetAt } from "@/mall/navigation/path";
 import { makePathRibbonGeometry, makePathWallGeometry } from "@/mall/sections/geometry";
 import { getPolishedStoneTexture, getRibbedWallTexture, getStoreWallpaper } from "./materialTextures";
@@ -84,10 +84,12 @@ export function Shell() {
   }, [floor, womenFloor, menFloor, walkwaySoffit, womenSoffit, menSoffit, womenOuter, menOuter, foyerLeft, foyerRight, ceilingTrim, stone, foyerBrand]);
 
   const foyer = pathFrameAt(4);
-  const entrancePillars = [1.1, 6.9].flatMap((s) => [-1, 1] as const).map((side) => {
-    const s = side === -1 ? 1.1 : 6.9;
-    return { s, side, point: pathOffsetAt(s, side * 1.82), frame: pathFrameAt(s) };
-  });
+  const entrancePillars = [
+    { s: 1.1, side: -1 as const }, { s: 1.1, side: 1 as const },
+    { s: 6.9, side: -1 as const }, { s: 6.9, side: 1 as const },
+  ].map(({ s, side }) => ({
+    s, side, point: pathOffsetAt(s, side * 1.82), frame: pathFrameAt(s),
+  }));
 
   return (
     <group>
