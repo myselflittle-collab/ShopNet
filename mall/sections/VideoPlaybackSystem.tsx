@@ -39,7 +39,7 @@ export function VideoPlaybackSystem() {
       camera,
       scene,
       walker.s,
-      state.mode === "walking" && !state.shopVisible && state.tutorialComplete,
+      state.mode === "walking" && !state.shopVisible,
       !document.hidden,
       mobile.current,
       walker.vel,
