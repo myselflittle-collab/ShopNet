@@ -23,6 +23,8 @@ export const MALL = {
 } as const;
 
 export const HALF_W = MALL.width / 2;
+/** Half-width of the centreline walkway; retained for the older photo-panel helper. */
+export const BAY_FRONT_X = MALL.walkwayWidth / 2;
 export const WALKWAY_HALF = MALL.walkwayWidth / 2;
 export const STORE_FRONT_OFFSET = WALKWAY_HALF;
 export const STORE_BACK_OFFSET = WALKWAY_HALF + MALL.bayDepth;
