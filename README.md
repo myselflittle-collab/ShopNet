@@ -71,3 +71,22 @@ legacy/almirah/       previous prototype, kept for reference
 ## Pinned versions
 
 Next.js 16.4.6 · React 19.3.1 · three 0.187.0 · @react-three/fiber 9.8.2 · @react-three/drei 10.7.9 · zustand 5.1.0 · TypeScript 6.0.3 · Tailwind 4.3.4
+
+
+## Baseline benchmark (checkpoint branch)
+
+The `benchmark/shopnet-baseline-a4f9` branch is built from the original straight-corridor checkpoint commit `a4f9c70`. It adds an optional benchmark panel at:
+
+```
+http://localhost:3000/bench
+```
+
+The benchmark route leaves the original mall scene unchanged and enables extra Three.js renderer counters only on that route. Use the panel to:
+- Select eight fixed camera viewpoints and save the named reference screenshots.
+- Run a five-minute walk-through benchmark while keeping the tab visible.
+- Open and close Women's Blazers during the run.
+- Export a JSON report with frame-time percentiles, FPS estimates, renderer counters, MP4 resource transfers, media-player counts, long tasks, device/browser information and shop interactions.
+
+The benchmark panel does not automatically move the customer along a route or manufacture benchmark results. The walk is performed manually so the same route can be repeated on each device. JS heap values and network transfer sizes are reported only where the browser exposes them.
+
+Run this branch locally and complete the five-minute test on the laptop, Android phone, and iPhone/Safari where available. Capture all eight screenshots before using this branch as the baseline for the next implementation stage.
