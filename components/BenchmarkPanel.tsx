@@ -270,8 +270,6 @@ export function BenchmarkPanel() {
   const [selectedView, setSelectedView] = useState("01");
   const [collapsed, setCollapsed] = useState(false);
   const [mediaCounts, setMediaCounts] = useState({ opens: 0, closes: 0 });
-  const frameTimesRef = useRef<number[]>([]);
-  const rendererSamplesRef = useRef<RendererSample[]>([]);
   const shopCountsRef = useRef({ opens: 0, closes: 0 });
   const previousShopVisibleRef = useRef(false);
 
@@ -294,7 +292,6 @@ export function BenchmarkPanel() {
 
     const startedAtPerf = performance.now();
     const startedAt = new Date().toISOString();
-    const frameTimes: number[] = [];
     const rendererSamples: RendererSample[] = [];
     const longTaskDurations: number[] = [];
     const playingMedia = new Set<HTMLMediaElement>();
@@ -305,16 +302,14 @@ export function BenchmarkPanel() {
     let peakPlayingMediaElements = 0;
     let peakHeapBytes: number | null = null;
     let endHeapBytes: number | null = null;
-    let previousFrame = 0;
-    let lastUiUpdate = 0;
-    let animationFrame = 0;
+    let intervalId: number | null = null;
     let observer: PerformanceObserver | null = null;
     let disposed = false;
 
     shopCountsRef.current = { opens: 0, closes: 0 };
     setMediaCounts({ opens: 0, closes: 0 });
-    frameTimesRef.current = frameTimes;
-    rendererSamplesRef.current = rendererSamples;
+    window.__shopnetBenchFrameTimes = [];
+    window.__shopnetBenchStats = undefined;
     window.__shopnetBenchRecording = true;
 
     const addMediaListeners = (media: HTMLMediaElement) => {
@@ -324,6 +319,11 @@ export function BenchmarkPanel() {
       media.addEventListener("pause", () => playingMedia.delete(media));
       media.addEventListener("ended", () => playingMedia.delete(media));
     };
+
+    document.querySelectorAll("video, audio").forEach((media) => {
+      addMediaListeners(media);
+      if (!media.paused && !media.ended) playingMedia.add(media);
+    });
 
     const patchedPlay: typeof mediaPrototype.play = function () {
       addMediaListeners(this);
@@ -360,7 +360,7 @@ export function BenchmarkPanel() {
       if (disposed) return;
       disposed = true;
       window.__shopnetBenchRecording = false;
-      if (animationFrame) cancelAnimationFrame(animationFrame);
+      if (intervalId !== null) window.clearInterval(intervalId);
       observer?.disconnect();
       if (mediaPrototype.play === patchedPlay) mediaPrototype.play = originalPlay;
       if (mediaPrototype.pause === patchedPause) mediaPrototype.pause = originalPause;
@@ -379,7 +379,7 @@ export function BenchmarkPanel() {
         durationMs,
         deviceLabel,
         notes,
-        frameTimes,
+        frameTimes: (window.__shopnetBenchFrameTimes ?? []).filter((value) => Number.isFinite(value) && value > 0),
         rendererSamples,
         mp4Entries,
         peakPlayingMediaElements,
@@ -396,44 +396,31 @@ export function BenchmarkPanel() {
       setRecording(false);
     };
 
-    const sample = (now: number) => {
+    const sample = () => {
       if (disposed) return;
-      if (previousFrame > 0) {
-        const frameMs = now - previousFrame;
-        if (frameMs > 0 && frameMs < 1000) frameTimes.push(frameMs);
-      }
-      previousFrame = now;
-
+      const currentDuration = performance.now() - startedAtPerf;
+      setElapsedMs(currentDuration);
       peakPlayingMediaElements = Math.max(peakPlayingMediaElements, playingMedia.size);
 
-      if (now - lastUiUpdate >= 1000) {
-        lastUiUpdate = now;
-        const currentDuration = now - startedAtPerf;
-        setElapsedMs(currentDuration);
-        const stats = window.__shopnetBenchStats;
-        if (stats) {
-          rendererSamples.push({
-            drawCalls: stats.drawCalls,
-            triangles: stats.triangles,
-            geometries: stats.geometries,
-            textures: stats.textures,
-          });
-        }
-        const extendedPerformance = performance as ExtendedPerformance;
-        const usedHeap = extendedPerformance.memory?.usedJSHeapSize;
-        if (typeof usedHeap === "number") {
-          peakHeapBytes = peakHeapBytes === null ? usedHeap : Math.max(peakHeapBytes, usedHeap);
-        }
-        if (currentDuration >= TEST_DURATION_MS) {
-          finish();
-          return;
-        }
+      const stats = window.__shopnetBenchStats;
+      if (stats) {
+        rendererSamples.push({
+          drawCalls: stats.drawCalls,
+          triangles: stats.triangles,
+          geometries: stats.geometries,
+          textures: stats.textures,
+        });
+      }
+      const extendedPerformance = performance as ExtendedPerformance;
+      const usedHeap = extendedPerformance.memory?.usedJSHeapSize;
+      if (typeof usedHeap === "number") {
+        peakHeapBytes = peakHeapBytes === null ? usedHeap : Math.max(peakHeapBytes, usedHeap);
       }
 
-      animationFrame = requestAnimationFrame(sample);
+      if (currentDuration >= TEST_DURATION_MS) finish();
     };
 
-    animationFrame = requestAnimationFrame(sample);
+    intervalId = window.setInterval(sample, 1000);
 
     return cleanup;
   }, [recording, deviceLabel, notes]);
