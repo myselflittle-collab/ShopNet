@@ -3,18 +3,84 @@ import { MALL, STORE_BACK_OFFSET, STORE_FRONT_OFFSET } from "@/lib/config/mall";
 import type { PlacedSection } from "@/lib/config/sections";
 import { pathFrameAt, pathOffsetAt, pathSamples } from "@/mall/navigation/path";
 
-export function makePathRibbonGeometry(s0:number,s1:number,lateralMin:number,lateralMax:number,y:number,sampleStep=0.25){
- const samples=pathSamples(s0,s1,sampleStep), vertices:number[]=[], indices:number[]=[];
- for(const frame of samples){const a=pathOffsetAt(frame.s,lateralMin),b=pathOffsetAt(frame.s,lateralMax);vertices.push(a.x,y,a.z,b.x,y,b.z);}
- for(let i=0;i<samples.length-1;i++){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}
- const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(vertices,3));g.setIndex(indices);g.computeVertexNormals();return g;
+export type PathRibbonUvMode = "world" | "normalized";
+
+export function makePathRibbonGeometry(
+  s0: number,
+  s1: number,
+  lateralMin: number,
+  lateralMax: number,
+  y: number,
+  sampleStep = 0.25,
+  uvMode: PathRibbonUvMode = "world",
+) {
+  const samples = pathSamples(s0, s1, sampleStep);
+  const vertices: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  const pathSpan = Math.max(1e-6, s1 - s0);
+
+  for (const frame of samples) {
+    const a = pathOffsetAt(frame.s, lateralMin);
+    const b = pathOffsetAt(frame.s, lateralMax);
+    vertices.push(a.x, y, a.z, b.x, y, b.z);
+
+    if (uvMode === "normalized") {
+      const along = (frame.s - s0) / pathSpan;
+      uvs.push(0, along, 1, along);
+    } else {
+      // One texture tile spans roughly four metres in each direction.
+      const along = frame.s * 0.25;
+      uvs.push(lateralMin * 0.25, along, lateralMax * 0.25, along);
+    }
+  }
+
+  for (let i = 0; i < samples.length - 1; i++) {
+    const a = i * 2;
+    indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+  }
+
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  g.setIndex(indices);
+  g.computeVertexNormals();
+  return g;
 }
-export function makePathWallGeometry(s0:number,s1:number,lateral:number,bottom:number,top:number,sampleStep=0.25){
- const samples=pathSamples(s0,s1,sampleStep),vertices:number[]=[],indices:number[]=[];
- for(const frame of samples){const p=pathOffsetAt(frame.s,lateral);vertices.push(p.x,bottom,p.z,p.x,top,p.z);}
- for(let i=0;i<samples.length-1;i++){const a=i*2;indices.push(a,a+2,a+1,a+1,a+2,a+3);}
- const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(vertices,3));g.setIndex(indices);g.computeVertexNormals();return g;
+
+export function makePathWallGeometry(
+  s0: number,
+  s1: number,
+  lateral: number,
+  bottom: number,
+  top: number,
+  sampleStep = 0.25,
+) {
+  const samples = pathSamples(s0, s1, sampleStep);
+  const vertices: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+
+  for (const frame of samples) {
+    const p = pathOffsetAt(frame.s, lateral);
+    const along = (frame.s - s0) * 0.25;
+    vertices.push(p.x, bottom, p.z, p.x, top, p.z);
+    uvs.push(along, bottom * 0.25, along, top * 0.25);
+  }
+
+  for (let i = 0; i < samples.length - 1; i++) {
+    const a = i * 2;
+    indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+  }
+
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  g.setIndex(indices);
+  g.computeVertexNormals();
+  return g;
 }
+
 export function sectionWorldMatrix(section:PlacedSection){
  const f=pathFrameAt(section.sCenter),p=new THREE.Vector3(f.x,0,f.z),q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),f.yaw);
  return new THREE.Matrix4().compose(p,q,new THREE.Vector3(1,1,1));
