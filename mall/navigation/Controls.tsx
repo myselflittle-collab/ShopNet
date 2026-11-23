@@ -1,267 +1,333 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { MALL } from "@/lib/config/mall";
 import { useMallStore } from "@/lib/bridge/mallStore";
 import { lookBridge } from "@/lib/bridge/lookBridge";
-import { addLook, addWheel, stepWalker, TUNING, walker } from "./walker";
+import { addLook, addTouchWalk, addWheel, angleInRange, stepWalker, TUNING, walker } from "./walker";
+import { pathFrameAt } from "./path";
 import { selectTarget } from "@/mall/interaction/HoverController";
 
-const TAP_PX = 10;
-const TAP_MS = 300;
-const DOUBLE_TAP_MS = 360;
-const CLICK_SELECT_DELAY_MS = 520;
+const TAP_MOVE_PX = 8;
+const TAP_TIME_MS = 250;
+const DOUBLE_TAP_MS = 320;
+const TUTORIAL_FORWARD_END = 12.4;
+const TUTORIAL_BACK_END = 11.4;
+const W1_LOOK_MIN = (53.5 * Math.PI) / 180;
+const W1_LOOK_MAX = (117.5 * Math.PI) / 180;
+const TUTORIAL_LEFT_TARGET = (100 * Math.PI) / 180;
+const TUTORIAL_RIGHT_DELTA = (30 * Math.PI) / 180;
 
-/**
- * Desktop: double-click toggles pointer-look on/off. A single click still selects a store.
- * While pointer-look is active the mouse turns the customer's head; a second double-click
- * releases the cursor, without requiring Escape.
- * Mobile: double-tap toggles one-finger head-look; two-finger vertical swipe walks.
- * The body always walks down the centreline; head direction never steers the walking path.
- */
+interface ActiveTouch {
+  startX: number;
+  startY: number;
+  lastX: number;
+  lastY: number;
+  axis: "look" | "walk" | null;
+  startedAt: number;
+}
+
+function isW1InViewDirection() {
+  return angleInRange(walker.yaw, W1_LOOK_MIN, W1_LOOK_MAX);
+}
+
 export function Controls() {
-  const gl = useThree((s) => s.gl);
-  const camera = useThree((s) => s.camera);
+  const gl = useThree((state) => state.gl);
+  const camera = useThree((state) => state.camera);
+  const t3StartYaw = useRef(0);
+  const t3MaximumYaw = useRef(0);
+  const t4InWindowSince = useRef(0);
+  const fallbackMouseX = useRef<number | null>(null);
 
   useEffect(() => {
-    const el = gl.domElement;
-    el.style.touchAction = "none";
-    const store = useMallStore.getState;
-    const walking = () => store().mode === "walking";
-    let clickTimer: ReturnType<typeof setTimeout> | null = null;
-    let touchTimer: ReturnType<typeof setTimeout> | null = null;
-    let lastTouchTap = 0;
-    let lastTouchPoint: { x: number; y: number; w: number; h: number } | null = null;
+    const element = gl.domElement;
+    element.style.touchAction = "none";
+    const getState = useMallStore.getState;
+    const isWalking = () => getState().mode === "walking";
+    let lastEmptyTap = 0;
+    const touches = new Map<number, ActiveTouch>();
 
-    const clearClickTimer = () => {
-      if (clickTimer) clearTimeout(clickTimer);
-      clickTimer = null;
-    };
-    const clearTouchTimer = () => {
-      if (touchTimer) clearTimeout(touchTimer);
-      touchTimer = null;
-    };
-
-    const requestLookMode = () => {
-      if (document.pointerLockElement === el) return;
+    const requestPointerLock = () => {
+      if (document.pointerLockElement === element) return;
+      getState().setLookMode("steer");
+      fallbackMouseX.current = null;
       try {
-        // Called synchronously from a real double-click user gesture.
-        const request = el.requestPointerLock();
+        // Pointer lock is requested only by the Enter-the-mall button, never by a store click.
+        const request = element.requestPointerLock();
         if (request && typeof (request as Promise<void>).catch === "function") {
-          (request as Promise<void>).catch(() => store().setLookMode("steer"));
+          (request as Promise<void>).catch(() => getState().setLookMode("steer"));
         }
       } catch {
-        store().setLookMode("steer");
+        getState().setLookMode("steer");
       }
     };
-    lookBridge.lock = requestLookMode;
+    lookBridge.lock = requestPointerLock;
 
-    if (process.env.NODE_ENV !== "production") {
-      (window as unknown as { __shopnet?: object }).__shopnet = {
-        walker,
-        look: (dx: number, dy: number) => walking() && addLook(dx, dy),
-        select: () => selectTarget("mouse"),
-        setLookMode: (m: "idle" | "locked" | "steer" | "touch") => store().setLookMode(m),
-      };
-    }
-
-    const onLockChange = () => {
-      if (document.pointerLockElement === el) store().setLookMode("locked");
-      else if (store().lookMode === "locked") store().setLookMode("idle");
-    };
-    const onLockError = () => store().setLookMode("steer");
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!walking()) return;
-      const mode = store().lookMode;
-      if (mode !== "locked" && mode !== "steer") return;
-      if (Math.abs(e.movementX) > 300 || Math.abs(e.movementY) > 300) return;
-      addLook(e.movementX, e.movementY);
-    };
-
-    const onClick = (e: MouseEvent) => {
-      if (!walking()) return;
-      if (e.detail > 1) {
-        clearClickTimer();
-        return;
+    const onPointerLockChange = () => {
+      if (document.pointerLockElement === element) {
+        fallbackMouseX.current = null;
+        getState().setLookMode("locked");
+      } else if (getState().lookMode === "locked") {
+        fallbackMouseX.current = null;
+        getState().setLookMode("steer");
       }
-      clearClickTimer();
-      clickTimer = setTimeout(() => {
-        clickTimer = null;
-        if (walking()) selectTarget("mouse");
-      }, CLICK_SELECT_DELAY_MS);
+    };
+    const onPointerLockError = () => {
+      fallbackMouseX.current = null;
+      getState().setLookMode("steer");
     };
 
-    const onDoubleClick = (e: MouseEvent) => {
-      if (!walking()) return;
-      e.preventDefault();
-      e.stopPropagation();
-      clearClickTimer();
-
-      if (document.pointerLockElement === el) {
-        document.exitPointerLock();
-        store().setLookMode("idle");
-        return;
-      }
-
-      if (store().lookMode === "steer") {
-        // Pointer lock is unavailable: the double-click still freezes the fallback look mode.
-        walker.steerX = 0;
-        walker.steerY = 0;
-        store().setLookMode("idle");
-        return;
-      }
-
-      requestLookMode();
-    };
-
-    const touches = new Map<number, { x: number; y: number; sx: number; sy: number; t: number }>();
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.pointerType === "mouse") return;
-      touches.set(e.pointerId, {
-        x: e.clientX,
-        y: e.clientY,
-        sx: e.clientX,
-        sy: e.clientY,
-        t: performance.now(),
-      });
-      try {
-        el.setPointerCapture(e.pointerId);
-      } catch {
-        /* Pointer capture is only a convenience. */
+    const onMouseMove = (event: MouseEvent) => {
+      if (!isWalking()) return;
+      const mode = getState().lookMode;
+      if (mode === "locked") {
+        addLook(event.movementX, event.movementY);
+      } else if (mode === "steer") {
+        // Uncaptured fallback: relative cursor movement still turns the head if pointer lock is denied.
+        const previous = fallbackMouseX.current;
+        fallbackMouseX.current = event.clientX;
+        if (previous !== null) addLook(event.clientX - previous, event.movementY);
       }
     };
 
-    const onPointerMove = (e: PointerEvent) => {
-      const touch = touches.get(e.pointerId);
-      if (!touch || !walking()) return;
-      const dx = e.clientX - touch.x;
-      const dy = e.clientY - touch.y;
-      touch.x = e.clientX;
-      touch.y = e.clientY;
-
-      if (touches.size === 1 && store().lookMode === "touch") {
-        addLook(-dx, -dy, TUNING.touchSensitivity);
-      } else if (touches.size === 2) {
-        const points = [...touches.values()];
-        const avgDy = points.reduce((sum, point) => sum + (point.y - point.sy), 0) / points.length;
-        walker.pad = Math.max(-1, Math.min(1, -avgDy / 120));
+    const onClick = (event: MouseEvent) => {
+      if (!isWalking() || event.detail > 1) return;
+      if (document.pointerLockElement === element) {
+        selectTarget("mouse");
+      } else {
+        const rect = element.getBoundingClientRect();
+        selectTarget("mouse", {
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top,
+          w: rect.width,
+          h: rect.height,
+        });
       }
     };
 
-    const onPointerUp = (e: PointerEvent) => {
-      const touch = touches.get(e.pointerId);
-      touches.delete(e.pointerId);
-      if (touches.size < 2) walker.pad = 0;
-      if (!touch || e.pointerType === "mouse") return;
-
-      const moved = Math.hypot(e.clientX - touch.sx, e.clientY - touch.sy);
-      if (moved >= TAP_PX || performance.now() - touch.t > TAP_MS) return;
-
-      const rect = el.getBoundingClientRect();
+    const onDoubleClick = (event: MouseEvent) => {
+      if (!isWalking()) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = element.getBoundingClientRect();
       const point = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
         w: rect.width,
         h: rect.height,
       };
-      const now = performance.now();
+      // A store click remains immediate; the tutorial's double-click action is for empty walkway only.
+      if (selectTarget("mouse", point)) return;
 
-      if (now - lastTouchTap < DOUBLE_TAP_MS) {
-        clearTouchTimer();
-        lastTouchTap = 0;
-        lastTouchPoint = null;
-        walker.pad = 0;
-        store().setLookMode(store().lookMode === "touch" ? "idle" : "touch");
+      const state = getState();
+      const step = state.tutorialStep;
+      if (step >= 1 && step <= 4) return;
+      if (step === 5 && !isW1InViewDirection()) {
+        state.setTutorialHint("Face the boutique, then double-click.");
+        return;
+      }
+      if (document.pointerLockElement === element) document.exitPointerLock();
+      if (step === 5) state.setTutorialComplete();
+      state.setLookMode("idle");
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType === "mouse") return;
+      touches.set(event.pointerId, {
+        startX: event.clientX,
+        startY: event.clientY,
+        lastX: event.clientX,
+        lastY: event.clientY,
+        axis: null,
+        startedAt: performance.now(),
+      });
+      try {
+        element.setPointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture is a convenience; touch movement still works without it.
+      }
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      const touch = touches.get(event.pointerId);
+      if (!touch || !isWalking() || touches.size > 1) return;
+      const dx = event.clientX - touch.lastX;
+      const dy = event.clientY - touch.lastY;
+      const totalX = event.clientX - touch.startX;
+      const totalY = event.clientY - touch.startY;
+      touch.lastX = event.clientX;
+      touch.lastY = event.clientY;
+
+      if (!touch.axis && Math.hypot(totalX, totalY) >= TAP_MOVE_PX) {
+        touch.axis = Math.abs(totalX) >= Math.abs(totalY) ? "look" : "walk";
+      }
+      if (touch.axis === "look" && getState().lookMode === "touch") {
+        addLook(dx, 0, TUNING.touchSensitivity);
+      } else if (touch.axis === "walk") {
+        addTouchWalk(dy);
+      }
+    };
+
+    const onPointerUp = (event: PointerEvent) => {
+      const touch = touches.get(event.pointerId);
+      touches.delete(event.pointerId);
+      if (touches.size === 0) walker.pad = 0;
+      if (!touch || !isWalking()) return;
+
+      const moved = Math.hypot(event.clientX - touch.startX, event.clientY - touch.startY);
+      const duration = performance.now() - touch.startedAt;
+      if (moved >= TAP_MOVE_PX || duration >= TAP_TIME_MS) return;
+
+      const rect = element.getBoundingClientRect();
+      const point = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+        w: rect.width,
+        h: rect.height,
+      };
+      if (selectTarget("touch", point)) {
+        lastEmptyTap = 0;
         return;
       }
 
-      lastTouchTap = now;
-      lastTouchPoint = point;
-      clearTouchTimer();
-      touchTimer = setTimeout(() => {
-        touchTimer = null;
-        if (lastTouchPoint && walking()) selectTarget("touch", lastTouchPoint);
-        lastTouchTap = 0;
-        lastTouchPoint = null;
-      }, DOUBLE_TAP_MS);
+      const now = performance.now();
+      if (lastEmptyTap && now - lastEmptyTap <= DOUBLE_TAP_MS) {
+        lastEmptyTap = 0;
+        const state = getState();
+        const step = state.tutorialStep;
+        if (step >= 1 && step <= 4) return;
+        if (step === 5 && !isW1InViewDirection()) {
+          state.setTutorialHint("Face the boutique, then double-tap.");
+          return;
+        }
+        if (step === 5) state.setTutorialComplete();
+        state.setLookMode("idle");
+      } else {
+        lastEmptyTap = now;
+      }
     };
 
-    const onPointerCancel = (e: PointerEvent) => {
-      touches.delete(e.pointerId);
-      if (touches.size < 2) walker.pad = 0;
+    const onPointerCancel = (event: PointerEvent) => {
+      touches.delete(event.pointerId);
+      if (touches.size === 0) walker.pad = 0;
     };
 
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      if (!walking()) return;
-      const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
-      addWheel(Math.max(-180, Math.min(180, delta)));
+    const onWheel = (event: WheelEvent) => {
+      if (!isWalking()) return;
+      const rect = element.getBoundingClientRect();
+      // Capture scroll over the tutorial and HUD, but do not hijack page scrolling outside the mall.
+      if (
+        event.clientX < rect.left || event.clientX > rect.right ||
+        event.clientY < rect.top || event.clientY > rect.bottom
+      ) return;
+      event.preventDefault();
+      const multiplier = event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? window.innerHeight : 1;
+      addWheel(Math.max(-240, Math.min(240, event.deltaY * multiplier)));
     };
 
-    const isTyping = (target: EventTarget | null) =>
-      target instanceof HTMLElement &&
-      ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
     const keys = ["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (!walking() || isTyping(e.target) || !keys.includes(e.code)) return;
-      e.preventDefault();
-      walker.keys.add(e.code);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isWalking() || !keys.includes(event.code)) return;
+      if (event.target instanceof HTMLElement && ["INPUT", "SELECT", "TEXTAREA"].includes(event.target.tagName)) return;
+      event.preventDefault();
+      walker.keys.add(event.code);
     };
-    const onKeyUp = (e: KeyboardEvent) => walker.keys.delete(e.code);
+    const onKeyUp = (event: KeyboardEvent) => walker.keys.delete(event.code);
     const onBlur = () => {
       walker.keys.clear();
-      walker.steerX = walker.steerY = 0;
       walker.pad = 0;
-      clearClickTimer();
-      clearTouchTimer();
-      if (document.pointerLockElement === el) document.exitPointerLock();
+      touches.clear();
+      fallbackMouseX.current = null;
+      if (document.pointerLockElement === element) document.exitPointerLock();
     };
 
-    el.addEventListener("click", onClick);
-    el.addEventListener("dblclick", onDoubleClick);
-    document.addEventListener("pointerlockchange", onLockChange);
-    document.addEventListener("pointerlockerror", onLockError);
+    element.addEventListener("click", onClick);
+    element.addEventListener("dblclick", onDoubleClick);
+    document.addEventListener("pointerlockchange", onPointerLockChange);
+    document.addEventListener("pointerlockerror", onPointerLockError);
     document.addEventListener("mousemove", onMouseMove);
-    el.addEventListener("pointerdown", onPointerDown);
-    el.addEventListener("pointermove", onPointerMove);
-    el.addEventListener("pointerup", onPointerUp);
-    el.addEventListener("pointercancel", onPointerCancel);
-    el.addEventListener("wheel", onWheel, { passive: false });
+    element.addEventListener("pointerdown", onPointerDown);
+    element.addEventListener("pointermove", onPointerMove);
+    element.addEventListener("pointerup", onPointerUp);
+    element.addEventListener("pointercancel", onPointerCancel);
+    window.addEventListener("wheel", onWheel, { passive: false, capture: true });
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", onBlur);
 
     return () => {
       lookBridge.lock = () => {};
-      clearClickTimer();
-      clearTouchTimer();
-      el.removeEventListener("click", onClick);
-      el.removeEventListener("dblclick", onDoubleClick);
-      document.removeEventListener("pointerlockchange", onLockChange);
-      document.removeEventListener("pointerlockerror", onLockError);
+      if (document.pointerLockElement === element) document.exitPointerLock();
+      element.removeEventListener("click", onClick);
+      element.removeEventListener("dblclick", onDoubleClick);
+      document.removeEventListener("pointerlockchange", onPointerLockChange);
+      document.removeEventListener("pointerlockerror", onPointerLockError);
       document.removeEventListener("mousemove", onMouseMove);
-      el.removeEventListener("pointerdown", onPointerDown);
-      el.removeEventListener("pointermove", onPointerMove);
-      el.removeEventListener("pointerup", onPointerUp);
-      el.removeEventListener("pointercancel", onPointerCancel);
-      el.removeEventListener("wheel", onWheel);
+      element.removeEventListener("pointerdown", onPointerDown);
+      element.removeEventListener("pointermove", onPointerMove);
+      element.removeEventListener("pointerup", onPointerUp);
+      element.removeEventListener("pointercancel", onPointerCancel);
+      window.removeEventListener("wheel", onWheel, true);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", onBlur);
-      if (document.pointerLockElement === el) document.exitPointerLock();
     };
   }, [gl]);
 
-  useFrame((_, dt) => {
-    if (useMallStore.getState().mode !== "walking") {
-      walker.steerX = 0;
-      walker.steerY = 0;
+  useFrame((_, delta) => {
+    const state = useMallStore.getState();
+    if (state.mode !== "walking") walker.pad = 0;
+
+    const before = walker.s;
+    stepWalker(delta);
+    const step = state.tutorialStep;
+
+    if (step === 1 && walker.s >= TUTORIAL_FORWARD_END && walker.vel > 0) {
+      walker.s = TUTORIAL_FORWARD_END;
+      walker.vel = 0;
+      state.setTutorialStep(2);
+    } else if (step === 2 && walker.s <= TUTORIAL_BACK_END && walker.vel < 0) {
+      walker.s = TUTORIAL_BACK_END;
+      walker.vel = 0;
+      t3StartYaw.current = walker.yaw;
+      state.setTutorialStep(3);
+    } else if (step === 3) {
+      walker.s = TUTORIAL_BACK_END;
+      walker.vel = 0;
+      if (walker.yaw > t3StartYaw.current && walker.yaw >= TUTORIAL_LEFT_TARGET) {
+        t3MaximumYaw.current = walker.yaw;
+        t4InWindowSince.current = 0;
+        state.setTutorialStep(4);
+      }
+    } else if (step === 4) {
+      walker.s = TUTORIAL_BACK_END;
+      walker.vel = 0;
+      t3MaximumYaw.current = Math.max(t3MaximumYaw.current, walker.yaw);
+      const turnedRightEnough = t3MaximumYaw.current - walker.yaw >= TUTORIAL_RIGHT_DELTA;
+      const insideW1Window = isW1InViewDirection();
+      if (turnedRightEnough && insideW1Window) {
+        if (!t4InWindowSince.current) t4InWindowSince.current = performance.now();
+        if (performance.now() - t4InWindowSince.current >= 300) state.setTutorialStep(5);
+      } else {
+        t4InWindowSince.current = 0;
+        if (!insideW1Window) state.setTutorialHint("Look back at the boutique.");
+      }
+    } else if (step === 5) {
+      walker.s = TUTORIAL_BACK_END;
+      walker.vel = 0;
     }
-    stepWalker(dt);
-    camera.position.set(walker.x, MALL.eyeHeight, walker.z);
-    camera.rotation.set(walker.pitch, walker.yaw, 0, "YXZ");
+
+    // The camera remains on the route centreline. T1/T2 use real movement; T3–T5 hold position.
+    if (step >= 3 && step <= 5) {
+      walker.s = TUTORIAL_BACK_END;
+      walker.vel = 0;
+    }
+    if (walker.s === before && Math.abs(walker.vel) < 0.002) walker.vel = 0;
+
+    const frame = pathFrameAt(walker.s);
+    camera.position.set(frame.x, MALL.eyeHeight, frame.z);
+    camera.rotation.set(walker.pitch, frame.yaw + walker.yaw, 0, "YXZ");
   }, -1);
 
   return null;
