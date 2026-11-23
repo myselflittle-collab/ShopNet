@@ -276,15 +276,15 @@ export function BenchmarkPanel() {
   const previousShopVisibleRef = useRef(false);
 
   useEffect(() => {
-    previousShopVisibleRef.current = shopVisible;
-    if (!recording) return;
-
-    if (shopVisible && !previousShopVisibleRef.current) {
-      shopCountsRef.current.opens += 1;
-      setMediaCounts({ ...shopCountsRef.current });
-    } else if (!shopVisible && previousShopVisibleRef.current) {
-      shopCountsRef.current.closes += 1;
-      setMediaCounts({ ...shopCountsRef.current });
+    const wasVisible = previousShopVisibleRef.current;
+    if (recording) {
+      if (shopVisible && !wasVisible) {
+        shopCountsRef.current.opens += 1;
+        setMediaCounts({ ...shopCountsRef.current });
+      } else if (!shopVisible && wasVisible) {
+        shopCountsRef.current.closes += 1;
+        setMediaCounts({ ...shopCountsRef.current });
+      }
     }
     previousShopVisibleRef.current = shopVisible;
   }, [shopVisible, recording]);
