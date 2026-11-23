@@ -5,7 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { MALL } from "@/lib/config/mall";
 import { useMallStore } from "@/lib/bridge/mallStore";
 import { lookBridge } from "@/lib/bridge/lookBridge";
-import { addLook, addTouchWalk, addWheel, stepWalker, TUNING, walker } from "./walker";
+import { addLook, addTouchWalk, addWheel, angleInRange, stepWalker, TUNING, walker } from "./walker";
 import { pathFrameAt } from "./path";
 import { selectTarget } from "@/mall/interaction/HoverController";
 
@@ -29,7 +29,8 @@ interface ActiveTouch {
 }
 
 function isW1InViewDirection() {
-  return walker.yaw >= W1_LOOK_MIN && walker.yaw <= W1_LOOK_MAX;
+  // Compare the direction on a circle, without ever clamping the actual camera yaw.
+  return angleInRange(walker.yaw, W1_LOOK_MIN, W1_LOOK_MAX);
 }
 
 export function Controls() {
@@ -75,22 +76,25 @@ export function Controls() {
       if (!isWalking()) return;
       const mode = getState().lookMode;
       if (mode !== "locked" && mode !== "steer") return;
-      if (Math.abs(event.movementX) > 300 || Math.abs(event.movementY) > 300) return;
+      // Pointer-lock deltas remain continuous across full revolutions; do not discard large turns.
       addLook(event.movementX, event.movementY);
     };
 
     const onClick = (event: MouseEvent) => {
       if (!isWalking() || event.detail > 1) return;
       const rect = element.getBoundingClientRect();
-      if (document.pointerLockElement === element) {
-        selectTarget("mouse");
-      } else {
-        selectTarget("mouse", {
-          x: event.clientX - rect.left,
-          y: event.clientY - rect.top,
-          w: rect.width,
-          h: rect.height,
-        });
+      const openedStore = document.pointerLockElement === element
+        ? selectTarget("mouse")
+        : selectTarget("mouse", {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top,
+            w: rect.width,
+            h: rect.height,
+          });
+
+      // If the browser dropped pointer lock, a click on the open walkway reacquires it.
+      if (!openedStore && document.pointerLockElement !== element && getState().lookMode === "steer") {
+        requestPointerLock();
       }
     };
 
@@ -224,7 +228,8 @@ export function Controls() {
     element.addEventListener("pointermove", onPointerMove);
     element.addEventListener("pointerup", onPointerUp);
     element.addEventListener("pointercancel", onPointerCancel);
-    element.addEventListener("wheel", onWheel, { passive: false });
+    // Wheel events must reach the walker even when the pointer is over HUD/tutorial overlays.
+    window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", onBlur);
@@ -241,7 +246,7 @@ export function Controls() {
       element.removeEventListener("pointermove", onPointerMove);
       element.removeEventListener("pointerup", onPointerUp);
       element.removeEventListener("pointercancel", onPointerCancel);
-      element.removeEventListener("wheel", onWheel);
+      window.removeEventListener("wheel", onWheel);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", onBlur);
