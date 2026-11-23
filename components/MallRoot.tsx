@@ -46,6 +46,7 @@ function RouteSync({ onBackExit }: { onBackExit: () => void }) {
 }
 
 export function MallRoot() {
+  const pathname = usePathname();
   const shopVisible = useMallStore((s) => s.shopVisible);
   const [veil, setVeil] = useState<{ x: number; y: number } | null>(null);
   const veilTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -58,7 +59,7 @@ export function MallRoot() {
   return (
     <>
       <div className={`mall-stage ${shopVisible ? "is-dimmed" : ""}`} aria-hidden={shopVisible}>
-        <MallCanvas />
+        <MallCanvas benchmarkMode={pathname === "/bench"} />
       </div>
       <FloatingPreview />
       <Hud />
