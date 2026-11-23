@@ -300,6 +300,7 @@ export function BenchmarkPanel() {
     const originalPlay = mediaPrototype.play;
     const originalPause = mediaPrototype.pause;
     let peakPlayingMediaElements = 0;
+    let lastRendererSampleAt = 0;
     let peakHeapBytes: number | null = null;
     let endHeapBytes: number | null = null;
     let intervalId: number | null = null;
@@ -403,13 +404,14 @@ export function BenchmarkPanel() {
       peakPlayingMediaElements = Math.max(peakPlayingMediaElements, playingMedia.size);
 
       const stats = window.__shopnetBenchStats;
-      if (stats) {
+      if (stats && stats.sampledAt > lastRendererSampleAt) {
         rendererSamples.push({
           drawCalls: stats.drawCalls,
           triangles: stats.triangles,
           geometries: stats.geometries,
           textures: stats.textures,
         });
+        lastRendererSampleAt = stats.sampledAt;
       }
       const extendedPerformance = performance as ExtendedPerformance;
       const usedHeap = extendedPerformance.memory?.usedJSHeapSize;
