@@ -16,7 +16,7 @@ export function AmbientPathLights() {
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
   })), []);
   const geometries = useMemo(() => [-0.98, -0.33, 0.33, 0.98].map((offset) =>
-    makePathRibbonGeometry(0, MALL.length, offset - 0.026, offset + 0.026, 0.018)
+    makePathRibbonGeometry(0, MALL.length, offset - 0.026, offset + 0.026, 0.018, 0.25, "normalized")
   ), []);
 
   useFrame((_, delta) => materials.forEach((material) => { material.uniforms.uTime.value += delta; }));
