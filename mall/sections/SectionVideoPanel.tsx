@@ -1126,7 +1126,8 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     };
   }, [playbackState, failed, campaign]);
 
-  const screenX = section.side * 5.68;
+  // Mount the display 26 cm inside the boutique from the back-wall face; the frame no longer intersects the wall.
+  const screenX = section.side * 5.42;
   const screenRotationY = section.side === -1 ? Math.PI / 2 : -Math.PI / 2;
 
   return (
