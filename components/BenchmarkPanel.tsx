@@ -522,10 +522,10 @@ export function BenchmarkPanel() {
       if (currentDuration >= TEST_DURATION_MS) finish();
     };
 
-    intervalId = window.setInterval(sample, 50);
+    intervalId = window.setInterval(sample, 16);
 
     return cleanup;
-  }, [recording, deviceLabel, notes]);
+  }, [recording, deviceLabel, notes, router]);
 
   const startTest = () => {
     setReport(null);
