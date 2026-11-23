@@ -1019,39 +1019,40 @@ function VideoScreen({ section }: { section: PlacedSection }) {
 
     let video = videoRef.current;
     if (!video) {
-      video = document.createElement("video");
-      video.muted = true;
-      video.loop = true;
-      video.playsInline = true;
-      video.preload = "auto";
-      video.crossOrigin = "anonymous";
-      video.setAttribute("muted", "");
-      video.setAttribute("playsinline", "");
-      video.src = `/videos/optimized/${section.id}.mp4`;
-      videoRef.current = video;
+      const createdVideo = document.createElement("video");
+      video = createdVideo;
+      createdVideo.muted = true;
+      createdVideo.loop = true;
+      createdVideo.playsInline = true;
+      createdVideo.preload = "auto";
+      createdVideo.crossOrigin = "anonymous";
+      createdVideo.setAttribute("muted", "");
+      createdVideo.setAttribute("playsinline", "");
+      createdVideo.src = `/videos/optimized/${section.id}.mp4`;
+      videoRef.current = createdVideo;
 
       const onReady = () => {
         setFrameReady(true);
-        if (playbackStateRef.current === "PLAYING") void video?.play().catch(() => undefined);
+        if (playbackStateRef.current === "PLAYING") void createdVideo.play().catch(() => undefined);
       };
       let triedOriginal = false;
       const onError = () => {
         // The source MP4 remains a safe fallback until the user runs the lossless preparation script.
-        if (!triedOriginal && videoRef.current === video) {
+        if (!triedOriginal && videoRef.current === createdVideo) {
           triedOriginal = true;
-          video.src = `/videos/sections/${section.id}.mp4`;
-          video.load();
+          createdVideo.src = `/videos/sections/${section.id}.mp4`;
+          createdVideo.load();
           return;
         }
         setFailed(true);
         setFrameReady(false);
-        video?.pause();
+        createdVideo.pause();
       };
-      videoListenersRef.current = { video, ready: onReady, error: onError };
-      video.addEventListener("loadeddata", onReady);
-      video.addEventListener("error", onError);
+      videoListenersRef.current = { video: createdVideo, ready: onReady, error: onError };
+      createdVideo.addEventListener("loadeddata", onReady);
+      createdVideo.addEventListener("error", onError);
 
-      const texture = new THREE.VideoTexture(video);
+      const texture = new THREE.VideoTexture(createdVideo);
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.minFilter = THREE.LinearFilter;
       texture.magFilter = THREE.LinearFilter;
