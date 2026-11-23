@@ -12,6 +12,7 @@ import { Controls } from "./navigation/Controls";
 import { HoverController } from "./interaction/HoverController";
 import { HoverLight } from "./interaction/HoverLight";
 import { AmbientPathLights } from "./scene/AmbientPathLights";
+import { BenchTelemetry } from "./BenchTelemetry";
 
 function ReadySignal() {
   const done = useRef(false);
@@ -24,7 +25,7 @@ function ReadySignal() {
 }
 
 /** The 3D mall. Mounted once and kept alive while the shop opens over it. */
-export default function MallCanvas() {
+export default function MallCanvas({ benchmarkMode = false }: { benchmarkMode?: boolean }) {
   const mode = useMallStore((s) => s.mode);
   return (
     <Canvas
@@ -48,6 +49,7 @@ export default function MallCanvas() {
       <HoverLight />
       <Controls />
       <HoverController />
+      <BenchTelemetry enabled={benchmarkMode} />
       <ReadySignal />
     </Canvas>
   );
