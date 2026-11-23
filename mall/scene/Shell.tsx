@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { MALL, ATRIUM_EDGE_OFFSET } from "@/lib/config/mall";
 import { makeLabelTexture } from "./labelTexture";
-import { getPolishedStoneTexture, getStoreWallpaper } from "./materialTextures";
+import { getPolishedStoneTexture, getRibbedWallTexture, getStoreWallpaper } from "./materialTextures";
 import { makePathIslandGeometry, makePathRibbonGeometry, makePathWallGeometry } from "@/mall/sections/geometry";
 import { pathFrameAt, pathOffsetAt } from "@/mall/navigation/path";
 
@@ -13,6 +13,8 @@ const CEILING = "#f1efeb";
 export function Shell() {
   const stone = useMemo(() => getPolishedStoneTexture(), []);
   const entranceWall = useMemo(() => getStoreWallpaper("women", "shopnet-entrance-wallpaper"), []);
+  const womenCoreFinish = useMemo(() => getRibbedWallTexture("women"), []);
+  const menCoreFinish = useMemo(() => getRibbedWallTexture("men"), []);
   const womenBack = useMemo(() => makePathWallGeometry(8, MALL.womenEndS, -5.8, 0, MALL.ceiling), []);
   const menBack = useMemo(() => makePathWallGeometry(MALL.plazaEndS, MALL.menEndS, 5.8, 0, MALL.ceiling), []);
   const womenCore = useMemo(() => makePathWallGeometry(8, MALL.womenEndS, ATRIUM_EDGE_OFFSET, 0, MALL.ceiling), []);
@@ -82,10 +84,10 @@ export function Shell() {
         <meshStandardMaterial map={entranceWall ?? undefined} color="#d8dbdf" roughness={0.82} side={THREE.DoubleSide} />
       </mesh>
       <mesh geometry={womenCore}>
-        <meshStandardMaterial color="#d8d0c4" roughness={0.78} side={THREE.DoubleSide} />
+        <meshStandardMaterial map={womenCoreFinish ?? undefined} color="#fff8ee" roughness={0.72} side={THREE.DoubleSide} />
       </mesh>
       <mesh geometry={menCore}>
-        <meshStandardMaterial color="#d4d2cd" roughness={0.78} side={THREE.DoubleSide} />
+        <meshStandardMaterial map={menCoreFinish ?? undefined} color="#f2eee8" roughness={0.72} side={THREE.DoubleSide} />
       </mesh>
 
       {/* ShopNet-branded textured wallpaper on both entrance-side walls. */}
