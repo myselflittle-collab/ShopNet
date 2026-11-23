@@ -64,6 +64,11 @@ export function Shell() {
   const floor = useMemo(() => makePathRibbonGeometry(0, MALL.length, -2, 2, 0), []);
   const womenFloor = useMemo(() => makePathRibbonGeometry(8, MALL.womenEndS, -5.8, -2, 0.003), []);
   const menFloor = useMemo(() => makePathRibbonGeometry(MALL.plazaEndS, MALL.menEndS, 2, 5.8, 0.003), []);
+  // The narrow inner-side atrium bands are real floor, not voids or enclosed rooms.
+  const womenAtriumFloor = useMemo(() => makePathRibbonGeometry(8, MALL.womenEndS, 2, 3.344, 0.003), []);
+  const menAtriumFloor = useMemo(() => makePathRibbonGeometry(MALL.plazaEndS, MALL.menEndS, -3.344, -2, 0.003), []);
+  // The store-free 10 m plaza opens across both inner display bands around the walkway.
+  const plazaFloor = useMemo(() => makePathRibbonGeometry(MALL.womenEndS, MALL.plazaEndS, -3.344, 3.344, 0.003), []);
   const walkwaySoffit = useMemo(() => makePathRibbonGeometry(0, MALL.length, -2, 2, MALL.ceiling), []);
   const womenSoffit = useMemo(() => makePathRibbonGeometry(8, MALL.womenEndS, -5.8, -2, MALL.ceiling), []);
   const menSoffit = useMemo(() => makePathRibbonGeometry(MALL.plazaEndS, MALL.menEndS, 2, 5.8, MALL.ceiling), []);
@@ -77,11 +82,11 @@ export function Shell() {
   ], []);
 
   useEffect(() => () => {
-    [floor, womenFloor, menFloor, walkwaySoffit, womenSoffit, menSoffit, womenOuter, menOuter, foyerLeft, foyerRight, ...ceilingTrim]
+    [floor, womenFloor, menFloor, womenAtriumFloor, menAtriumFloor, plazaFloor, walkwaySoffit, womenSoffit, menSoffit, womenOuter, menOuter, foyerLeft, foyerRight, ...ceilingTrim]
       .forEach((geometry) => geometry.dispose());
     stone?.dispose();
     foyerBrand.dispose();
-  }, [floor, womenFloor, menFloor, walkwaySoffit, womenSoffit, menSoffit, womenOuter, menOuter, foyerLeft, foyerRight, ceilingTrim, stone, foyerBrand]);
+  }, [floor, womenFloor, menFloor, womenAtriumFloor, menAtriumFloor, plazaFloor, walkwaySoffit, womenSoffit, menSoffit, womenOuter, menOuter, foyerLeft, foyerRight, ceilingTrim, stone, foyerBrand]);
 
   const foyer = pathFrameAt(4);
   const entrancePillars = [
@@ -102,6 +107,15 @@ export function Shell() {
       </mesh>
       <mesh geometry={menFloor}>
         <meshStandardMaterial map={stone ?? undefined} color="#8d8980" roughness={0.34} metalness={0.08} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh geometry={womenAtriumFloor}>
+        <meshStandardMaterial map={stone ?? undefined} color="#c9bba9" roughness={0.42} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh geometry={menAtriumFloor}>
+        <meshStandardMaterial map={stone ?? undefined} color="#908c83" roughness={0.42} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh geometry={plazaFloor}>
+        <meshStandardMaterial map={stone ?? undefined} color="#b8ac9b" roughness={0.4} side={THREE.DoubleSide} />
       </mesh>
 
       {/* Continuous dark soffit above the route and each retail row; atrium islands remain open, not rooms. */}
