@@ -373,7 +373,9 @@ export function BenchmarkPanel() {
       const extendedPerformance = performance as ExtendedPerformance;
       endHeapBytes = extendedPerformance.memory?.usedJSHeapSize ?? null;
       const resources = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
-      const mp4Entries = resources.filter((entry) => /\.mp4(?:$|[?#])/i.test(entry.name));
+      const mp4Entries = resources.filter(
+        (entry) => entry.startTime >= startedAtPerf && /\.mp4(?:$|[?#])/i.test(entry.name),
+      );
       const finalReport = makeReport({
         startedAt,
         finishedAt: new Date().toISOString(),
