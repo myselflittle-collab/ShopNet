@@ -3,166 +3,141 @@
 import { memo, useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { HALF_W, MALL } from "@/lib/config/mall";
-import type { PlacedSection } from "@/lib/config/sections";
+import { MALL, STORE_BACK_OFFSET, STORE_FRONT_OFFSET } from "@/lib/config/mall";
+import { SECTIONS, type PlacedSection } from "@/lib/config/sections";
 import { useMallStore } from "@/lib/bridge/mallStore";
 import { openState } from "@/mall/transitions/openState";
+import { pathFrameAt } from "@/mall/navigation/path";
 import { makeLabelTexture } from "@/mall/scene/labelTexture";
-import { BAY_INNER } from "./geometry";
 import { SectionVideoPanel } from "./SectionVideoPanel";
-import { getPolishedStoneTexture, getStoreWallpaper } from "@/mall/scene/materialTextures";
+import { getStoreWallpaper } from "@/mall/scene/materialTextures";
 
-const WALL_TONE = { women: "#e4dbd6", men: "#d8dbdf" } as const;
-const PIER_TONE = { women: "#bda88f", men: "#77736b" } as const;
-const ACCENT_IDLE = new THREE.Color("#c9c2b5");
-const ACCENT_HOT = new THREE.Color("#e3b66b");
+const TONES = { women: "#dfd0bf", men: "#aaa59c" } as const;
+const BRASS = "#b99a6a";
+const IDLE = new THREE.Color("#b7a38a");
+const ACTIVE = new THREE.Color("#e4bb76");
 
 function SectionBayImpl({ s }: { s: PlacedSection }) {
-  const hovered = useMallStore((st) => st.hoveredId === s.id);
-  const frontX = BAY_INNER.frontX(s);
-  const centreX = BAY_INNER.centreX(s);
-  const rearX = s.side * (HALF_W - 0.13);
-  const d = MALL.bayDepth;
-  const wallpaper = useMemo(() => getStoreWallpaper(s.gender, s.id), [s.gender, s.id]);
-  const stone = useMemo(() => getPolishedStoneTexture(), []);
-
-  const sign = useMemo(
-    () =>
-      makeLabelTexture(
-        [
-          { text: s.label.toUpperCase(), size: 44, weight: 700, letterSpacing: 6, color: "#24211d" },
-          {
-            text: s.gender === "women" ? "WOMEN  ·  SHOPNET" : "MEN  ·  SHOPNET",
-            size: 18,
-            weight: 500,
-            letterSpacing: 5,
-            color: "#9a6a1f",
-          },
-        ],
-        { width: 768, height: 128, bg: "#f6f3ee" },
-      ),
-    [s],
-  );
-  useEffect(() => () => sign.dispose(), [sign]);
-
-  const accentMat = useRef<THREE.MeshStandardMaterial>(null);
+  const hovered = useMallStore((state) => state.hoveredId === s.id);
+  const tutorialComplete = useMallStore((state) => state.tutorialComplete);
+  const frame = useMemo(() => pathFrameAt(s.sCenter), [s.sCenter]);
+  const returnWidth = s.width >= 7 ? 1.2 : 0.6;
+  const portalWidth = s.width >= 7 ? 5.6 : 2.8;
+  const fasciaWidth = portalWidth + returnWidth * 2;
+  const depth = STORE_BACK_OFFSET - STORE_FRONT_OFFSET;
+  const centreX = s.side * ((STORE_FRONT_OFFSET + STORE_BACK_OFFSET) / 2);
+  const wallpaper = useMemo(() => getStoreWallpaper(s.gender, `${s.id}-portal`), [s.gender, s.id]);
+  const sign = useMemo(() => makeLabelTexture([
+    { text: s.label.toUpperCase(), size: 46, weight: 700, letterSpacing: 5, color: "#24211d" },
+    { text: s.gender === "women" ? "WOMEN  ·  SHOPNET" : "MEN  ·  SHOPNET", size: 16, weight: 600, letterSpacing: 4, color: "#8c673d" },
+  ], { width: 768, height: 128, bg: "#f5f0e7" }), [s.id, s.label, s.gender]);
+  const accent = useRef<THREE.MeshStandardMaterial>(null);
   const floorGlow = useRef<THREE.MeshBasicMaterial>(null);
-  const display = useRef<THREE.Group>(null);
+  const revealScrim = useRef<THREE.Mesh>(null);
+  const reveal = useRef(0);
   const glow = useRef(0);
 
+  useEffect(() => () => sign.dispose(), [sign]);
+
   useFrame((_, dt) => {
-    const opening = openState.id === s.id;
-    const target = hovered || opening ? 1 : 0;
-    glow.current += (target - glow.current) * Math.min(1, dt * 8);
-    const g = glow.current;
-
-    if (accentMat.current) {
-      accentMat.current.emissive.copy(ACCENT_IDLE).lerp(ACCENT_HOT, g);
-      accentMat.current.emissiveIntensity = 0.22 + g * 1.7;
+    const active = hovered || openState.id === s.id;
+    glow.current += (Number(active) - glow.current) * (1 - Math.exp(-dt * 8));
+    if (accent.current) {
+      accent.current.emissive.copy(IDLE).lerp(ACTIVE, glow.current);
+      accent.current.emissiveIntensity = 0.16 + glow.current * 1.45;
     }
-    if (floorGlow.current) floorGlow.current.opacity = g * 0.38;
+    if (floorGlow.current) floorGlow.current.opacity = glow.current * 0.32;
 
-    if (s.live && opening) {
-      openState.value += (openState.target - openState.value) * (1 - Math.exp(-dt * 3.2));
-      if (Math.abs(openState.target - openState.value) < 0.001) {
-        openState.value = openState.target;
-      }
-    }
-
-    const v = opening ? openState.value : 0;
-    const eased = v * v * (3 - 2 * v);
-    if (display.current) {
-      display.current.position.x = -s.side * eased * 0.52;
-      display.current.position.y = eased * 0.035;
-      display.current.scale.set(1 + eased * 0.025, 1 + eased * 0.025, 1);
+    if (s.id === "women-blazers" && revealScrim.current) {
+      const goal = tutorialComplete ? 1 : 0;
+      reveal.current += (goal - reveal.current) * (1 - Math.exp(-dt / 1.6));
+      revealScrim.current.position.y = 1.78 + reveal.current * 1.95;
+      revealScrim.current.visible = reveal.current < 0.995;
     }
   });
 
-  const signRotY = -s.side * (Math.PI / 2);
-  const pierXs = [frontX + s.side * 0.12, rearX];
-
+  const portalRotation = -s.side * Math.PI / 2;
+  const localZ = fasciaWidth / 2;
   return (
-    <group>
-      {/* Open boutique frontage: tall decorative piers replace the old full-height cubicle partitions. */}
-      {[s.z0, s.z1].map((z) =>
-        pierXs.map((x, index) => (
-          <group key={`${z}-${index}`} position={[x, 0, z]}>
-            <mesh position={[0, 1.62, 0]}>
-              <boxGeometry args={[0.2, 3.24, 0.22]} />
-              <meshStandardMaterial color={PIER_TONE[s.gender]} roughness={0.48} metalness={0.08} />
-            </mesh>
-            <mesh position={[0, 1.62, -s.side * 0.116]}>
-              <boxGeometry args={[0.215, 3.28, 0.018]} />
-              <meshStandardMaterial color="#b99a6a" metalness={0.72} roughness={0.28} />
-            </mesh>
-            <mesh position={[0, 3.28, 0]}>
-              <boxGeometry args={[0.27, 0.055, 0.29]} />
-              <meshStandardMaterial color="#d8c6a6" metalness={0.5} roughness={0.35} emissive="#9c7440" emissiveIntensity={0.08} />
-            </mesh>
-          </group>
-        )),
-      )}
-
-      {/* Deep feature wall: store-specific mineral / fluted finish, no repeated arch motif. */}
-      <mesh position={[rearX, 1.98, s.cz]}>
-        <boxGeometry args={[0.12, 3.96, s.width - 0.12]} />
-        <meshStandardMaterial map={wallpaper ?? undefined} color={WALL_TONE[s.gender]} roughness={0.78} />
-      </mesh>
-
-      {/* Stone floor is flush with the mall floor: no raised display plinth or table. */}
-      <mesh position={[centreX, 0.009, s.cz]}>
-        <boxGeometry args={[d - 0.06, 0.018, s.width - 0.08]} />
-        <meshStandardMaterial map={stone ?? undefined} color="#ddd5c9" roughness={0.3} metalness={0.04} />
-      </mesh>
-
-      {/* Brass boundary inlay defines the store without closing it with a wall or door. */}
-      {[s.z0, s.z1].map((z) => (
-        <mesh key={z} position={[centreX, 0.022, z]}>
-          <boxGeometry args={[d - 0.16, 0.018, 0.035]} />
-          <meshStandardMaterial color="#b99a6a" metalness={0.76} roughness={0.24} />
-        </mesh>
+    <group position={[frame.x, 0, frame.z]} rotation-y={frame.yaw}>
+      {/* Thin full-depth 0.6 m (or 1.2 m) side returns create the specified open portal. */}
+      {[-1, 1].map((edge) => (
+        <group key={edge}>
+          <mesh position={[centreX, MALL.ceiling / 2, edge * localZ]}>
+            <boxGeometry args={[depth, MALL.ceiling, returnWidth]} />
+            <meshStandardMaterial map={wallpaper ?? undefined} color={TONES[s.gender]} roughness={0.66} />
+          </mesh>
+          <mesh position={[s.side * (STORE_BACK_OFFSET - 0.03), MALL.ceiling / 2, edge * localZ]}>
+            <boxGeometry args={[0.06, MALL.ceiling, returnWidth]} />
+            <meshStandardMaterial color={BRASS} metalness={0.64} roughness={0.3} />
+          </mesh>
+        </group>
       ))}
 
-      {/* Full-width overhead fascia: the sign floats above an open storefront. */}
-      <mesh position={[frontX, 3.62, s.cz]}>
-        <boxGeometry args={[0.24, 0.62, s.width + 0.12]} />
-        <meshStandardMaterial color={WALL_TONE[s.gender]} roughness={0.58} />
+      {/* Open portal header; no thick wall spans the entrance. */}
+      <mesh position={[s.side * (STORE_FRONT_OFFSET + 0.04), 3.72, 0]}>
+        <boxGeometry args={[0.16, 0.42, portalWidth]} />
+        <meshStandardMaterial color={TONES[s.gender]} roughness={0.5} metalness={0.12} />
       </mesh>
-      <mesh position={[frontX - s.side * 0.132, 3.62, s.cz]} rotation-y={signRotY}>
-        <planeGeometry args={[Math.min(3.45, s.width - 0.25), 0.46]} />
-        <meshStandardMaterial map={sign} roughness={0.82} />
-      </mesh>
-
-      {/* Warm linear light washes the feature wall rather than leaving a flat box. */}
-      <mesh position={[rearX - s.side * 0.085, 3.78, s.cz]}>
-        <boxGeometry args={[0.035, 0.055, s.width - 0.55]} />
-        <meshStandardMaterial color="#fff1d8" emissive="#ffcf87" emissiveIntensity={1.25} />
-      </mesh>
-      <mesh position={[rearX - s.side * 0.085, 0.24, s.cz]}>
-        <boxGeometry args={[0.025, 0.025, s.width - 0.55]} />
-        <meshStandardMaterial color="#c4a574" metalness={0.68} roughness={0.28} />
+      <mesh position={[s.side * (STORE_FRONT_OFFSET - 0.055), 3.72, 0]} rotation-y={portalRotation}>
+        <planeGeometry args={[portalWidth - 0.16, 0.32]} />
+        <meshStandardMaterial map={sign} emissive="#9a6e35" emissiveMap={sign} emissiveIntensity={0.2} metalness={0.2} roughness={0.34} side={THREE.DoubleSide} />
       </mesh>
 
-      {/* Subtle animated trim and floor wash for intentional category targeting. */}
-      <mesh position={[frontX - s.side * 0.17, 3.22, s.cz]}>
-        <boxGeometry args={[0.04, 0.035, s.width - 0.28]} />
-        <meshStandardMaterial ref={accentMat} color="#d8d1c4" emissive={ACCENT_IDLE} emissiveIntensity={0.22} />
+      {/* Threshold light is flush with the aisle floor and only activates for this store. */}
+      <mesh position={[s.side * 1.98, 0.016, 0]} rotation-x={-Math.PI / 2}>
+        <planeGeometry args={[0.22, portalWidth - 0.15]} />
+        <meshBasicMaterial ref={floorGlow} color="#f2c67b" transparent opacity={0} depthWrite={false} />
       </mesh>
-      <mesh position={[frontX + s.side * 0.5, 0.016, s.cz]} rotation-x={-Math.PI / 2}>
-        <planeGeometry args={[0.82, s.width - 0.35]} />
-        <meshBasicMaterial ref={floorGlow} color="#e8bd79" transparent opacity={0} depthWrite={false} />
+      <mesh position={[s.side * 2.02, 3.22, 0]}>
+        <boxGeometry args={[0.035, 0.035, portalWidth - 0.15]} />
+        <meshStandardMaterial ref={accent} color="#c9c2b5" emissive={IDLE} emissiveIntensity={0.16} />
       </mesh>
 
-      {/* Large editorial lightbox / campaign wall is pulled forward by the existing section transition. */}
-      <group position={[0, 0, s.cz]}>
-        <group ref={display}>
-          <group position={[0, 0, -s.cz]}>
-            <SectionVideoPanel section={s} />
-          </group>
-        </group>
-      </group>
+      <SectionVideoPanel section={s} />
+
+      {/* W1 scrim hangs inside its 2.8 m portal; it retracts upward and never crosses the walkway. */}
+      {s.id === "women-blazers" && (
+        <mesh ref={revealScrim} position={[s.side * 2.16, 1.78, 0]} rotation-y={portalRotation}>
+          <planeGeometry args={[2.8, 3.25]} />
+          <meshStandardMaterial color="#bda58c" transparent opacity={0.56} roughness={0.65} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+      )}
     </group>
   );
 }
-
 export const SectionBay = memo(SectionBayImpl);
+
+/** Full-height thin divider fins bridge every interval between neighbouring store portals. */
+export function SectionDividerFins() {
+  const fins = useMemo(() => {
+    const items: Array<{ s: number; side: -1 | 1; id: string }> = [];
+    for (const side of [-1, 1] as const) {
+      const row = SECTIONS.filter((section) => section.side === side).sort((a, b) => a.sCenter - b.sCenter);
+      for (let i = 0; i < row.length - 1; i++) {
+        items.push({ s: (row[i].s1 + row[i + 1].s0) / 2, side, id: `${row[i].id}-${row[i + 1].id}` });
+      }
+    }
+    return items;
+  }, []);
+  const material = useMemo(() => new THREE.MeshStandardMaterial({ color: "#655646", roughness: 0.66 }), []);
+  return (
+    <group>
+      {fins.map((fin) => {
+        const frame = pathFrameAt(fin.s);
+        return (
+          <group key={fin.id} position={[frame.x, 0, frame.z]} rotation-y={frame.yaw}>
+            <mesh position={[fin.side * ((STORE_FRONT_OFFSET + STORE_BACK_OFFSET) / 2), MALL.ceiling / 2, 0]}>
+              <boxGeometry args={[STORE_BACK_OFFSET - STORE_FRONT_OFFSET, MALL.ceiling, 0.16]} />
+              <meshStandardMaterial color="#695845" roughness={0.68} />
+            </mesh>
+            <mesh position={[fin.side * (STORE_FRONT_OFFSET + 0.025), MALL.ceiling / 2, 0]}>
+              <boxGeometry args={[0.05, MALL.ceiling, 0.2]} />
+              <meshStandardMaterial color={BRASS} metalness={0.68} roughness={0.28} />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+}

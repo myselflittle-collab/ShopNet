@@ -1,42 +1,26 @@
 "use client";
 
-import { MALL } from "@/lib/config/mall";
+import { useMemo } from "react";
+import { pathOffsetAt } from "@/mall/navigation/path";
 
-/**
- * Mall illumination: warm retail ambience, cool corridor fill and a small number
- * of practical lights placed by zone. Keep runtime light count modest; future
- * Blender lightmaps should replace these lights for final photoreal rendering.
- */
+const LIGHT_STOPS = [15, 31, 47, 78, 96, 113];
+
 export function Lighting() {
-  const zones = [ -5, -18, -31, -44 ];
+  const positions = useMemo(() => LIGHT_STOPS.map((s) => {
+    const p = pathOffsetAt(s, 0);
+    return [p.x, 3.7, p.z] as [number, number, number];
+  }), []);
   return (
     <>
-      <hemisphereLight args={["#fff5e7", "#6e6255", 0.72]} />
+      <hemisphereLight args={["#fff3e3", "#554538", 0.7]} />
       <ambientLight intensity={0.22} />
-      <directionalLight
-        position={[3, 9, 5]}
-        color="#fff1d8"
-        intensity={1.05}
-        castShadow={false}
-      />
-      <directionalLight
-        position={[-5, 5, -24]}
-        color="#e6efff"
-        intensity={0.28}
-        castShadow={false}
-      />
-      {zones.flatMap((z) => ([-3.1, 3.1] as const).map((x) => (
-        <pointLight
-          key={`retail-${x}-${z}`}
-          position={[x, MALL.ceiling - 0.45, z]}
-          color="#ffdfad"
-          intensity={0.82}
-          distance={9}
-          decay={2}
-        />
-      )))}
-      <fog attach="fog" args={["#dcd5ca", 27, MALL.length + 12]} />
-      <color attach="background" args={["#dcd5ca"]} />
+      <directionalLight position={[7, 10, 6]} color="#fff0d8" intensity={0.82} castShadow={false} />
+      <directionalLight position={[-6, 7, -18]} color="#d9e4f4" intensity={0.22} castShadow={false} />
+      {positions.map((position, i) => (
+        <pointLight key={i} position={position} color="#ffddb1" intensity={0.78} distance={8.5} decay={2} />
+      ))}
+      <fog attach="fog" args={["#c9c0b3", 32, 95]} />
+      <color attach="background" args={["#c9c0b3"]} />
     </>
   );
 }

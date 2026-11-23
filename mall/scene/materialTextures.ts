@@ -211,3 +211,46 @@ export function getPolishedStoneTexture(): THREE.CanvasTexture | null {
   stoneTexture = makeCanvasTexture(canvas, 1.4, 1.4);
   return stoneTexture;
 }
+
+
+const ribbedWallCache = new Map<string, THREE.CanvasTexture>();
+
+/** Vertical fluted finish for atrium planters and foyer piers; never used to create a room wall. */
+export function getRibbedWallTexture(gender: "women" | "men"): THREE.CanvasTexture | null {
+  if (typeof document === "undefined") return null;
+  const cached = ribbedWallCache.get(gender);
+  if (cached) return cached;
+  const size = 768;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  const palette = gender === "women"
+    ? { light: "#e6d5c2", mid: "#bca48c", dark: "#725b48" }
+    : { light: "#aaa49a", mid: "#67635e", dark: "#302f2d" };
+  const base = ctx.createLinearGradient(0, 0, size, 0);
+  base.addColorStop(0, palette.light);
+  base.addColorStop(0.5, palette.mid);
+  base.addColorStop(1, palette.dark);
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, size, size);
+
+  for (let x = 0; x < size; x += 20) {
+    const rib = ctx.createLinearGradient(x, 0, x + 20, 0);
+    rib.addColorStop(0, palette.dark);
+    rib.addColorStop(0.18, palette.mid);
+    rib.addColorStop(0.44, palette.light);
+    rib.addColorStop(0.68, palette.mid);
+    rib.addColorStop(1, palette.dark);
+    ctx.fillStyle = rib;
+    ctx.fillRect(x, 0, 20, size);
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    ctx.fillRect(x + 5, 0, 1.5, size);
+  }
+
+  const texture = makeCanvasTexture(canvas, 1, 1);
+  ribbedWallCache.set(gender, texture);
+  return texture;
+}

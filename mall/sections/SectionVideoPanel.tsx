@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { PlacedSection } from "@/lib/config/sections";
-import { HALF_W } from "@/lib/config/mall";
+import { registerVideoScreen } from "./videoPlayback";
 
 type CampaignStyle =
   | "tailored-editorial" | "fit-blueprint" | "pop-art-playful" | "swiss-shirt-catalogue"
@@ -915,9 +914,22 @@ function makeFallbackTexture(section: PlacedSection) {
 }
 
 function VideoScreen({ section }: { section: PlacedSection }) {
-  const camera = useThree((state) => state.camera);
   const group = useRef<THREE.Group>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoTextureRef = useRef<THREE.VideoTexture | null>(null);
+  const videoListenersRef = useRef<{ video: HTMLVideoElement; ready: () => void; error: () => void } | null>(null);
+  const playbackStateRef = useRef<"DORMANT" | "READY" | "PLAYING">("DORMANT");
+  const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const overlayTextureRef = useRef<THREE.CanvasTexture | null>(null);
+  const [playbackState, setPlaybackState] = useState<"DORMANT" | "READY" | "PLAYING">("DORMANT");
+  const [videoTexture, setVideoTexture] = useState<THREE.VideoTexture | null>(null);
+  const [posterTexture, setPosterTexture] = useState<THREE.Texture | null>(null);
+  const [frameReady, setFrameReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [overlayTexture, setOverlayTexture] = useState<THREE.CanvasTexture | null>(null);
+
+  playbackStateRef.current = playbackState;
+
   const fallback = useMemo(() => {
     const canvas = makeFallbackTexture(section);
     const texture = new THREE.CanvasTexture(canvas);
@@ -928,63 +940,138 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     texture.needsUpdate = true;
     return texture;
   }, [section.id, section.label, section.gender]);
-
-  const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const overlayTextureRef = useRef<THREE.CanvasTexture | null>(null);
-  const overlayAccumulator = useRef(0);
-  const fallbackElapsed = useRef(0);
-  const wasInRange = useRef(false);
-  const screenPosition = useMemo(() => new THREE.Vector3(), []);
-  const cameraPosition = useMemo(() => new THREE.Vector3(), []);
-  const [overlayActive, setOverlayActive] = useState(false);
-  const [overlayTexture, setOverlayTexture] = useState<THREE.CanvasTexture | null>(null);
-  const [videoTexture, setVideoTexture] = useState<THREE.VideoTexture | null>(null);
-  const [frameReady, setFrameReady] = useState(false);
-  const [failed, setFailed] = useState(false);
   const campaign = useMemo(() => getCampaign(section), [section.id, section.label, section.gender]);
 
-  useEffect(() => () => fallback.dispose(), [fallback]);
-
   useEffect(() => {
-    const video = document.createElement("video");
-    video.muted = true;
-    video.loop = true;
-    video.playsInline = true;
-    video.preload = "none";
-    video.setAttribute("muted", "");
-    video.setAttribute("playsinline", "");
-    videoRef.current = video;
-    const texture = new THREE.VideoTexture(video);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.generateMipmaps = false;
-    setVideoTexture(texture);
-    const onReady = () => setFrameReady(true);
-    const onError = () => {
-      setFailed(true);
-      setFrameReady(false);
-    };
-    video.addEventListener("loadeddata", onReady);
-    video.addEventListener("error", onError);
+    let live = true;
+    let loaded: THREE.Texture | null = null;
+    new THREE.TextureLoader().load(
+      `/videos/posters/${section.id}.webp`,
+      (texture) => {
+        if (!live) {
+          texture.dispose();
+          return;
+        }
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.generateMipmaps = false;
+        loaded = texture;
+        setPosterTexture(texture);
+      },
+      undefined,
+      () => {
+        // Keep the lightweight category fallback until the offline poster is generated.
+      },
+    );
     return () => {
+      live = false;
+      loaded?.dispose();
+      setPosterTexture(null);
+    };
+  }, [section.id]);
+
+  const releaseMedia = (updateState = true) => {
+    const video = videoRef.current;
+    const listeners = videoListenersRef.current;
+    if (video && listeners) {
+      video.removeEventListener("loadeddata", listeners.ready);
+      video.removeEventListener("error", listeners.error);
+    }
+    videoListenersRef.current = null;
+    if (video) {
       video.pause();
       video.removeAttribute("src");
       video.load();
-      video.removeEventListener("loadeddata", onReady);
-      video.removeEventListener("error", onError);
-      texture.dispose();
       videoRef.current = null;
-    };
-  }, []);
+    }
+    videoTextureRef.current?.dispose();
+    videoTextureRef.current = null;
+    if (updateState) {
+      setVideoTexture(null);
+      setFrameReady(false);
+    }
+  };
 
   useEffect(() => {
-    if (!overlayActive) {
-      overlayCanvasRef.current = null;
-      overlayTextureRef.current = null;
+    const object = group.current;
+    if (!object) return;
+    // Register this storefront at its S-path arc-length position for visibility-based playback.
+    return registerVideoScreen(section.id, section.sCenter, object, setPlaybackState);
+  }, [section.id, section.cz]);
+
+  useEffect(() => () => {
+    releaseMedia(false);
+    fallback.dispose();
+    overlayTextureRef.current?.dispose();
+  }, [fallback]);
+
+  useEffect(() => {
+    if (playbackState === "DORMANT") {
+      releaseMedia();
       setOverlayTexture(null);
+      overlayCanvasRef.current = null;
+      overlayTextureRef.current?.dispose();
+      overlayTextureRef.current = null;
+      setFailed(false);
       return;
     }
+
+    let video = videoRef.current;
+    if (!video) {
+      const createdVideo = document.createElement("video");
+      video = createdVideo;
+      createdVideo.muted = true;
+      createdVideo.loop = true;
+      createdVideo.playsInline = true;
+      createdVideo.preload = "auto";
+      createdVideo.crossOrigin = "anonymous";
+      createdVideo.setAttribute("muted", "");
+      createdVideo.setAttribute("playsinline", "");
+      createdVideo.src = `/videos/optimized/${section.id}.mp4`;
+      videoRef.current = createdVideo;
+
+      const onReady = () => {
+        setFrameReady(true);
+        if (playbackStateRef.current === "PLAYING") void createdVideo.play().catch(() => undefined);
+      };
+      let triedOriginal = false;
+      const onError = () => {
+        // The source MP4 remains a safe fallback until the user runs the lossless preparation script.
+        if (!triedOriginal && videoRef.current === createdVideo) {
+          triedOriginal = true;
+          createdVideo.src = `/videos/sections/${section.id}.mp4`;
+          createdVideo.load();
+          return;
+        }
+        setFailed(true);
+        setFrameReady(false);
+        createdVideo.pause();
+      };
+      videoListenersRef.current = { video: createdVideo, ready: onReady, error: onError };
+      createdVideo.addEventListener("loadeddata", onReady);
+      createdVideo.addEventListener("error", onError);
+
+      const texture = new THREE.VideoTexture(createdVideo);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.generateMipmaps = false;
+      videoTextureRef.current = texture;
+      setVideoTexture(texture);
+      setFailed(false);
+      video.load();
+    }
+
+    if (playbackState === "PLAYING") {
+      void video.play().catch(() => undefined);
+    } else {
+      video.pause();
+    }
+  }, [playbackState, section.id]);
+
+  useEffect(() => {
+    if (playbackState !== "PLAYING" || failed) return;
     const canvas = document.createElement("canvas");
     canvas.width = 768;
     canvas.height = 432;
@@ -996,75 +1083,65 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     overlayCanvasRef.current = canvas;
     overlayTextureRef.current = texture;
     setOverlayTexture(texture);
+
+    const ctx = canvas.getContext("2d");
+    const video = videoRef.current as (HTMLVideoElement & {
+      requestVideoFrameCallback?: (callback: (now: number, metadata: { mediaTime: number }) => void) => number;
+      cancelVideoFrameCallback?: (handle: number) => void;
+    }) | null;
+    let active = true;
+    let callbackId = 0;
+    let raf = 0;
+
+    const redraw = (elapsed: number) => {
+      if (!active || !ctx) return;
+      drawCampaignOverlay(ctx, canvas.width, canvas.height, campaign, elapsed);
+      texture.needsUpdate = true;
+    };
+
+    if (video?.requestVideoFrameCallback) {
+      const onFrame = (_now: number, metadata: { mediaTime: number }) => {
+        if (!active) return;
+        redraw(metadata.mediaTime);
+        callbackId = video.requestVideoFrameCallback!(onFrame);
+      };
+      callbackId = video.requestVideoFrameCallback(onFrame);
+    } else {
+      const tick = () => {
+        if (!active) return;
+        redraw(video?.currentTime ?? 0);
+        raf = window.requestAnimationFrame(tick);
+      };
+      raf = window.requestAnimationFrame(tick);
+    }
+
     return () => {
+      active = false;
+      if (video?.cancelVideoFrameCallback && callbackId) video.cancelVideoFrameCallback(callbackId);
+      if (raf) window.cancelAnimationFrame(raf);
       overlayCanvasRef.current = null;
       overlayTextureRef.current = null;
       texture.dispose();
+      setOverlayTexture(null);
     };
-  }, [overlayActive]);
+  }, [playbackState, failed, campaign]);
 
-  useFrame((_, delta) => {
-    const video = videoRef.current;
-    const parent = group.current;
-    if (!video || !parent) return;
-    parent.getWorldPosition(screenPosition);
-    camera.getWorldPosition(cameraPosition);
-    const distance = screenPosition.distanceTo(cameraPosition);
-    const inRange = distance < 23 && !document.hidden;
-
-    if (inRange !== wasInRange.current) {
-      wasInRange.current = inRange;
-      setOverlayActive(inRange);
-      overlayAccumulator.current = 0;
-      if (inRange) fallbackElapsed.current = 0;
-    }
-    if (inRange) {
-      fallbackElapsed.current += delta;
-      if (!failed) {
-        if (!video.src) {
-          video.src = `/videos/sections/${section.id}.mp4`;
-          video.load();
-        }
-        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.paused) {
-          void video.play().catch(() => undefined);
-        }
-      }
-    } else if (!video.paused) {
-      video.pause();
-    }
-
-    const canvas = overlayCanvasRef.current;
-    const texture = overlayTextureRef.current;
-    if (inRange && canvas && texture) {
-      overlayAccumulator.current += delta;
-      if (overlayAccumulator.current >= OVERLAY_UPDATE_INTERVAL) {
-        overlayAccumulator.current = 0;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          const elapsed = !video.paused && Number.isFinite(video.currentTime)
-            ? video.currentTime % CAMPAIGN_SECONDS
-            : fallbackElapsed.current % CAMPAIGN_SECONDS;
-          drawCampaignOverlay(ctx, canvas.width, canvas.height, campaign, elapsed);
-          texture.needsUpdate = true;
-        }
-      }
-    }
-  });
-
-  const x = section.side * (HALF_W - 0.205);
-  const rotationY = section.side === -1 ? Math.PI / 2 : -Math.PI / 2;
+  // Mount the display 26 cm inside the boutique from the back-wall face; the frame no longer intersects the wall.
+  // Keep the 16:9 face 11 cm in front of the outer-wall inner surface; it cannot be hidden by the wall.
+  const screenX = section.side * 5.59;
+  const screenRotationY = section.side === -1 ? Math.PI / 2 : -Math.PI / 2;
 
   return (
-    <group ref={group} position={[x, 2.04, section.cz]} rotation-y={rotationY}>
+    <group ref={group} position={[screenX, 2.04, 0]} rotation-y={screenRotationY}>
       <mesh position={[0, 0, -0.06]}>
         <boxGeometry args={[FRAME_WIDTH, FRAME_HEIGHT, 0.13]} />
         <meshStandardMaterial color="#171512" metalness={0.62} roughness={0.28} />
       </mesh>
       <mesh position={[0, 0, 0.012]}>
         <planeGeometry args={[SCREEN_WIDTH, SCREEN_HEIGHT]} />
-        <meshBasicMaterial map={frameReady && !failed && videoTexture ? videoTexture : fallback} toneMapped={false} />
+        <meshBasicMaterial map={frameReady && !failed && videoTexture ? videoTexture : posterTexture ?? fallback} toneMapped={false} />
       </mesh>
-      {overlayActive && overlayTexture && (
+      {playbackState === "PLAYING" && overlayTexture && (
         <mesh position={[0, 0, 0.026]}>
           <planeGeometry args={[SCREEN_WIDTH, SCREEN_HEIGHT]} />
           <meshBasicMaterial map={overlayTexture} transparent toneMapped={false} depthWrite={false} />
@@ -1083,7 +1160,6 @@ function VideoScreen({ section }: { section: PlacedSection }) {
     </group>
   );
 }
-
 export function SectionVideoPanel({ section }: { section: PlacedSection }) {
   return <VideoScreen section={section} />;
 }
