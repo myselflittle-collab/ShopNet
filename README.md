@@ -1,73 +1,101 @@
-# ShopNet — 3D Fashion Mall (greybox prototype)
+# ShopNet — immersive 3D fashion mall
 
-Walk through a 30 ft wide fashion mall, hover a section for a preview, click to shop it, and return to exactly where you stood.
-This is the **greybox** stage: shapes are placeholders. Photoreal assets come after this prototype is approved.
+ShopNet is a 3D fashion-mall shopping prototype. Customers enter a two-lobe S-shaped mall, walk the centreline while looking independently in any direction, discover 24 category storefronts, and open a 2D catalogue attached to the selected store.
 
-## Run it
+The current implementation branch contains the S-path, 13 women's storefronts, 11 men's storefronts, divider fins, the five-step first-entry tutorial, centreline camera controls, and a visibility-driven campaign-video manager. It is still a development branch, not a release.
 
-Needs Node.js 20 or newer.
+## Run locally
 
-```
-npm install
+Requirements:
+- Node.js 24 (the CI build uses Node 24).
+- Git LFS installed and enabled, because the original campaign MP4 masters are stored with Git LFS.
+- Windows PowerShell and FFmpeg for the optional lossless video-preparation step.
+
+\`\`\`powershell
+git lfs install
+git lfs pull
+npm ci
 npm run dev
-```
+\`\`\`
 
-Open http://localhost:3000
+Open http://localhost:3000.
 
-## Controls
+## Navigation
 
-| Desktop | Mobile |
+The first visit begins with the five-step, action-gated tutorial.
+
+| Input | Action |
 | --- | --- |
-| Click once to capture the mouse, then **move the mouse to look** (full 360°, up/down limited) | **One finger** — look around |
-| **Scroll** up / down — walk forward / back | **Two fingers** up / down, or hold ▲ / ▼ — walk |
-| Aim the **centre dot** at a store — it highlights and shows a preview | **Tap** a store — turn to face it and preview |
-| **Click** — enter the targeted store | **Tap again** — enter |
-| W A S D / arrow keys — walk, strafe, turn · **Esc** frees the mouse | |
-| Esc or "Back to mall" — close the shop | Back to mall |
+| Mouse movement | Look around; pointer lock is requested by the Enter the mall button |
+| Scroll down | Walk forward along the S-path |
+| Scroll up | Walk backward along the S-path |
+| W / Arrow Up | Walk forward |
+| S / Arrow Down | Walk backward |
+| A / Arrow Left | Turn the head left |
+| D / Arrow Right | Turn the head right |
+| Double-click empty walkway | Stop free-look and release pointer lock |
+| Look Around | Resume looking after the tutorial |
+| Click a highlighted storefront | Open its 2D category catalogue |
+| Back to mall | Close the catalogue and restore the saved camera pose |
 
-If the browser refuses to capture the mouse, moving the cursor toward a screen edge turns the view instead.
+On touch screens, horizontal swipes look left/right and vertical swipes walk forward/back. A double-tap on the empty walkway stops free-look; the visible Look Around control resumes it. Store taps are handled separately from walkway double-taps.
 
-Only **Women's Blazers** is open in this stage (first section on the left).
+The customer's body remains on the path centreline. Looking does not steer the walking route.
 
-## Checks
+## Campaign videos
 
-```
-npm run typecheck     # TypeScript
-npm test              # walking + collision unit tests
-npm run build         # production build
-npm run check:photos  # confirms every product photo loads (needs internet)
-```
+The source masters are kept unchanged in \`public/videos/sections/\`. They are the reference files and must not be overwritten.
 
-## Product photos
+The repository includes a PowerShell preparation script for a **lossless picture-stream copy**:
 
-Women's Blazers uses real fashion photographs from Unsplash, free under the [Unsplash License](https://unsplash.com/license);
-photographers are credited in each product's gallery. They load from Unsplash's image CDN. Replace them with the brand's own
-product photography before launch (`lib/catalog/photos.ts`).
+\`\`\`powershell
+npm run videos:prepare
+\`\`\`
 
-`tests/e2e-run.py` is the browser test used during development (Python + Playwright).
+For every one of the 24 campaign videos, the script:
+1. Copies the H.264 video stream without re-encoding or changing resolution.
+2. Removes the unused audio stream and moves the MP4 index to the front (\`faststart\`).
+3. Decodes both source and prepared files and compares the checksum of every video frame.
+4. Extracts a separate 960×540 WebP poster.
 
-## Structure
+The generated files go to:
+- \`public/videos/optimized/\` — prepared MP4s.
+- \`public/videos/posters/\` — poster stills.
 
-```
-app/                  routes; the mall is mounted once in layout.tsx
-  shop/[gender]/[category]/   2D shop page (opens over the paused mall)
-components/           MallRoot (route sync), Hud
-mall/                 3D only (React Three Fiber)
-  scene/              shell, lighting, sign textures
-  sections/           bay, fixtures, hit volumes
-  navigation/         walker (movement, collision), Controls (input)
-  interaction/        hover picking, highlight light
-  transitions/        open section, return to mall
-shop/                 2D e-commerce only, no three.js
-  components/         ProductCard, Filters, Rating
-  preview/            FloatingPreview card
-lib/
-  bridge/             mallStore, shopStore, previewBridge (the only link between mall and shop)
-  catalog/            types, mock catalogue, placeholder product images
-  config/             mall dimensions (provisional), section registry
-legacy/almirah/       previous prototype, kept for reference
-```
+The script stops if a source is missing, FFmpeg fails, frame counts differ, any decoded-picture checksum differs, or an output is empty. The original masters remain unchanged.
 
-## Pinned versions
+After a successful run, add the generated outputs to Git and push the branch so deployments receive them:
 
-Next.js 16.4.6 · React 19.3.1 · three 0.187.0 · @react-three/fiber 9.8.2 · @react-three/drei 10.7.9 · zustand 5.1.0 · TypeScript 6.0.3 · Tailwind 4.3.4
+\`\`\`powershell
+git add public/videos/optimized public/videos/posters
+git commit -m "Add verified campaign MP4s and offline posters"
+git push
+\`\`\`
+
+The generated MP4s are covered by Git LFS through the repository's \`.gitattributes\`. The WebP posters are ordinary Git files.
+
+**Not included:** the proposed 720p/540p lossy encoding ladder. It remains unapproved and is not performed by this script.
+
+## Verification
+
+\`\`\`powershell
+npm run typecheck
+npm test
+npm run build
+\`\`\`
+
+CI runs the same three checks on the implementation branch. The last verified run passed all three.
+
+## Project checkpoints and branches
+
+- \`checkpoint/updated-checkpoint-2\` — restore point at baseline commit \`a4f9c70\`.
+- \`feature/shopnet-blueprint-0.7\` — current unmerged implementation branch.
+- \`checkpoint/pre-ci-repair-2026-11-23\` — safety checkpoint immediately before the latest CI repair.
+
+Do not merge the implementation branch into \`main\` or deploy it as a release until the staged benchmark, device checks, visual review, and Little's approval are complete.
+
+## Remaining verification
+
+- Add and run the fixed-route \`/bench\` baseline on the original checkpoint and record results on a laptop, Android phone, and iPhone where available.
+- Generate the 24 optimized MP4s and poster stills locally, verify the output, then add them to the branch.
+- Complete sustained browser tests and compare the S-path/screenshots with the approved visual reference.
