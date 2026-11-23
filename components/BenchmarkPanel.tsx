@@ -321,7 +321,7 @@ export function BenchmarkPanel() {
       media.addEventListener("ended", () => playingMedia.delete(media));
     };
 
-    document.querySelectorAll("video, audio").forEach((media) => {
+    document.querySelectorAll<HTMLMediaElement>("video, audio").forEach((media) => {
       addMediaListeners(media);
       if (!media.paused && !media.ended) playingMedia.add(media);
     });
