@@ -46,6 +46,23 @@ export function setPose(pose: Pose) {
 export const clampPitch = (pitch: number) =>
   Math.max(-TUNING.pitchDown, Math.min(TUNING.pitchUp, pitch));
 
+/** Returns an angle in [0, 2π); the camera's stored yaw itself is deliberately never wrapped. */
+export function wrapAngle(angle: number) {
+  const fullTurn = Math.PI * 2;
+  const wrapped = angle % fullTurn;
+  return wrapped < 0 ? wrapped + fullTurn : wrapped;
+}
+
+/** Tests a direction on the circle, including after any number of full camera revolutions. */
+export function angleInRange(angle: number, min: number, max: number) {
+  const value = wrapAngle(angle);
+  const lower = wrapAngle(min);
+  const upper = wrapAngle(max);
+  return lower <= upper
+    ? value >= lower && value <= upper
+    : value >= lower || value <= upper;
+}
+
 export function stepWalker(dt: number) {
   dt = Math.min(Math.max(dt, 0), 0.1);
   let forward = walker.pad;
