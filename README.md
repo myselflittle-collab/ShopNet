@@ -81,12 +81,14 @@ The `benchmark/shopnet-baseline-a4f9` branch is built from the original straight
 http://localhost:3000/bench
 ```
 
-The benchmark route leaves the original mall scene unchanged and enables extra Three.js renderer counters only on that route. Use the panel to:
-- Select eight fixed camera viewpoints and save the named reference screenshots.
-- Run a five-minute walk-through benchmark while keeping the tab visible.
-- Open and close Women's Blazers during the run.
-- Export a JSON report with frame-time percentiles, FPS estimates, renderer counters, MP4 resource transfers, media-player counts, long tasks, device/browser information and shop interactions.
+The benchmark route leaves the original mall scene unchanged and enables extra Three.js renderer counters only on that route.
 
-The benchmark panel does not automatically move the customer along a route or manufacture benchmark results. The walk is performed manually so the same route can be repeated on each device. JS heap values and network transfer sizes are reported only where the browser exposes them.
+1. Open `/bench` and dismiss the ShopNet welcome screen.
+2. Select each of the eight fixed camera viewpoints, wait for the scene to settle, and save a screenshot using the filename shown on the corresponding button.
+3. Enter a device label and note the browser, power/battery mode and other test conditions.
+4. Start the five-minute test. It automatically repeats the same 60-second route five times: entrance to the far end, fixed looks toward both storefront sides, return to the entrance, open Women's Blazers, hold the catalogue open, then return to the mall. Do not operate the movement controls while recording; keep the tab visible.
+5. Export the JSON report.
 
-Run this branch locally and complete the five-minute test on the laptop, Android phone, and iPhone/Safari where available. Capture all eight screenshots before using this branch as the baseline for the next implementation stage.
+The report includes actual Three.js render-loop frame intervals, average FPS, p95/p99 frame time, 1% low FPS, renderer draw calls/triangles, MP4 resource transfers during the test, playing-media counts, long tasks, shop opens/closes, and available device/browser information. JS heap and detailed network transfer values are included only where the browser exposes them.
+
+Run this branch on the laptop, Android phone and iPhone/Safari where available. Keep the same test conditions for each device. This is the original-corridor baseline; compare later implementation stages against these exported reports and the eight screenshots.
