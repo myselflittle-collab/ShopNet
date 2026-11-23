@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SECTION_BY_ID, viewingPose } from "@/lib/config/sections";
 import { setPose } from "@/mall/navigation/walker";
 import { useMallStore } from "@/lib/bridge/mallStore";
@@ -20,6 +21,7 @@ interface BenchmarkReport {
     startedAt: string;
     finishedAt: string;
     durationSeconds: number;
+    routeLapsCompleted: number;
     deviceLabel: string;
     notes: string;
   };
@@ -186,6 +188,7 @@ function makeReport(args: {
   longTaskDurations: number[];
   shopOpens: number;
   shopCloses: number;
+  routeLapsCompleted: number;
 }): BenchmarkReport {
   const frames = args.frameTimes;
   const frameMean = mean(frames);
@@ -207,6 +210,7 @@ function makeReport(args: {
       startedAt: args.startedAt,
       finishedAt: args.finishedAt,
       durationSeconds: Math.round(args.durationMs / 1000),
+      routeLapsCompleted: args.routeLapsCompleted,
       deviceLabel: args.deviceLabel,
       notes: args.notes,
     },
@@ -260,8 +264,54 @@ function makeReport(args: {
   };
 }
 
+
+function smoothStep(value: number): number {
+  const t = Math.max(0, Math.min(1, value));
+  return t * t * (3 - 2 * t);
+}
+
+function segmentValue(time: number, start: number, end: number, from: number, to: number): number {
+  return from + (to - from) * smoothStep((time - start) / (end - start));
+}
+
+function baselineRoutePose(lapElapsedMs: number): { x: number; z: number; yaw: number; pitch: number } {
+  const seconds = lapElapsedMs / 1000;
+  const startZ = 3.5;
+  const farZ = -53.5;
+  const travelSeconds = 22;
+  const returning = seconds >= travelSeconds && seconds < travelSeconds * 2;
+  const travelProgress = seconds < travelSeconds
+    ? seconds / travelSeconds
+    : returning
+      ? (seconds - travelSeconds) / travelSeconds
+      : 1;
+  const z = seconds < travelSeconds
+    ? startZ + (farZ - startZ) * travelProgress
+    : returning
+      ? farZ + (startZ - farZ) * travelProgress
+      : startZ;
+
+  let yaw = 0;
+  if (seconds >= 2 && seconds < 6) yaw = segmentValue(seconds, 2, 6, 0, Math.PI / 2);
+  else if (seconds >= 6 && seconds < 9) yaw = Math.PI / 2;
+  else if (seconds >= 9 && seconds < 12) yaw = segmentValue(seconds, 9, 12, Math.PI / 2, 0);
+  else if (seconds >= 12 && seconds < 16) yaw = segmentValue(seconds, 12, 16, 0, -Math.PI / 2);
+  else if (seconds >= 16 && seconds < 18) yaw = -Math.PI / 2;
+  else if (seconds >= 18 && seconds < 22) yaw = segmentValue(seconds, 18, 22, -Math.PI / 2, 0);
+  else if (seconds >= 24 && seconds < 28) yaw = segmentValue(seconds, 24, 28, 0, Math.PI / 2);
+  else if (seconds >= 28 && seconds < 31) yaw = Math.PI / 2;
+  else if (seconds >= 31 && seconds < 34) yaw = segmentValue(seconds, 31, 34, Math.PI / 2, 0);
+  else if (seconds >= 34 && seconds < 38) yaw = segmentValue(seconds, 34, 38, 0, -Math.PI / 2);
+  else if (seconds >= 38 && seconds < 40) yaw = -Math.PI / 2;
+  else if (seconds >= 40 && seconds < 44) yaw = segmentValue(seconds, 40, 44, -Math.PI / 2, 0);
+
+  return { x: 0, z, yaw, pitch: 0 };
+}
+
 export function BenchmarkPanel() {
+  const router = useRouter();
   const shopVisible = useMallStore((state) => state.shopVisible);
+  const mode = useMallStore((state) => state.mode);
   const [deviceLabel, setDeviceLabel] = useState("Desktop / laptop");
   const [notes, setNotes] = useState("");
   const [recording, setRecording] = useState(false);
@@ -272,6 +322,10 @@ export function BenchmarkPanel() {
   const [mediaCounts, setMediaCounts] = useState({ opens: 0, closes: 0 });
   const shopCountsRef = useRef({ opens: 0, closes: 0 });
   const previousShopVisibleRef = useRef(false);
+  const lastRouteLapRef = useRef(-1);
+  const routeLapsCompletedRef = useRef(0);
+  const openedLapRef = useRef(-1);
+  const closedLapRef = useRef(-1);
 
   useEffect(() => {
     const wasVisible = previousShopVisibleRef.current;
@@ -304,10 +358,15 @@ export function BenchmarkPanel() {
     let peakHeapBytes: number | null = null;
     let endHeapBytes: number | null = null;
     let intervalId: number | null = null;
+    let lastElapsedUiUpdate = 0;
     let observer: PerformanceObserver | null = null;
     let disposed = false;
 
     shopCountsRef.current = { opens: 0, closes: 0 };
+    routeLapsCompletedRef.current = 0;
+    lastRouteLapRef.current = -1;
+    openedLapRef.current = -1;
+    closedLapRef.current = -1;
     setMediaCounts({ opens: 0, closes: 0 });
     window.__shopnetBenchFrameTimes = [];
     window.__shopnetBenchStats = undefined;
@@ -392,6 +451,7 @@ export function BenchmarkPanel() {
         longTaskDurations,
         shopOpens: shopCountsRef.current.opens,
         shopCloses: shopCountsRef.current.closes,
+        routeLapsCompleted: routeLapsCompletedRef.current,
       });
       cleanup();
       setElapsedMs(durationMs);
@@ -402,9 +462,43 @@ export function BenchmarkPanel() {
     const sample = () => {
       if (disposed) return;
       const currentDuration = performance.now() - startedAtPerf;
-      setElapsedMs(currentDuration);
-      peakPlayingMediaElements = Math.max(peakPlayingMediaElements, playingMedia.size);
+      const routeLap = Math.floor(currentDuration / 60_000);
+      const routeLapElapsed = currentDuration % 60_000;
+      const state = useMallStore.getState();
 
+      if (routeLap !== lastRouteLapRef.current) {
+        if (lastRouteLapRef.current >= 0) routeLapsCompletedRef.current += 1;
+        lastRouteLapRef.current = routeLap;
+      }
+
+      // Before the store entry, follow the same 60-second corridor route on every lap.
+      if (routeLapElapsed < 44_000 && state.mode === "walking" && !state.shopVisible) {
+        setPose(baselineRoutePose(routeLapElapsed));
+      }
+
+      // Open Women's Blazers near the entrance once per lap, using the real store transition.
+      if (
+        routeLapElapsed >= 44_000 &&
+        openedLapRef.current !== routeLap &&
+        state.mode === "walking" &&
+        !state.shopVisible
+      ) {
+        setPose({ x: 0, z: 3.5, yaw: 0, pitch: 0 });
+        state.requestOpen("women-blazers");
+        openedLapRef.current = routeLap;
+      }
+
+      // Keep the catalogue open for the scripted dwell, then return through the real route handler.
+      if (
+        routeLapElapsed >= 52_000 &&
+        closedLapRef.current !== routeLap &&
+        state.mode === "shop"
+      ) {
+        router.push("/", { scroll: false });
+        closedLapRef.current = routeLap;
+      }
+
+      peakPlayingMediaElements = Math.max(peakPlayingMediaElements, playingMedia.size);
       const stats = window.__shopnetBenchStats;
       if (stats && stats.sampledAt > lastRendererSampleAt) {
         rendererSamples.push({
@@ -421,10 +515,14 @@ export function BenchmarkPanel() {
         peakHeapBytes = peakHeapBytes === null ? usedHeap : Math.max(peakHeapBytes, usedHeap);
       }
 
+      if (currentDuration - lastElapsedUiUpdate >= 1000) {
+        lastElapsedUiUpdate = currentDuration;
+        setElapsedMs(currentDuration);
+      }
       if (currentDuration >= TEST_DURATION_MS) finish();
     };
 
-    intervalId = window.setInterval(sample, 1000);
+    intervalId = window.setInterval(sample, 50);
 
     return cleanup;
   }, [recording, deviceLabel, notes]);
@@ -433,7 +531,12 @@ export function BenchmarkPanel() {
     setReport(null);
     setElapsedMs(0);
     shopCountsRef.current = { opens: 0, closes: 0 };
+    routeLapsCompletedRef.current = 0;
+    lastRouteLapRef.current = -1;
+    openedLapRef.current = -1;
+    closedLapRef.current = -1;
     setMediaCounts({ opens: 0, closes: 0 });
+    setPose({ x: 0, z: 3.5, yaw: 0, pitch: 0 });
     setRecording(true);
   };
 
@@ -518,10 +621,10 @@ export function BenchmarkPanel() {
       <section className="mt-4 border-t border-white/10 pt-3">
         <h2 className="text-xs font-semibold tracking-wide text-white/90">2 · Five-minute route test</h2>
         <ol className="mt-2 list-decimal space-y-1 pl-4 text-[11px] leading-relaxed text-white/70">
-          <li>Walk from the entrance to the far end, then return. Repeat for the full five minutes.</li>
-          <li>Look toward the storefront screens on both sides as you pass them.</li>
-          <li>Open and close Women's Blazers during the run; the panel counts shop open/close events.</li>
-          <li>Do not use the reference-view buttons while recording. Keep the browser tab visible.</li>
+          <li>The app automatically repeats the same 60-second entrance-to-far-end-and-back route five times.</li>
+          <li>The scripted route turns to view both storefront sides at fixed points.</li>
+          <li>Each lap automatically opens Women's Blazers for a fixed dwell, then returns to the mall.</li>
+          <li>Do not touch the movement controls while recording. Keep the browser tab visible.</li>
         </ol>
 
         <label className="mt-3 block text-[10px] font-semibold text-white/70" htmlFor="benchmark-device">
@@ -554,7 +657,7 @@ export function BenchmarkPanel() {
           </div>
           <button
             type="button"
-            disabled={recording || !deviceLabel.trim()}
+            disabled={recording || !deviceLabel.trim() || mode !== "walking" || shopVisible}
             onClick={startTest}
             className="rounded-xl bg-[#d5b77f] px-4 py-2.5 text-xs font-bold text-[#171a1d] disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -607,6 +710,7 @@ export function BenchmarkPanel() {
             <Metric label="MP4 transfer" value={bytesLabel(report.media.mp4TransferBytes)} />
             <Metric label="Peak playing media" value={report.media.peakPlayingMediaElements.toString()} />
             <Metric label="Frames over 50 ms" value={report.rendering.framesOver50Ms.toString()} />
+            <Metric label="Route laps" value={report.test.routeLapsCompleted.toString()} />
             <Metric label="Long tasks" value={report.longTasks.count.toString()} />
           </div>
           <p className="mt-2 text-[10px] leading-relaxed text-white/55">
