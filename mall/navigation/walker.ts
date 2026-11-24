@@ -17,7 +17,7 @@ export const TUNING = {
   walkSpeed: 2.0,
   /** with Shift held */
   fastSpeed: 3.2,
-  /** velocity added per pixel of wheel / trackpad scroll (scroll DOWN = forward) */
+  /** velocity added per pixel of wheel / trackpad scroll */
   wheelImpulse: 0.014,
   /** velocity added per pixel of vertical finger swipe (swipe UP = forward, like scrolling down) */
   swipeImpulse: 0.03,
@@ -111,12 +111,16 @@ function turn(rad: number) {
   else walker.turnedRight -= rad;
 }
 
-/** Scroll DOWN (positive deltaY) walks forward; scroll UP walks backward. */
+/**
+ * Scroll direction as tested on the owner's laptop: the gesture he calls "scroll down" arrives
+ * with a negative deltaY, so negative deltaY walks forward and positive deltaY walks back.
+ */
 export function addWheel(deltaY: number) {
   if (!Number.isFinite(deltaY) || walker.hold || deltaY === 0) return;
+  const push = -deltaY;
   // Reversing the scroll reverses at once: never keep coasting the old way after the wheel turns back.
-  if (walker.vel !== 0 && Math.sign(deltaY) !== Math.sign(walker.vel)) walker.vel = 0;
-  walker.vel += deltaY * TUNING.wheelImpulse;
+  if (walker.vel !== 0 && Math.sign(push) !== Math.sign(walker.vel)) walker.vel = 0;
+  walker.vel += push * TUNING.wheelImpulse;
   walker.vel = Math.max(-TUNING.maxSpeed, Math.min(TUNING.maxSpeed, walker.vel));
 }
 
