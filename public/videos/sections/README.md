@@ -1,88 +1,28 @@
-# ShopNet section campaign videos
+# ShopNet campaign videos
 
-## Where to put the files
+The 24 campaign films are served in two sizes:
 
-Copy the 24 MP4 files into this folder:
+* `720/<section-id>.mp4` — desktops, laptops and tablets
+* `540/<section-id>.mp4` — phones
 
-`ShopNet/public/videos/sections/`
+and a still poster for every screen that is not playing: `../posters/<section-id>.webp`.
 
-The website loads each section's video using its exact section ID. Keep filenames lowercase, use hyphens, and do not add spaces or suffixes such as `(1)`.
+The 1080p originals live in `assets/video-masters/<section-id>.mp4` (Git LFS). They are kept unchanged and are not
+downloaded by visitors. An LCD in the mall is never wider than about 1,220 device pixels on a desktop (≈510 on a
+phone), so 1280×720 and 960×540 always carry at least the detail the screen can show.
 
-## Required filenames
+## Re-encoding (after replacing a master)
 
-- `women-blazers.mp4`
-- `women-trousers.mp4`
-- `women-tshirts.mp4`
-- `women-shirts.mp4`
-- `women-dresses.mp4`
-- `women-jeans.mp4`
-- `women-ethnic.mp4`
-- `women-skirts.mp4`
-- `women-jackets.mp4`
-- `women-innerwear.mp4`
-- `women-shoes.mp4`
-- `women-handbags.mp4`
-- `women-accessories.mp4`
-- `men-blazers.mp4`
-- `men-trousers.mp4`
-- `men-tshirts.mp4`
-- `men-shirts.mp4`
-- `men-jeans.mp4`
-- `men-kurtas.mp4`
-- `men-jackets.mp4`
-- `men-innerwear.mp4`
-- `men-accessories.mp4`
-- `men-shoes.mp4`
-- `men-watches.mp4`
+Requires ffmpeg. Same frames, 1 s keyframes for instant loops, `faststart` so playback starts before the whole file
+arrives, and no audio track (the mall plays videos muted):
 
-## Video settings
-
-The wall-mounted section LCDs now use a native 16:9 display area. Your Google Flow 720p 16:9 videos fit without stretching or cropping.
-
-Recommended:
-- Resolution: 1280 × 720 (720p)
-- Aspect ratio: 16:9
-- Container: MP4
-- Video codec: H.264
-- Frame rate: 24 or 30 fps
-- Audio: not required; screens autoplay muted and loop
-
-## Import steps on Windows
-
-1. Open the local ShopNet project folder.
-2. Open `public`. Create `videos`, then create `sections` inside it if they do not exist.
-3. Copy all 24 MP4 files into `public/videos/sections/`.
-4. Rename them to match the list above exactly.
-5. Keep the filenames and extensions exactly as shown.
-6. Refresh `http://localhost:3000`. If a video does not appear, check its filename and restart `npm run dev`.
-
-Example:
-
-```text
-ShopNet/
-  public/
-    videos/
-      sections/
-        women-blazers.mp4
-        women-trousers.mp4
-        women-tshirts.mp4
-        ...
-        men-watches.mp4
+```
+id=women-blazers
+common="-an -c:v libx264 -preset slow -profile:v high -pix_fmt yuv420p -g 24 -keyint_min 24 -sc_threshold 0 -movflags +faststart"
+ffmpeg -i assets/video-masters/$id.mp4 -vf scale=1280:720:flags=lanczos $common -crf 20 public/videos/sections/720/$id.mp4
+ffmpeg -i assets/video-masters/$id.mp4 -vf scale=960:540:flags=lanczos  $common -crf 21 public/videos/sections/540/$id.mp4
+ffmpeg -ss 4 -i assets/video-masters/$id.mp4 -frames:v 1 -vf scale=960:540:flags=lanczos -c:v libwebp -quality 84 public/videos/posters/$id.webp
 ```
 
-The mall requests a section video when the visitor approaches that section's screen. The video is muted, loops, and pauses when the visitor moves away or the tab is hidden.
-
-
-## Animated LCD text sequence
-
-Every section LCD plays its matching MP4 underneath a transparent animated text layer. The sequence follows the video time and repeats on the 8-second campaign loop:
-
-- **0–3 seconds:** large animated section name.
-- **3–6 seconds:** the name moves into a smaller heading; two section-specific lines appear with a typewriter effect.
-- **6–8 seconds:** a section-specific collection/offer headline appears with a horizontally moving ticker.
-
-The 24 distinct text sets are defined in `mall/sections/SectionVideoPanel.tsx` in the `CAMPAIGNS` object. You can edit each section's `title`, `lineOne`, `lineTwo`, `offerTitle`, and `offerTicker` there.
-
-The current ticker messages promote collection themes and styling ideas. They deliberately do not claim a discount, price reduction, or limited-time sale that has not been configured. Add real discount amounts only after the actual promotion has been decided.
-
-The animated overlay is drawn only while the visitor is within the screen's viewing range and updates at a limited rate to avoid unnecessarily rendering all 24 overlays continuously.
+Measured on all 24 films: SSIM against the master at the same size is at least 0.988 (720p) and 0.985 (540p);
+totals are 76 MB (720p) and 45 MB (540p), versus 145 MB for the masters.

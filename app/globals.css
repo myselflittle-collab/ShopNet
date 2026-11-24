@@ -407,3 +407,35 @@ input:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 2px;
     padding: 18px;
   }
 }
+
+/* Guided first walk: one instruction at a time, low on screen so the first boutique stays visible. */
+.tour-card {
+  /* centred with margins, not a transform: the entrance animation animates transform */
+  position: fixed; z-index: 18; left: 0; right: 0; margin-inline: auto; bottom: calc(26px + env(safe-area-inset-bottom));
+  width: min(92vw, 420px); padding: 14px 18px 12px; border-radius: 18px; text-align: center;
+  background: rgb(24 21 19 / 0.8); color: #fbf4e8; border: 1px solid rgb(227 182 107 / 0.35);
+  box-shadow: 0 14px 40px rgb(0 0 0 / 0.22); backdrop-filter: blur(10px);
+  animation: shop-rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.tour-card.is-done { border-color: rgb(227 182 107 / 0.7); }
+.tour-count { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: #e3b66b; }
+.tour-text { margin-top: 4px; font-family: var(--font-display, Georgia, serif); font-size: 19px; line-height: 1.3; }
+.tour-nudge { margin-top: 6px; font-size: 12px; color: #f0d29c; }
+.tour-dots { display: flex; justify-content: center; gap: 7px; margin-top: 10px; }
+.tour-dots span { width: 7px; height: 7px; border-radius: 50%; background: rgb(255 255 255 / 0.25); }
+.tour-dots span.is-on { background: #e3b66b; }
+.tour-dots span.is-done { background: rgb(227 182 107 / 0.55); }
+.tour-skip {
+  position: absolute; right: 12px; top: 10px; font-size: 11px; color: rgb(251 244 232 / 0.6);
+  background: none; border: 0; text-decoration: underline; cursor: pointer;
+}
+.look-around {
+  position: fixed; z-index: 18; left: 50%; bottom: calc(26px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  padding: 11px 22px; border-radius: 999px; font-size: 13px; font-weight: 650; letter-spacing: 0.08em;
+  background: rgb(24 21 19 / 0.82); color: #fbf4e8; border: 1px solid rgb(227 182 107 / 0.55);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.2); cursor: pointer;
+}
+@media (max-width: 640px) {
+  .tour-text { font-size: 16px; padding-inline: 18px; }
+  .tour-card { bottom: calc(18px + env(safe-area-inset-bottom)); width: min(74vw, 420px); margin-left: max(12px, env(safe-area-inset-left)); margin-right: auto; }
+}

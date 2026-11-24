@@ -13,6 +13,7 @@ on:
       - fix/video-playback-and-hint-hide
       - feature/animated-section-lcd-campaigns
       - feature/unique-lcd-art-direction
+      - redesign/shopnet-s-mall
   pull_request:
     branches:
       - main

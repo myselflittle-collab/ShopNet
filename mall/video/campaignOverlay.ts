@@ -1,10 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
-import * as THREE from "three";
-import type { PlacedSection } from "@/lib/config/sections";
-import { HALF_W } from "@/lib/config/mall";
+/* Campaign overlay artwork for the 24 boutique LCDs (moved unchanged from SectionVideoPanel.tsx). */
 
 type CampaignStyle =
   | "tailored-editorial" | "fit-blueprint" | "pop-art-playful" | "swiss-shirt-catalogue"
@@ -14,7 +10,7 @@ type CampaignStyle =
   | "oxford-minimal" | "raw-denim" | "modern-heritage" | "urban-techwear"
   | "quiet-comfort" | "industrial-spec" | "athletic-motion" | "horology";
 
-interface SectionCampaign {
+export interface SectionCampaign {
   style: CampaignStyle;
   title: string;
   eyebrow: string;
@@ -296,14 +292,14 @@ const CAMPAIGNS: Record<string, SectionCampaign> = {
   },
 };
 
-const SCREEN_WIDTH = 3.08;
-const SCREEN_HEIGHT = (SCREEN_WIDTH * 9) / 16;
-const FRAME_WIDTH = 3.24;
-const FRAME_HEIGHT = SCREEN_HEIGHT + 0.18;
-const CAMPAIGN_SECONDS = 8;
-const OVERLAY_UPDATE_INTERVAL = 1 / 12;
+export const SCREEN_WIDTH = 3.08;
+export const SCREEN_HEIGHT = (SCREEN_WIDTH * 9) / 16;
+export const FRAME_WIDTH = 3.24;
+export const FRAME_HEIGHT = SCREEN_HEIGHT + 0.18;
+export const CAMPAIGN_SECONDS = 8;
+export const OVERLAY_UPDATE_INTERVAL = 1 / 12;
 
-function getCampaign(section: PlacedSection): SectionCampaign {
+export function getCampaign(section: { id: string; label: string }): SectionCampaign {
   return CAMPAIGNS[section.id] ?? {
     style: "swiss-shirt-catalogue",
     title: section.label.toUpperCase(),
@@ -455,7 +451,7 @@ function drawOfferMicro(ctx: CanvasRenderingContext2D, c: SectionCampaign, t: nu
   ctx.restore();
 }
 
-function drawCampaignOverlay(
+export function drawCampaignOverlay(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
@@ -874,216 +870,3 @@ function drawCampaignOverlay(
   ctx.restore();
 }
 
-function makeFallbackTexture(section: PlacedSection) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 900;
-  canvas.height = 506;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return canvas;
-  const women = section.gender === "women";
-  const g = ctx.createLinearGradient(0, 0, 900, 506);
-  if (women) {
-    g.addColorStop(0, "#262128");
-    g.addColorStop(0.55, "#8e7067");
-    g.addColorStop(1, "#d2b99f");
-  } else {
-    g.addColorStop(0, "#101820");
-    g.addColorStop(0.55, "#45545a");
-    g.addColorStop(1, "#aa9579");
-  }
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 900, 506);
-  ctx.save();
-  ctx.globalAlpha = 0.12;
-  ctx.fillStyle = "#f4e3c4";
-  ctx.beginPath();
-  ctx.ellipse(700, 220, 210, 240, -0.35, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "#f4e3c4";
-  ctx.lineWidth = 2;
-  for (let i = 0; i < 13; i++) {
-    ctx.beginPath();
-    ctx.moveTo(420 + i * 35, 0);
-    ctx.lineTo(100 + i * 35, 506);
-    ctx.stroke();
-  }
-  ctx.restore();
-  const c = getCampaign(section);
-  drawText(ctx, c.eyebrow, 44, 46, 650, 15, "Arial, sans-serif", c.accent, "left", 700);
-  drawText(ctx, c.title, 44, 420, 810, 48, "Georgia, serif", "#fff8ee", "left", 500);
-  return canvas;
-}
-
-function VideoScreen({ section }: { section: PlacedSection }) {
-  const camera = useThree((state) => state.camera);
-  const group = useRef<THREE.Group>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const fallback = useMemo(() => {
-    const canvas = makeFallbackTexture(section);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.generateMipmaps = false;
-    texture.needsUpdate = true;
-    return texture;
-  }, [section.id, section.label, section.gender]);
-
-  const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const overlayTextureRef = useRef<THREE.CanvasTexture | null>(null);
-  const overlayAccumulator = useRef(0);
-  const fallbackElapsed = useRef(0);
-  const wasInRange = useRef(false);
-  const screenPosition = useMemo(() => new THREE.Vector3(), []);
-  const cameraPosition = useMemo(() => new THREE.Vector3(), []);
-  const [overlayActive, setOverlayActive] = useState(false);
-  const [overlayTexture, setOverlayTexture] = useState<THREE.CanvasTexture | null>(null);
-  const [videoTexture, setVideoTexture] = useState<THREE.VideoTexture | null>(null);
-  const [frameReady, setFrameReady] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const campaign = useMemo(() => getCampaign(section), [section.id, section.label, section.gender]);
-
-  useEffect(() => () => fallback.dispose(), [fallback]);
-
-  useEffect(() => {
-    const video = document.createElement("video");
-    video.muted = true;
-    video.loop = true;
-    video.playsInline = true;
-    video.preload = "none";
-    video.setAttribute("muted", "");
-    video.setAttribute("playsinline", "");
-    videoRef.current = video;
-    const texture = new THREE.VideoTexture(video);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.generateMipmaps = false;
-    setVideoTexture(texture);
-    const onReady = () => setFrameReady(true);
-    const onError = () => {
-      setFailed(true);
-      setFrameReady(false);
-    };
-    video.addEventListener("loadeddata", onReady);
-    video.addEventListener("error", onError);
-    return () => {
-      video.pause();
-      video.removeAttribute("src");
-      video.load();
-      video.removeEventListener("loadeddata", onReady);
-      video.removeEventListener("error", onError);
-      texture.dispose();
-      videoRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!overlayActive) {
-      overlayCanvasRef.current = null;
-      overlayTextureRef.current = null;
-      setOverlayTexture(null);
-      return;
-    }
-    const canvas = document.createElement("canvas");
-    canvas.width = 768;
-    canvas.height = 432;
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.generateMipmaps = false;
-    overlayCanvasRef.current = canvas;
-    overlayTextureRef.current = texture;
-    setOverlayTexture(texture);
-    return () => {
-      overlayCanvasRef.current = null;
-      overlayTextureRef.current = null;
-      texture.dispose();
-    };
-  }, [overlayActive]);
-
-  useFrame((_, delta) => {
-    const video = videoRef.current;
-    const parent = group.current;
-    if (!video || !parent) return;
-    parent.getWorldPosition(screenPosition);
-    camera.getWorldPosition(cameraPosition);
-    const distance = screenPosition.distanceTo(cameraPosition);
-    const inRange = distance < 23 && !document.hidden;
-
-    if (inRange !== wasInRange.current) {
-      wasInRange.current = inRange;
-      setOverlayActive(inRange);
-      overlayAccumulator.current = 0;
-      if (inRange) fallbackElapsed.current = 0;
-    }
-    if (inRange) {
-      fallbackElapsed.current += delta;
-      if (!failed) {
-        if (!video.src) {
-          video.src = `/videos/sections/${section.id}.mp4`;
-          video.load();
-        }
-        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.paused) {
-          void video.play().catch(() => undefined);
-        }
-      }
-    } else if (!video.paused) {
-      video.pause();
-    }
-
-    const canvas = overlayCanvasRef.current;
-    const texture = overlayTextureRef.current;
-    if (inRange && canvas && texture) {
-      overlayAccumulator.current += delta;
-      if (overlayAccumulator.current >= OVERLAY_UPDATE_INTERVAL) {
-        overlayAccumulator.current = 0;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          const elapsed = !video.paused && Number.isFinite(video.currentTime)
-            ? video.currentTime % CAMPAIGN_SECONDS
-            : fallbackElapsed.current % CAMPAIGN_SECONDS;
-          drawCampaignOverlay(ctx, canvas.width, canvas.height, campaign, elapsed);
-          texture.needsUpdate = true;
-        }
-      }
-    }
-  });
-
-  const x = section.side * (HALF_W - 0.205);
-  const rotationY = section.side === -1 ? Math.PI / 2 : -Math.PI / 2;
-
-  return (
-    <group ref={group} position={[x, 2.04, section.cz]} rotation-y={rotationY}>
-      <mesh position={[0, 0, -0.06]}>
-        <boxGeometry args={[FRAME_WIDTH, FRAME_HEIGHT, 0.13]} />
-        <meshStandardMaterial color="#171512" metalness={0.62} roughness={0.28} />
-      </mesh>
-      <mesh position={[0, 0, 0.012]}>
-        <planeGeometry args={[SCREEN_WIDTH, SCREEN_HEIGHT]} />
-        <meshBasicMaterial map={frameReady && !failed && videoTexture ? videoTexture : fallback} toneMapped={false} />
-      </mesh>
-      {overlayActive && overlayTexture && (
-        <mesh position={[0, 0, 0.026]}>
-          <planeGeometry args={[SCREEN_WIDTH, SCREEN_HEIGHT]} />
-          <meshBasicMaterial map={overlayTexture} transparent toneMapped={false} depthWrite={false} />
-        </mesh>
-      )}
-      {[-1, 1].map((side) => (
-        <mesh key={side} position={[side * (FRAME_WIDTH / 2 - 0.015), 0, 0.018]}>
-          <boxGeometry args={[0.035, FRAME_HEIGHT + 0.02, 0.035]} />
-          <meshStandardMaterial color="#e7c68f" emissive="#d8ad69" emissiveIntensity={0.8} metalness={0.68} roughness={0.24} />
-        </mesh>
-      ))}
-      <mesh position={[0, SCREEN_HEIGHT / 2 + 0.09, 0.018]}>
-        <boxGeometry args={[FRAME_WIDTH, 0.035, 0.035]} />
-        <meshStandardMaterial color="#e7c68f" emissive="#d8ad69" emissiveIntensity={0.65} metalness={0.68} roughness={0.24} />
-      </mesh>
-    </group>
-  );
-}
-
-export function SectionVideoPanel({ section }: { section: PlacedSection }) {
-  return <VideoScreen section={section} />;
-}

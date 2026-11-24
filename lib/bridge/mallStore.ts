@@ -4,25 +4,31 @@ import { create } from "zustand";
 import type { Pose } from "@/mall/navigation/walker";
 
 export type MallMode = "walking" | "opening" | "shop" | "returning";
-/** how looking around works right now: idle = mouse free (click to start), locked = mouse captured, steer = fallback, touch */
-export type LookMode = "idle" | "locked" | "steer" | "touch";
+/**
+ * free    = head follows mouse / trackpad movement (pointer lock when the browser grants it)
+ * stopped = free-look paused (double-click / double-tap); the cursor selects stores
+ */
+export type LookMode = "free" | "stopped";
 
 interface MallState {
   mode: MallMode;
-  /** section highlighted and previewed (after the show delay) */
   hoveredId: string | null;
-  /** pose saved when a section was opened; restored on return */
   savedPose: Pose | null;
-  /** route the mall wants to navigate to; consumed by RouteSync */
   pendingRoute: string | null;
-  /** a request from outside the 3D scene (preview button) to open a section */
   openRequest: string | null;
-  /** the mall has drawn its first frame */
   ready: boolean;
+  /** the welcome screen has been dismissed */
+  entered: boolean;
   lookMode: LookMode;
-  setLookMode: (m: LookMode) => void;
-  /** the shop panel is on screen (drives the mall's blur); set by the shop overlay */
+  /** pointer lock is currently held */
+  locked: boolean;
+  /** the store whose campaign is featured (playing) */
+  featuredId: string | null;
   shopVisible: boolean;
+  setEntered: () => void;
+  setLookMode: (m: LookMode) => void;
+  setLocked: (v: boolean) => void;
+  setFeatured: (id: string | null) => void;
   setShopVisible: (v: boolean) => void;
   setMode: (m: MallMode) => void;
   setHovered: (id: string | null) => void;
@@ -32,13 +38,14 @@ interface MallState {
   setReady: () => void;
 }
 
-const POSE_KEY = "shopnet:savedPose";
+const POSE_KEY = "shopnet:savedPose:v2";
 
 function loadPose(): Pose | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = sessionStorage.getItem(POSE_KEY);
-    return raw ? (JSON.parse(raw) as Pose) : null;
+    const p = raw ? (JSON.parse(raw) as Pose) : null;
+    return p && typeof p.s === "number" ? p : null;
   } catch {
     return null;
   }
@@ -51,9 +58,15 @@ export const useMallStore = create<MallState>((set) => ({
   pendingRoute: null,
   openRequest: null,
   ready: false,
-  lookMode: "idle",
-  setLookMode: (lookMode) => set({ lookMode }),
+  entered: false,
+  lookMode: "free",
+  locked: false,
+  featuredId: null,
   shopVisible: false,
+  setEntered: () => set({ entered: true }),
+  setLookMode: (lookMode) => set({ lookMode }),
+  setLocked: (locked) => set({ locked }),
+  setFeatured: (featuredId) => set({ featuredId }),
   setShopVisible: (shopVisible) => set({ shopVisible }),
   setMode: (mode) => set({ mode }),
   setHovered: (hoveredId) => set({ hoveredId }),

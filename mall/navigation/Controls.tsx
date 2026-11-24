@@ -2,23 +2,33 @@
 
 import { useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import * as THREE from "three";
 import { MALL } from "@/lib/config/mall";
+import { pointAt } from "@/lib/config/path";
 import { useMallStore } from "@/lib/bridge/mallStore";
 import { lookBridge } from "@/lib/bridge/lookBridge";
-import { addLook, addWheel, stepWalker, TUNING, walker } from "./walker";
-import { selectTarget } from "@/mall/interaction/HoverController";
+import { useTutorial } from "@/lib/bridge/tutorialStore";
+import { pickStore } from "@/mall/interaction/pick";
+import { openSection } from "@/mall/transitions/openSection";
+import { addMouseLook, addSwipeLook, addSwipeWalk, addWheel, stepWalker, walker } from "./walker";
+import { attemptStopFreeLook } from "./tutorialLogic";
+import { videoStats } from "@/mall/video/videoManager";
 
 const TAP_PX = 10;
 const TAP_MS = 300;
-const DOUBLE_TAP_MS = 360;
-const CLICK_SELECT_DELAY_MS = 520;
+const DOUBLE_TAP_MS = 300;
+const DOUBLE_TAP_PX = 24;
+const AXIS_LOCK_PX = 8;
 
 /**
- * Desktop: double-click toggles pointer-look on/off. A single click still selects a store.
- * While pointer-look is active the mouse turns the customer's head; a second double-click
- * releases the cursor, without requiring Escape.
- * Mobile: double-tap toggles one-finger head-look; two-finger vertical swipe walks.
- * The body always walks down the centreline; head direction never steers the walking path.
+ * Locked controls (Blueprint 0.7):
+ *  - scroll DOWN walks forward, scroll UP walks back (mouse wheel and trackpad)
+ *  - mouse / trackpad MOVEMENT turns the head (no dragging); pointer lock is requested on
+ *    "Enter the mall" and on walkway clicks, and the look keeps working if it is refused
+ *  - single click / tap on a boutique opens it immediately (reticle when locked, cursor otherwise)
+ *  - double-click / double-tap on the empty walkway stops free-look; "Look around" resumes it
+ *  - touch: swipe LEFT looks left, swipe RIGHT looks right, swipe UP walks forward (axis-locked)
+ * The body only ever moves along the centreline; the camera is never moved or turned automatically.
  */
 export function Controls() {
   const gl = useThree((s) => s.gl);
@@ -28,201 +38,166 @@ export function Controls() {
     const el = gl.domElement;
     el.style.touchAction = "none";
     const store = useMallStore.getState;
-    const walking = () => store().mode === "walking";
-    let clickTimer: ReturnType<typeof setTimeout> | null = null;
-    let touchTimer: ReturnType<typeof setTimeout> | null = null;
-    let lastTouchTap = 0;
-    let lastTouchPoint: { x: number; y: number; w: number; h: number } | null = null;
+    const active = () => store().mode === "walking" && store().entered;
+    const tutorialDone = () => useTutorial.getState().step === 6;
+    const ndc = new THREE.Vector2();
 
-    const clearClickTimer = () => {
-      if (clickTimer) clearTimeout(clickTimer);
-      clickTimer = null;
-    };
-    const clearTouchTimer = () => {
-      if (touchTimer) clearTimeout(touchTimer);
-      touchTimer = null;
-    };
-
-    const requestLookMode = () => {
+    const requestLock = () => {
       if (document.pointerLockElement === el) return;
+      if (window.matchMedia("(pointer: coarse)").matches) return;
       try {
-        // Called synchronously from a real double-click user gesture.
-        const request = el.requestPointerLock();
-        if (request && typeof (request as Promise<void>).catch === "function") {
-          (request as Promise<void>).catch(() => store().setLookMode("steer"));
-        }
+        const r = el.requestPointerLock() as unknown as Promise<void> | undefined;
+        if (r && typeof r.catch === "function") r.catch(() => undefined);
       } catch {
-        store().setLookMode("steer");
+        /* refused: uncaptured movement look keeps working */
       }
     };
-    lookBridge.lock = requestLookMode;
+    lookBridge.lock = requestLock;
+    const resumeLook = () => {
+      store().setLookMode("free");
+      requestLock();
+    };
+    lookBridge.resume = resumeLook;
+
+    const toNdc = (clientX: number, clientY: number) => {
+      const r = el.getBoundingClientRect();
+      ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+      return ndc;
+    };
+    const pointerNdc = (e: MouseEvent) => (document.pointerLockElement === el ? ndc.set(0, 0) : toNdc(e.clientX, e.clientY));
+
+    const stopFreeLook = () => {
+      if (!attemptStopFreeLook()) return;
+      if (document.pointerLockElement === el) document.exitPointerLock();
+      store().setLookMode("stopped");
+    };
 
     if (process.env.NODE_ENV !== "production") {
       (window as unknown as { __shopnet?: object }).__shopnet = {
         walker,
-        look: (dx: number, dy: number) => walking() && addLook(dx, dy),
-        select: () => selectTarget("mouse"),
-        setLookMode: (m: "idle" | "locked" | "steer" | "touch") => store().setLookMode(m),
+        camera,
+        look: (dx: number, dy: number) => addMouseLook(dx, dy),
+        wheel: (dy: number) => addWheel(dy),
+        stopFreeLook,
+        tutorial: useTutorial,
+        store: useMallStore,
+        videoStats,
       };
     }
 
-    const onLockChange = () => {
-      if (document.pointerLockElement === el) store().setLookMode("locked");
-      else if (store().lookMode === "locked") store().setLookMode("idle");
-    };
-    const onLockError = () => store().setLookMode("steer");
+    const onLockChange = () => store().setLocked(document.pointerLockElement === el);
 
     const onMouseMove = (e: MouseEvent) => {
-      if (!walking()) return;
-      const mode = store().lookMode;
-      if (mode !== "locked" && mode !== "steer") return;
+      if (!active() || store().lookMode !== "free") return;
       if (Math.abs(e.movementX) > 300 || Math.abs(e.movementY) > 300) return;
-      addLook(e.movementX, e.movementY);
+      // Uncaptured movement only counts while the cursor is over the mall.
+      if (document.pointerLockElement !== el && e.target !== el) return;
+      addMouseLook(e.movementX, e.movementY);
     };
 
     const onClick = (e: MouseEvent) => {
-      if (!walking()) return;
-      if (e.detail > 1) {
-        clearClickTimer();
+      if (!active()) return;
+      const hit = pickStore(camera, pointerNdc(e));
+      if (hit) {
+        if (tutorialDone()) openSection(hit.id);
         return;
       }
-      clearClickTimer();
-      clickTimer = setTimeout(() => {
-        clickTimer = null;
-        if (walking()) selectTarget("mouse");
-      }, CLICK_SELECT_DELAY_MS);
+      // empty walkway: (re)capture the mouse for unlimited 360° look; never from a store click
+      if (store().lookMode === "free" && e.detail === 1) requestLock();
     };
 
     const onDoubleClick = (e: MouseEvent) => {
-      if (!walking()) return;
+      if (!active()) return;
       e.preventDefault();
-      e.stopPropagation();
-      clearClickTimer();
-
-      if (document.pointerLockElement === el) {
-        document.exitPointerLock();
-        store().setLookMode("idle");
-        return;
-      }
-
-      if (store().lookMode === "steer") {
-        // Pointer lock is unavailable: the double-click still freezes the fallback look mode.
-        walker.steerX = 0;
-        walker.steerY = 0;
-        store().setLookMode("idle");
-        return;
-      }
-
-      requestLookMode();
+      // During the tour the customer is facing W1, so a double-click anywhere counts as the 5th step.
+      if (tutorialDone() && pickStore(camera, pointerNdc(e))) return;
+      stopFreeLook();
     };
 
-    const touches = new Map<number, { x: number; y: number; sx: number; sy: number; t: number }>();
+    // touch
+    type T = { x: number; y: number; sx: number; sy: number; t: number; axis: "x" | "y" | null };
+    const touches = new Map<number, T>();
+    let lastTap = { t: 0, x: 0, y: 0 };
     const onPointerDown = (e: PointerEvent) => {
       if (e.pointerType === "mouse") return;
-      touches.set(e.pointerId, {
-        x: e.clientX,
-        y: e.clientY,
-        sx: e.clientX,
-        sy: e.clientY,
-        t: performance.now(),
-      });
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now(), axis: null });
       try {
         el.setPointerCapture(e.pointerId);
       } catch {
-        /* Pointer capture is only a convenience. */
+        /* optional */
       }
     };
-
     const onPointerMove = (e: PointerEvent) => {
-      const touch = touches.get(e.pointerId);
-      if (!touch || !walking()) return;
-      const dx = e.clientX - touch.x;
-      const dy = e.clientY - touch.y;
-      touch.x = e.clientX;
-      touch.y = e.clientY;
-
-      if (touches.size === 1 && store().lookMode === "touch") {
-        addLook(-dx, -dy, TUNING.touchSensitivity);
-      } else if (touches.size === 2) {
-        const points = [...touches.values()];
-        const avgDy = points.reduce((sum, point) => sum + (point.y - point.sy), 0) / points.length;
-        walker.pad = Math.max(-1, Math.min(1, -avgDy / 120));
+      const tp = touches.get(e.pointerId);
+      if (!tp || !active() || touches.size !== 1) return;
+      const dx = e.clientX - tp.x;
+      const dy = e.clientY - tp.y;
+      tp.x = e.clientX;
+      tp.y = e.clientY;
+      if (!tp.axis) {
+        const mx = Math.abs(e.clientX - tp.sx);
+        const my = Math.abs(e.clientY - tp.sy);
+        if (Math.max(mx, my) < AXIS_LOCK_PX) return;
+        tp.axis = mx > my ? "x" : "y";
+      }
+      if (tp.axis === "x") {
+        if (store().lookMode === "free") addSwipeLook(dx);
+      } else {
+        addSwipeWalk(dy);
       }
     };
-
     const onPointerUp = (e: PointerEvent) => {
-      const touch = touches.get(e.pointerId);
+      const tp = touches.get(e.pointerId);
       touches.delete(e.pointerId);
-      if (touches.size < 2) walker.pad = 0;
-      if (!touch || e.pointerType === "mouse") return;
-
-      const moved = Math.hypot(e.clientX - touch.sx, e.clientY - touch.sy);
-      if (moved >= TAP_PX || performance.now() - touch.t > TAP_MS) return;
-
-      const rect = el.getBoundingClientRect();
-      const point = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-        w: rect.width,
-        h: rect.height,
-      };
+      if (!tp || e.pointerType === "mouse" || !active()) return;
+      const moved = Math.hypot(e.clientX - tp.sx, e.clientY - tp.sy);
       const now = performance.now();
-
-      if (now - lastTouchTap < DOUBLE_TAP_MS) {
-        clearTouchTimer();
-        lastTouchTap = 0;
-        lastTouchPoint = null;
-        walker.pad = 0;
-        store().setLookMode(store().lookMode === "touch" ? "idle" : "touch");
+      if (moved >= TAP_PX || now - tp.t > TAP_MS) return;
+      const hit = tutorialDone() ? pickStore(camera, toNdc(e.clientX, e.clientY)) : null;
+      if (hit) {
+        // a store tap opens immediately and never starts a double-tap window
+        lastTap = { t: 0, x: 0, y: 0 };
+        openSection(hit.id);
         return;
       }
-
-      lastTouchTap = now;
-      lastTouchPoint = point;
-      clearTouchTimer();
-      touchTimer = setTimeout(() => {
-        touchTimer = null;
-        if (lastTouchPoint && walking()) selectTarget("touch", lastTouchPoint);
-        lastTouchTap = 0;
-        lastTouchPoint = null;
-      }, DOUBLE_TAP_MS);
+      if (now - lastTap.t < DOUBLE_TAP_MS && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < DOUBLE_TAP_PX) {
+        lastTap = { t: 0, x: 0, y: 0 };
+        stopFreeLook();
+        return;
+      }
+      lastTap = { t: now, x: e.clientX, y: e.clientY };
     };
-
-    const onPointerCancel = (e: PointerEvent) => {
-      touches.delete(e.pointerId);
-      if (touches.size < 2) walker.pad = 0;
-    };
+    const onPointerCancel = (e: PointerEvent) => touches.delete(e.pointerId);
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      if (!walking()) return;
-      const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
-      addWheel(Math.max(-180, Math.min(180, delta)));
+      if (!active()) return;
+      const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+      addWheel(Math.max(-120, Math.min(120, delta)));
     };
 
-    const isTyping = (target: EventTarget | null) =>
-      target instanceof HTMLElement &&
-      ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
-    const keys = ["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+    const isTyping = (t: EventTarget | null) => t instanceof HTMLElement && ["INPUT", "SELECT", "TEXTAREA"].includes(t.tagName);
+    const keys = ["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "ShiftLeft", "ShiftRight"];
     const onKeyDown = (e: KeyboardEvent) => {
-      if (!walking() || isTyping(e.target) || !keys.includes(e.code)) return;
+      if (!active() || isTyping(e.target)) return;
+      if (e.code === "KeyL") {
+        if (store().lookMode === "free") stopFreeLook();
+        else resumeLook();
+        return;
+      }
+      if (!keys.includes(e.code)) return;
       e.preventDefault();
       walker.keys.add(e.code);
     };
     const onKeyUp = (e: KeyboardEvent) => walker.keys.delete(e.code);
     const onBlur = () => {
       walker.keys.clear();
-      walker.steerX = walker.steerY = 0;
       walker.pad = 0;
-      clearClickTimer();
-      clearTouchTimer();
-      if (document.pointerLockElement === el) document.exitPointerLock();
     };
 
     el.addEventListener("click", onClick);
     el.addEventListener("dblclick", onDoubleClick);
     document.addEventListener("pointerlockchange", onLockChange);
-    document.addEventListener("pointerlockerror", onLockError);
     document.addEventListener("mousemove", onMouseMove);
     el.addEventListener("pointerdown", onPointerDown);
     el.addEventListener("pointermove", onPointerMove);
@@ -232,15 +207,12 @@ export function Controls() {
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", onBlur);
-
     return () => {
       lookBridge.lock = () => {};
-      clearClickTimer();
-      clearTouchTimer();
+      lookBridge.resume = () => {};
       el.removeEventListener("click", onClick);
       el.removeEventListener("dblclick", onDoubleClick);
       document.removeEventListener("pointerlockchange", onLockChange);
-      document.removeEventListener("pointerlockerror", onLockError);
       document.removeEventListener("mousemove", onMouseMove);
       el.removeEventListener("pointerdown", onPointerDown);
       el.removeEventListener("pointermove", onPointerMove);
@@ -252,16 +224,28 @@ export function Controls() {
       window.removeEventListener("blur", onBlur);
       if (document.pointerLockElement === el) document.exitPointerLock();
     };
-  }, [gl]);
+  }, [gl, camera]);
 
-  useFrame((_, dt) => {
-    if (useMallStore.getState().mode !== "walking") {
-      walker.steerX = 0;
-      walker.steerY = 0;
+  useFrame((state, dt) => {
+    if (process.env.NODE_ENV !== "production" && (window as unknown as { __overview?: boolean }).__overview) {
+      // developer plan view (used for layout checks only)
+      camera.position.set(25, 95, -2);
+      camera.rotation.set(-Math.PI / 2, 0, 0, "YXZ");
+      const c = state.scene.getObjectByName("ceiling");
+      if (c) c.visible = false;
+      state.scene.fog = null;
+      const pc = camera as THREE.PerspectiveCamera;
+      if (pc.far !== 200) {
+        pc.far = 200;
+        pc.fov = 62;
+        pc.updateProjectionMatrix();
+      }
+      return;
     }
-    stepWalker(dt);
-    camera.position.set(walker.x, MALL.eyeHeight, walker.z);
-    camera.rotation.set(walker.pitch, walker.yaw, 0, "YXZ");
+    if (useMallStore.getState().mode === "walking") stepWalker(dt);
+    const p = pointAt(walker.s);
+    camera.position.set(p.x, MALL.eyeHeight, p.z);
+    camera.rotation.set(walker.pitch, p.yaw + walker.headYaw, 0, "YXZ");
   }, -1);
 
   return null;

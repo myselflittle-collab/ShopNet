@@ -1,7 +1,9 @@
-# ShopNet — 3D Fashion Mall (greybox prototype)
+# ShopNet — 3D Fashion Mall
 
-Walk through a 30 ft wide fashion mall, hover a section for a preview, click to shop it, and return to exactly where you stood.
-This is the **greybox** stage: shapes are placeholders. Photoreal assets come after this prototype is approved.
+Walk an S-shaped luxury fashion mall: **women's boutiques on your left** in the first curve, a store-free plaza,
+then **men's boutiques on your right** in the second curve. No store ever faces another store; the other side of the
+walkway is a planted atrium edge with printed-stone pillars. Click or tap any boutique to shop it, and you return to
+exactly where you stood.
 
 ## Run it
 
@@ -16,24 +18,36 @@ Open http://localhost:3000
 
 ## Controls
 
-| Desktop | Mobile |
+| Desktop | Phone / tablet |
 | --- | --- |
-| Click once to capture the mouse, then **move the mouse to look** (full 360°, up/down limited) | **One finger** — look around |
-| **Scroll** up / down — walk forward / back | **Two fingers** up / down, or hold ▲ / ▼ — walk |
-| Aim the **centre dot** at a store — it highlights and shows a preview | **Tap** a store — turn to face it and preview |
-| **Click** — enter the targeted store | **Tap again** — enter |
-| W A S D / arrow keys — walk, strafe, turn · **Esc** frees the mouse | |
-| Esc or "Back to mall" — close the shop | Back to mall |
+| **Scroll down** — walk forward · **scroll up** — walk back (mouse wheel or trackpad) | **Swipe up** — walk forward · **swipe down** — walk back (or hold ▲ / ▼) |
+| **Move the mouse / trackpad** — look around (full 360°). "Enter the mall" captures the mouse when the browser allows it | **Swipe left** — look left · **swipe right** — look right |
+| **Click** a boutique — open it | **Tap** a boutique — open it |
+| **Double-click** the walkway — stop looking around · **Look around** button (or L) — resume | **Double-tap** the walkway — stop looking around · **Look around** — resume |
+| W / S or ↑ / ↓ walk (Shift = faster) · A / D or ← / → turn | |
 
-If the browser refuses to capture the mouse, moving the cursor toward a screen edge turns the view instead.
+The first visit starts with a five-step guided walk that ends by revealing the first boutique (Women's Blazers).
 
-Only **Women's Blazers** is open in this stage (first section on the left).
+## Layout (locked Blueprint 0.7)
+
+* Route: 8 m foyer → R14 m curve turning 210° (women, left) → 10 m plaza → R14 m curve turning 210° (men, right) → 6 m exit; 126.6 m, 5 m clothoid transitions.
+* 30 ft section: 1.344 m atrium edge + 4.000 m walkway + 3.800 m boutique = 9.144 m.
+* Boutiques: 4 m frontage with a 2.8 m framed portal; Men's Shoes and Watches are 8 m with a 5.6 m portal.
+* Everything (walls, floor, ceiling, light lines, stores) is generated from one centreline in `lib/config/path.ts`, so pieces always meet without gaps.
+
+## Campaign videos
+
+Only the store the customer is actually looking at plays its film (one at a time); at most two others are kept ready
+(one on phones). Every other screen shows a still poster. Everything pauses while the shop is open or the tab is hidden.
+Served files are 720p (desktop) / 540p (phones) H.264 with 1 s keyframes — never smaller than the screen can show.
+The 1080p masters stay in `assets/video-masters/` (Git LFS) and are not downloaded by visitors. See
+`public/videos/sections/README.md` to re-encode.
 
 ## Checks
 
 ```
 npm run typecheck     # TypeScript
-npm test              # walking + collision unit tests
+npm test              # controls, layout and catalogue unit tests
 npm run build         # production build
 npm run check:photos  # confirms every product photo loads (needs internet)
 ```
@@ -53,18 +67,19 @@ app/                  routes; the mall is mounted once in layout.tsx
   shop/[gender]/[category]/   2D shop page (opens over the paused mall)
 components/           MallRoot (route sync), Hud
 mall/                 3D only (React Three Fiber)
-  scene/              shell, lighting, sign textures
-  sections/           bay, fixtures, hit volumes
-  navigation/         walker (movement, collision), Controls (input)
-  interaction/        hover picking, highlight light
-  transitions/        open section, return to mall
+  scene/              shell (walls, floor, ceiling swept along the path), plaza, lighting, textures
+  sections/           boutiques, divider fins, garment rails
+  video/              campaign screens, video lifecycle manager, campaign artwork
+  navigation/         walker (path position + head yaw), Controls (input), guided-walk logic
+  interaction/        store picking, highlight light
+  transitions/        open a store, return to the mall
 shop/                 2D e-commerce only, no three.js
   components/         ProductCard, Filters, Rating
   preview/            FloatingPreview card
 lib/
   bridge/             mallStore, shopStore, previewBridge (the only link between mall and shop)
   catalog/            types, mock catalogue, placeholder product images
-  config/             mall dimensions (provisional), section registry
+  config/             centreline (path.ts), dimensions, store placement, walls
 legacy/almirah/       previous prototype, kept for reference
 ```
 

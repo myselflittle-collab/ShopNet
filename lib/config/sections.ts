@@ -1,4 +1,5 @@
-import { HALF_W, MALL } from "./mall";
+import { BACK_D, FRONT_D, MALL } from "./mall";
+import { PATH_BOUNDS, PLAZA, offsetAt, offsetLength, pointAt, sAtOffsetLength } from "./path";
 
 export type Gender = "women" | "men";
 export type FixtureKind = "rack" | "shelves" | "table" | "cabinet";
@@ -9,21 +10,37 @@ export interface SectionDef {
   slug: string;
   label: string;
   fixture: FixtureKind;
-  /** bay frontage in metres */
+  /** clear frontage between the divider fins, metres */
   width: number;
   /** true when the 2D shop for this section exists */
   live: boolean;
 }
 
+export interface Vec2 {
+  x: number;
+  z: number;
+}
+
 export interface PlacedSection extends SectionDef {
-  /** world centre of the bay opening (on the corridor edge) */
-  cx: number;
-  cz: number;
-  /** bay spans z from z0 to z1 (z1 < z0, walking toward -z) */
-  z0: number;
-  z1: number;
-  /** +1 for the right (men), -1 for the left (women) */
+  /** W1…W13 / M1…M11 */
+  code: string;
+  /** -1 = customer's left (women), +1 = customer's right (men) */
   side: 1 | -1;
+  /** centreline positions of the two divider fins (start / end of the store along the path) */
+  s0: number;
+  s1: number;
+  /** centreline position facing the middle of the store */
+  sMid: number;
+  /** clear portal opening, metres */
+  opening: number;
+  /** store frame: origin on the facade line, rotation so local +Z faces the walkway, local +X along the row */
+  origin: Vec2;
+  rotationY: number;
+  /** back-wall chord ends in the store's local frame (x, z) — the fins are radial so the back is wider */
+  backLeft: Vec2;
+  backRight: Vec2;
+  /** front chord half-width in the local frame (fin centre to fin centre / 2) */
+  halfFront: number;
 }
 
 const W = MALL.bayWidth;
@@ -58,21 +75,86 @@ const men: SectionDef[] = [
   { id: "men-watches", gender: "men", slug: "watches", label: "Watches", fixture: "cabinet", width: W * 2, live: true },
 ];
 
-function place(list: SectionDef[], side: 1 | -1): PlacedSection[] {
-  let z: number = MALL.bayStartZ;
-  return list.map((s) => {
-    const z0 = z;
-    const z1 = z - s.width;
-    z = z1;
-    return { ...s, z0, z1, cz: (z0 + z1) / 2, cx: side * (HALF_W - MALL.bayDepth), side };
+/** One row of boutiques centred along the storefront line between two centreline positions. */
+function placeRow(list: SectionDef[], side: 1 | -1, sStart: number, sEnd: number, prefix: string): PlacedSection[] {
+  // lateral offset: the customer's left is +d in path.ts
+  const d = side === -1 ? FRONT_D : -FRONT_D;
+  const db = side === -1 ? BACK_D : -BACK_D;
+  const available = offsetLength(sStart, sEnd, d);
+  const total = list.reduce((a, s) => a + s.width, 0) + MALL.fin * (list.length + 1);
+  let along = (available - total) / 2 + MALL.fin / 2; // first fin centre
+  const finS: number[] = [];
+  const out: PlacedSection[] = [];
+  const firstFin = sAtOffsetLength(sStart, along, d);
+  finS.push(firstFin);
+  for (const def of list) {
+    along += MALL.fin / 2 + def.width + MALL.fin / 2;
+    finS.push(sAtOffsetLength(sStart, along, d));
+  }
+  list.forEach((def, i) => {
+    const s0 = finS[i];
+    const s1 = finS[i + 1];
+    const f0 = offsetAt(s0, d);
+    const f1 = offsetAt(s1, d);
+    const b0 = offsetAt(s0, db);
+    const b1 = offsetAt(s1, db);
+    // the straight facade touches the curved storefront line at its middle and lies behind it elsewhere,
+    // so no part of a store ever enters the 4 m walkway
+    const sMid = (s0 + s1) / 2;
+    const lineMid = offsetAt(sMid, d);
+    const chordMid = { x: (f0.x + f1.x) / 2, z: (f0.z + f1.z) / 2 };
+    const pm = pointAt(sMid);
+    // unit normal from the walkway toward the store
+    const nx = lineMid.x - pm.x;
+    const nz = lineMid.z - pm.z;
+    const nl = Math.hypot(nx, nz);
+    const into = { x: nx / nl, z: nz / nl };
+    const sag = (lineMid.x - chordMid.x) * into.x + (lineMid.z - chordMid.z) * into.z;
+    const origin = { x: chordMid.x + into.x * Math.max(0, sag), z: chordMid.z + into.z * Math.max(0, sag) };
+    // local +Z faces the walkway (= -into)
+    const rotationY = Math.atan2(-into.x, -into.z);
+    const cos = Math.cos(rotationY);
+    const sin = Math.sin(rotationY);
+    // world → local: inverse rotation about Y
+    const toLocal = (p: Vec2): Vec2 => {
+      const dx = p.x - origin.x;
+      const dz = p.z - origin.z;
+      return { x: dx * cos - dz * sin, z: dx * sin + dz * cos };
+    };
+    const lb0 = toLocal(b0);
+    const lb1 = toLocal(b1);
+    const lf0 = toLocal(f0);
+    const lf1 = toLocal(f1);
+    const [backLeft, backRight] = lb0.x < lb1.x ? [lb0, lb1] : [lb1, lb0];
+    out.push({
+      ...def,
+      code: `${prefix}${i + 1}`,
+      side,
+      s0,
+      s1,
+      sMid,
+      opening: def.width > W ? MALL.portalOpeningWide : MALL.portalOpening,
+      origin,
+      rotationY,
+      backLeft,
+      backRight,
+      halfFront: Math.abs(lf1.x - lf0.x) / 2,
+    });
   });
+  return out;
 }
 
-export const SECTIONS: PlacedSection[] = [...place(women, -1), ...place(men, 1)];
+/** Women: customer's left, lobe 1 (end of foyer → start of plaza). */
+export const WOMEN_ROW = { start: PATH_BOUNDS[1], end: PLAZA.start } as const;
+/** Men: customer's right, lobe 2 (end of plaza → start of exit). */
+export const MEN_ROW = { start: PLAZA.end, end: PATH_BOUNDS[6] } as const;
 
-export const SECTION_BY_ID: Record<string, PlacedSection> = Object.fromEntries(
-  SECTIONS.map((s) => [s.id, s]),
-);
+export const SECTIONS: PlacedSection[] = [
+  ...placeRow(women, -1, WOMEN_ROW.start, WOMEN_ROW.end, "W"),
+  ...placeRow(men, 1, MEN_ROW.start, MEN_ROW.end, "M"),
+];
+
+export const SECTION_BY_ID: Record<string, PlacedSection> = Object.fromEntries(SECTIONS.map((s) => [s.id, s]));
 
 export function sectionByRoute(gender: string, slug: string): PlacedSection | undefined {
   return SECTIONS.find((s) => s.gender === gender && s.slug === slug);
@@ -82,10 +164,24 @@ export function sectionHref(s: SectionDef): string {
   return `/shop/${s.gender}/${s.slug}`;
 }
 
-/** Where the camera stands to look straight into a bay (used for the open animation and deep links). */
+/** Local (store frame) point → world. */
+export function storeToWorld(s: PlacedSection, lx: number, lz: number): Vec2 {
+  const c = Math.cos(s.rotationY);
+  const n = Math.sin(s.rotationY);
+  return { x: s.origin.x + lx * c + lz * n, z: s.origin.z - lx * n + lz * c };
+}
+
+/** Where the LCD sits in the store frame (centre of the back wall, facing the walkway). */
+export function lcdLocal(s: PlacedSection) {
+  const z = (s.backLeft.z + s.backRight.z) / 2 + 0.16;
+  return { x: (s.backLeft.x + s.backRight.x) / 2, y: 2.04, z };
+}
+
+/** Camera pose on the centreline facing the middle of a store (deep links). */
 export function viewingPose(s: PlacedSection) {
-  const standX = s.side * (HALF_W - MALL.bayDepth - 1.1);
-  // yaw 0 looks toward -z; looking toward +x (right) is yaw -PI/2, toward -x (left) is +PI/2
-  const yaw = s.side === 1 ? -Math.PI / 2 : Math.PI / 2;
-  return { x: standX, z: s.cz, yaw, pitch: -0.05 };
+  const p = pointAt(s.sMid);
+  const target = storeToWorld(s, 0, lcdLocal(s).z);
+  const worldYaw = Math.atan2(-(target.x - p.x), -(target.z - p.z));
+  const head = Math.atan2(Math.sin(worldYaw - p.yaw), Math.cos(worldYaw - p.yaw));
+  return { s: s.sMid, headYaw: head, pitch: -0.03 };
 }
