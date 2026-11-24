@@ -36,6 +36,18 @@ test("scrolling up right after scrolling down reverses immediately (no coasting 
   assert.ok(walker.s < s, `expected to move back from ${s}, got ${walker.s}`);
 });
 
+test("forward follows the view: after turning round, the same scroll walks toward the entrance", () => {
+  fresh(40, Math.PI);
+  addWheel(-100);
+  run(0.5);
+  assert.ok(walker.s < 39.8, `facing back, forward scroll should decrease s, got ${walker.s}`);
+  fresh(40, Math.PI * 3);
+  walker.keys.add("KeyW");
+  run(1);
+  walker.keys.clear();
+  assert.ok(walker.s < 39, "W walks the way the camera faces, even after several full turns");
+});
+
 test("swipe UP on a touchscreen walks forward, swipe DOWN walks back", () => {
   fresh(20);
   addSwipeWalk(-40);

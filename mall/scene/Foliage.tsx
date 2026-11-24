@@ -63,16 +63,27 @@ function rng(seed: number) {
 /** Leaf positions for a planter hedge running along the atrium edge. */
 function hedgeLeaves(run: { s0: number; s1: number; sign: number }, r: () => number): Leaf[] {
   const out: Leaf[] = [];
-  for (let s = run.s0 + 0.05; s < run.s1 - 0.05; s += 0.07) {
+  // rounded, clipped ends: leaves cover both end faces instead of stopping in a hard cut
+  for (const [sEnd, dir] of [
+    [run.s0 + 0.16, 1],
+    [run.s1 - 0.16, -1],
+  ] as const) {
+    for (let k = 0; k < 70; k++) {
+      const d = run.sign * (2.46 + r() * (CORE_D - 2.56));
+      const p = offsetAt(sEnd - dir * r() * 0.06, d);
+      out.push({ x: p.x, y: 0.58 + r() * 0.34, z: p.z, s: 0.2 + r() * 0.1 });
+    }
+  }
+  for (let s = run.s0 + 0.2; s < run.s1 - 0.2; s += 0.07) {
     // soft, slightly wavy clipped top
     const wave = Math.sin(s * 1.7) * 0.025 + Math.sin(s * 4.3) * 0.015;
     for (let k = 0; k < 4; k++) {
-      const d = run.sign * (2.42 + r() * (CORE_D - 2.5));
+      const d = run.sign * (2.46 + r() * (CORE_D - 2.56));
       const p = offsetAt(s + (r() - 0.5) * 0.08, d);
       out.push({ x: p.x, y: 0.93 + wave + (r() - 0.5) * 0.08, z: p.z, s: 0.24 + r() * 0.14 });
     }
     for (let k = 0; k < 3; k++) {
-      const p = offsetAt(s + (r() - 0.5) * 0.08, run.sign * (2.4 + r() * 0.06));
+      const p = offsetAt(s + (r() - 0.5) * 0.08, run.sign * (2.44 + r() * 0.05));
       out.push({ x: p.x, y: 0.56 + r() * 0.36, z: p.z, s: 0.22 + r() * 0.12 });
     }
   }

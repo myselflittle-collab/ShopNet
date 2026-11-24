@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { CORE_D, FRONT_D, MALL } from "@/lib/config/mall";
 import { PATH_BOUNDS, PATH_LENGTH, PLAZA, pointAt } from "@/lib/config/path";
 import { WALLS, leftEdge, rightEdge, type WallKind, type WallRun } from "@/lib/config/architecture";
-import { placements, stripGeometry, wallGeometry } from "./ribbons";
+import { mergeGeometries, placements, stripGeometry, sweptBox, wallGeometry } from "./ribbons";
 import { Foliage } from "./Foliage";
 import { getFlutedStone, getPolishedStoneTexture, getShopnetWallpaper, getStoreWallpaper } from "./materialTextures";
 
@@ -41,14 +41,15 @@ function useMaterials() {
       ceiling: new THREE.MeshStandardMaterial({ color: "#f7f3ec", emissive: "#e8dfd0", emissiveIntensity: 0.55, roughness: 0.92 }),
       lightLine: new THREE.MeshBasicMaterial({ color: "#fff6e4", toneMapped: false }),
       coveWarm: new THREE.MeshBasicMaterial({ color: "#ffd9a0", toneMapped: false }),
-      skirting: new THREE.MeshStandardMaterial({ color: "#3a332b", roughness: 0.4, metalness: 0.3 }),
+      skirting: new THREE.MeshStandardMaterial({ color: "#6b5440", roughness: 0.35, metalness: 0.55, envMapIntensity: 0.8 }),
       wall: {
         wallpaper: new THREE.MeshStandardMaterial({ map: wallpaper, color: "#ffffff", roughness: 0.62, metalness: 0.04, envMapIntensity: 0.5 }),
         stone: new THREE.MeshStandardMaterial({ map: limestone, color: "#efe9e0", roughness: 0.6 }),
         core: new THREE.MeshStandardMaterial({ map: fluted, color: "#ffffff", roughness: 0.48, envMapIntensity: 0.6 }),
         plaza: new THREE.MeshStandardMaterial({ map: fluted, color: "#f6efe3", roughness: 0.42, envMapIntensity: 0.7 }),
       } as Record<WallKind, THREE.MeshStandardMaterial>,
-      planter: new THREE.MeshStandardMaterial({ map: limestone, color: "#e7dfd2", roughness: 0.5 }),
+      // seamless stone (the limestone wall finish has a gradient that shows a seam when it repeats)
+      planter: new THREE.MeshStandardMaterial({ map: stone, color: "#d8cdbd", roughness: 0.4, envMapIntensity: 0.6 }),
       hedge: new THREE.MeshStandardMaterial({ color: "#1d2a17", roughness: 1 }),
       pillar: new THREE.MeshStandardMaterial({ map: fluted, color: "#fbf6ee", roughness: 0.4, envMapIntensity: 0.7 }),
     };
@@ -110,15 +111,32 @@ function mergeTwo(a: THREE.BufferGeometry, b: THREE.BufferGeometry) {
 
 type Mats = ReturnType<typeof useMaterials>;
 
+/** Top face of a profile standing `depth` metres proud of a wall run. */
+function stripTop(run: WallRun, depth: number, y: number) {
+  const left = run.d((run.s0 + run.s1) / 2) > 0;
+  return left
+    ? stripGeometry(run.s0, run.s1, (s) => run.d(s), (s) => run.d(s) - depth, y, { uvScale: 1 })
+    : stripGeometry(run.s0, run.s1, (s) => run.d(s) + depth, (s) => run.d(s), y, { uvScale: 1 })
+;
+}
+
 function WallPiece({ run, materials: m }: { run: WallRun; materials: Mats }) {
-  const inward = (s: number) => {
+  const inward = (k: number) => (s: number) => {
     const d = run.d(s);
-    return d - Math.sign(d) * 0.012;
+    return d - Math.sign(d) * k;
   };
   const scale = run.kind === "wallpaper" ? 1.6 : run.kind === "core" || run.kind === "plaza" ? 1.6 : 3.8;
   const wall = useDisposable(() => wallGeometry(run.s0, run.s1, run.d, 0, H, { uScale: scale, vScale: H }), [run]);
-  const skirting = useDisposable(() => wallGeometry(run.s0, run.s1, inward, 0, 0.12, { uScale: 1 }), [run]);
-  const crown = useDisposable(() => wallGeometry(run.s0, run.s1, inward, H - 0.16, H - 0.12, { uScale: 1 }), [run]);
+  // skirting: a real 25 mm proud, 110 mm tall bronze profile with a top face, not a painted band
+  const skirting = useDisposable(
+    () =>
+      mergeGeometries([
+        wallGeometry(run.s0, run.s1, inward(0.025), 0, 0.11, { uScale: 1 }),
+        stripTop(run, 0.025, 0.11),
+      ]),
+    [run],
+  );
+  const crown = useDisposable(() => wallGeometry(run.s0, run.s1, inward(0.012), H - 0.16, H - 0.12, { uScale: 1 }), [run]);
   return (
     <group>
       <mesh geometry={wall} material={m.wall[run.kind]} />
@@ -133,25 +151,16 @@ function AtriumEdge({ materials: m }: { materials: Mats }) {
   const runs = useMemo(() => {
     const [, foyerEnd, , , , , exitStart] = PATH_BOUNDS;
     return [
-      { s0: foyerEnd + 2.2, s1: PLAZA.start - 0.4, sign: -1 },
+      { s0: foyerEnd + 1.9, s1: PLAZA.start - 0.4, sign: -1 },
       { s0: PLAZA.end + 0.6, s1: exitStart - 0.8, sign: 1 },
     ];
   }, []);
 
-  const planterFront = useDisposable(() => mergeMany(runs.map((r) => wallGeometry(r.s0, r.s1, () => r.sign * 2.26, 0, 0.5, { uScale: 3.8 }))));
-  const planterCap = useDisposable(() =>
-    mergeMany(runs.map((r) => (r.sign > 0 ? stripGeometry(r.s0, r.s1, () => 2.36, () => 2.22, 0.5) : stripGeometry(r.s0, r.s1, () => -2.22, () => -2.36, 0.5)))),
-  );
-  const hedgeFront = useDisposable(() => mergeMany(runs.map((r) => wallGeometry(r.s0, r.s1, () => r.sign * 2.47, 0.5, 0.88, { uScale: 0.8, vScale: 0.8 }))));
-  const hedgeTop = useDisposable(() =>
-    mergeMany(
-      runs.map((r) =>
-        r.sign > 0
-          ? stripGeometry(r.s0, r.s1, () => CORE_D - 0.02, () => 2.47, 0.88, { uvScale: 0.8 })
-          : stripGeometry(r.s0, r.s1, () => -2.47, () => -(CORE_D - 0.02), 0.88, { uvScale: 0.8 }),
-      ),
-    ),
-  );
+  // A real planter: limestone body, a bronze-brass capping with thickness, a dark soil/hedge core,
+  // all closed with end caps so no edge is ever open.
+  const planterBody = useDisposable(() => mergeMany(runs.map((r) => sweptBox(r.s0, r.s1, r.sign * 2.26, r.sign * (CORE_D - 0.01), 0, 0.5, { uScale: 3.8 }))));
+  const planterCap = useDisposable(() => mergeMany(runs.map((r) => sweptBox(r.s0 - 0.03, r.s1 + 0.03, r.sign * 2.22, r.sign * (CORE_D - 0.01), 0.5, 0.545))));
+  const hedgeCore = useDisposable(() => mergeMany(runs.map((r) => sweptBox(r.s0 + 0.12, r.s1 - 0.12, r.sign * 2.5, r.sign * (CORE_D - 0.05), 0.545, 0.84))));
 
   const pillars = useMemo(() => runs.flatMap((r) => placements(r.s0, r.s1, () => r.sign * 2.78, 5.6)), [runs]);
   const shaft = useRef<THREE.InstancedMesh>(null);
@@ -177,10 +186,9 @@ function AtriumEdge({ materials: m }: { materials: Mats }) {
 
   return (
     <group>
-      <mesh geometry={planterFront} material={m.planter} />
+      <mesh geometry={planterBody} material={m.planter} />
       <mesh geometry={planterCap} material={m.brass} />
-      <mesh geometry={hedgeFront} material={m.hedge} />
-      <mesh geometry={hedgeTop} material={m.hedge} />
+      <mesh geometry={hedgeCore} material={m.hedge} />
       <Foliage runs={runs} />
       <instancedMesh ref={shaft} args={[shaftGeo, m.pillar, pillars.length]} />
       <instancedMesh ref={ring} args={[ringGeo, m.brass, pillars.length * 2]} />

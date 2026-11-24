@@ -10,7 +10,7 @@ import { resetLimits, walker } from "./walker";
  *  1 walk forward ≥ 1.5 m   2 walk back ≥ 0.8 m   3 turn left ≥ 30°   4 turn right ≥ 30°
  *  5 double-click / double-tap anywhere  → the first boutique's scrim rises and it lights up.
  */
-const state = { anchorS: 0, maxS: 0, lastStep: 0 };
+const state = { lastStep: 0 };
 
 export function registerTutorialCamera() {
   /* kept for compatibility; the tour no longer needs the camera */
@@ -18,8 +18,8 @@ export function registerTutorialCamera() {
 
 function begin(step: number) {
   state.lastStep = step;
-  state.anchorS = walker.s;
-  state.maxS = walker.s;
+  walker.walkedForward = 0;
+  walker.walkedBack = 0;
   walker.turnedLeft = 0;
   walker.turnedRight = 0;
 }
@@ -40,11 +40,10 @@ export function tickTutorial() {
   if (state.lastStep !== t.step) begin(t.step);
   switch (t.step) {
     case 1:
-      if (walker.s - state.anchorS >= TUTORIAL.walkForward) t.advance(2);
+      if (walker.walkedForward >= TUTORIAL.walkForward) t.advance(2);
       break;
     case 2:
-      state.maxS = Math.max(state.maxS, walker.s);
-      if (state.maxS - walker.s >= TUTORIAL.walkBack) t.advance(3);
+      if (walker.walkedBack >= TUTORIAL.walkBack) t.advance(3);
       break;
     case 3:
       if (walker.turnedLeft >= TUTORIAL.turn) t.advance(4);

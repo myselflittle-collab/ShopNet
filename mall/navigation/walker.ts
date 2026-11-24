@@ -50,6 +50,11 @@ export const walker = {
   maxS: S_MAX,
   /** while true the body does not move at all (tutorial look steps) */
   hold: false,
+  /** +1 when the customer faces along the path (toward the exit), -1 when facing back toward the entrance */
+  facing: 1,
+  /** distance walked toward / away from the direction the customer is looking (for the tutorial) */
+  walkedForward: 0,
+  walkedBack: 0,
   /** total leftward / rightward head rotation since the last reset (radians, for the tutorial) */
   turnedLeft: 0,
   turnedRight: 0,
@@ -89,7 +94,7 @@ export function stepWalker(dt: number) {
   if (k.has("KeyA") || k.has("ArrowLeft")) turn(TUNING.turnSpeedKeys * dt);
   if (k.has("KeyD") || k.has("ArrowRight")) turn(-TUNING.turnSpeedKeys * dt);
   fwd += walker.pad;
-  fwd = Math.max(-1, Math.min(1, fwd));
+  fwd = Math.max(-1, Math.min(1, fwd)) * updateFacing();
   const speed = k.has("ShiftLeft") || k.has("ShiftRight") ? TUNING.fastSpeed : TUNING.walkSpeed;
 
   if (fwd !== 0) walker.vel += (fwd * speed - walker.vel) * Math.min(1, dt * 6);
@@ -101,7 +106,22 @@ export function stepWalker(dt: number) {
   const ns = walker.s + walker.vel * dt;
   const clamped = Math.min(walker.maxS, Math.max(walker.minS, ns));
   if (clamped !== ns) walker.vel = 0;
+  const moved = (clamped - walker.s) * walker.facing;
+  if (moved > 0) walker.walkedForward += moved;
+  else walker.walkedBack -= moved;
   walker.s = clamped;
+}
+
+/**
+ * "Forward" always means the way the customer is looking along the path. Facing the exit, forward
+ * increases s; after turning round toward the entrance, forward decreases s. A small dead zone
+ * around looking sideways (±80°…±100°) keeps the last direction so it never flickers.
+ */
+function updateFacing() {
+  const c = Math.cos(walker.headYaw);
+  if (c > 0.17) walker.facing = 1;
+  else if (c < -0.17) walker.facing = -1;
+  return walker.facing;
 }
 
 /** Positive = turn left. */
@@ -113,11 +133,12 @@ function turn(rad: number) {
 
 /**
  * Scroll direction as tested on the owner's laptop: the gesture he calls "scroll down" arrives
- * with a negative deltaY, so negative deltaY walks forward and positive deltaY walks back.
+ * with a negative deltaY, so negative deltaY walks forward (the way the customer is looking)
+ * and positive deltaY walks back.
  */
 export function addWheel(deltaY: number) {
   if (!Number.isFinite(deltaY) || walker.hold || deltaY === 0) return;
-  const push = -deltaY;
+  const push = -deltaY * updateFacing();
   // Reversing the scroll reverses at once: never keep coasting the old way after the wheel turns back.
   if (walker.vel !== 0 && Math.sign(push) !== Math.sign(walker.vel)) walker.vel = 0;
   walker.vel += push * TUNING.wheelImpulse;
@@ -127,8 +148,9 @@ export function addWheel(deltaY: number) {
 /** Finger moving UP the screen (negative dy) walks forward. */
 export function addSwipeWalk(dy: number) {
   if (!Number.isFinite(dy) || walker.hold || dy === 0) return;
-  if (walker.vel !== 0 && Math.sign(-dy) !== Math.sign(walker.vel)) walker.vel = 0;
-  walker.vel += -dy * TUNING.swipeImpulse;
+  const push = -dy * updateFacing();
+  if (walker.vel !== 0 && Math.sign(push) !== Math.sign(walker.vel)) walker.vel = 0;
+  walker.vel += push * TUNING.swipeImpulse;
   walker.vel = Math.max(-TUNING.maxSpeed, Math.min(TUNING.maxSpeed, walker.vel));
 }
 
