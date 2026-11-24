@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { MALL } from "@/lib/config/mall";
 import { PLAZA, S_INFLECTION, offsetAt, pointAt } from "@/lib/config/path";
-import { getFoliage } from "./materialTextures";
+import { Foliage } from "./Foliage";
 
 const H = MALL.ceiling;
 
@@ -96,7 +96,7 @@ export function Plaza() {
       pylon: new THREE.MeshStandardMaterial({ color: "#efe7da", roughness: 0.35, envMapIntensity: 0.7 }),
       wood: new THREE.MeshStandardMaterial({ color: "#7a5a3e", roughness: 0.5 }),
       planter: new THREE.MeshStandardMaterial({ color: "#e4dccf", roughness: 0.45 }),
-      foliage: new THREE.MeshStandardMaterial({ map: getFoliage(), color: "#b8c4ad", roughness: 0.9 }),
+      foliage: new THREE.MeshStandardMaterial({ color: "#1d2a17", roughness: 1 }),
       medalMat: new THREE.MeshStandardMaterial({ roughness: 0.18, metalness: 0.08, envMapIntensity: 1 }),
       menMat: new THREE.MeshBasicMaterial({ map: men, transparent: true, toneMapped: false, depthWrite: false }),
       womenMat: new THREE.MeshBasicMaterial({ map: women, transparent: true, toneMapped: false, depthWrite: false }),
@@ -129,8 +129,11 @@ export function Plaza() {
     return out;
   }, []);
 
+  const balls = useMemo(() => niches.map((n) => ({ x: n.x, y: 0.88, z: n.z, r: 0.6 })), [niches]);
+
   return (
     <group>
+      <Foliage runs={[]} balls={balls} />
       {/* floor medallion at the inflection point */}
       <mesh position={[c.x, 0.008, c.z]} rotation-x={-Math.PI / 2} rotation-z={c.yaw} material={assets.medalMat}>
         <circleGeometry args={[1.7, 64]} />
@@ -168,7 +171,7 @@ export function Plaza() {
             <cylinderGeometry args={[0.55, 0.5, 0.6, 32]} />
           </mesh>
           <mesh position={[0, 0.88, 0]} material={assets.foliage}>
-            <sphereGeometry args={[0.62, 20, 14]} />
+            <sphereGeometry args={[0.52, 20, 14]} />
           </mesh>
           <mesh position={[0, 0.235, i < 2 ? 1.15 : -1.15]} material={assets.wood}>
             <boxGeometry args={[0.5, 0.09, 1.3]} />

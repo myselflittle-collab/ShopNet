@@ -4,12 +4,10 @@ import { create } from "zustand";
 
 /**
  * Five action-gated steps, in the requested order:
- *  1 scroll down → walk forward (to s = 12.4)
- *  2 scroll up   → walk back   (to s = 11.4, then the body holds still)
- *  3 look left   (head turns past the first boutique, W1)
- *  4 look right  (back until W1's screen is fully in view)
- *  5 double-click / double-tap the walkway → free-look stops, the scrim rises, W1 lights up
- * The system never moves or turns the camera; every step waits for the customer's own action.
+ *  1 scroll down → walk forward      2 scroll up → walk back
+ *  3 look left                       4 look right
+ *  5 double-click / double-tap → free-look stops, the scrim rises, the first boutique lights up
+ * The system never moves or turns the camera and never blocks walking.
  */
 export type TutorialStep = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -56,11 +54,7 @@ export const useTutorial = create<TutorialState>((set) => ({
 }));
 
 export const TUTORIAL = {
-  walkTo: 12.4,
-  backTo: 11.4,
-  /** T3: the head must have turned past W1 to the left by this much (radians) */
-  lookPastW1: (15 * Math.PI) / 180,
-  /** T4: rightward rotation from the T3 maximum */
-  lookRight: (30 * Math.PI) / 180,
-  holdMs: 300,
+  walkForward: 1.5,
+  walkBack: 0.8,
+  turn: (30 * Math.PI) / 180,
 } as const;

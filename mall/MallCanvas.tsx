@@ -5,7 +5,6 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { useMallStore } from "@/lib/bridge/mallStore";
 import { useTutorial } from "@/lib/bridge/tutorialStore";
-import { pointAt } from "@/lib/config/path";
 import { Shell } from "./scene/Shell";
 import { Plaza } from "./scene/Plaza";
 import { Lighting } from "./scene/Lighting";
@@ -45,7 +44,7 @@ function ResponsiveFov() {
 function Director() {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   useEffect(() => {
-    registerTutorialCamera(camera);
+    registerTutorialCamera();
     configureVideo();
     const onVis = () => pauseAll(document.hidden || useMallStore.getState().mode === "shop");
     document.addEventListener("visibilitychange", onVis);
@@ -61,8 +60,7 @@ function Director() {
   useFrame(() => {
     const st = useMallStore.getState();
     const tut = useTutorial.getState();
-    const p = pointAt(walker.s);
-    if (st.entered && tut.step >= 1 && tut.step <= 5 && st.mode === "walking") tickTutorial(p.yaw, p);
+    if (st.entered && tut.step >= 1 && tut.step <= 5 && st.mode === "walking") tickTutorial();
     const featured = updateVideos(camera, {
       paused: st.mode !== "walking" || document.hidden,
       enabled: st.entered && tut.revealed,

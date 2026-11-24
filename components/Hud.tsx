@@ -14,18 +14,18 @@ const STEPS = {
   desktop: [
     "",
     "Scroll down to walk forward",
-    "Scroll up to step back",
-    "Move your mouse to the left to look left",
-    "Now move your mouse to the right to look right",
-    "Double-click to stop looking around",
+    "Scroll up to walk back",
+    "Move the mouse left to look left",
+    "Move the mouse right to look right",
+    "Double-click anywhere to stop looking around",
   ],
   touch: [
     "",
     "Swipe up to walk forward",
-    "Swipe down to step back",
+    "Swipe down to walk back",
     "Swipe left to look left",
-    "Now swipe right to look right",
-    "Double-tap the walkway to stop looking around",
+    "Swipe right to look right",
+    "Double-tap anywhere to stop looking around",
   ],
 };
 
@@ -129,7 +129,7 @@ export function Hud() {
       )}
       {doneFlash && walking && entered && (
         <div className="tour-card is-done" role="status" aria-live="polite">
-          <p className="tour-text">Welcome to ShopNet. Tap or click any boutique to shop it.</p>
+          <p className="tour-text">{coarse ? "Tour complete. Tap any boutique to shop it." : "Tour complete. Click any boutique to shop it. Press Look around to move your view again."}</p>
         </div>
       )}
 

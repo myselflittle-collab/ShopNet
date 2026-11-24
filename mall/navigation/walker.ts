@@ -113,14 +113,17 @@ function turn(rad: number) {
 
 /** Scroll DOWN (positive deltaY) walks forward; scroll UP walks backward. */
 export function addWheel(deltaY: number) {
-  if (!Number.isFinite(deltaY) || walker.hold) return;
+  if (!Number.isFinite(deltaY) || walker.hold || deltaY === 0) return;
+  // Reversing the scroll reverses at once: never keep coasting the old way after the wheel turns back.
+  if (walker.vel !== 0 && Math.sign(deltaY) !== Math.sign(walker.vel)) walker.vel = 0;
   walker.vel += deltaY * TUNING.wheelImpulse;
   walker.vel = Math.max(-TUNING.maxSpeed, Math.min(TUNING.maxSpeed, walker.vel));
 }
 
 /** Finger moving UP the screen (negative dy) walks forward. */
 export function addSwipeWalk(dy: number) {
-  if (!Number.isFinite(dy) || walker.hold) return;
+  if (!Number.isFinite(dy) || walker.hold || dy === 0) return;
+  if (walker.vel !== 0 && Math.sign(-dy) !== Math.sign(walker.vel)) walker.vel = 0;
   walker.vel += -dy * TUNING.swipeImpulse;
   walker.vel = Math.max(-TUNING.maxSpeed, Math.min(TUNING.maxSpeed, walker.vel));
 }

@@ -26,6 +26,16 @@ test("scroll DOWN walks forward and scroll UP walks backward", () => {
   assert.ok(walker.s < 19.8, `backward expected, got ${walker.s}`);
 });
 
+test("scrolling up right after scrolling down reverses immediately (no coasting forward)", () => {
+  fresh(20);
+  for (let i = 0; i < 8; i++) addWheel(120);
+  run(0.3);
+  const s = walker.s;
+  addWheel(-100);
+  run(0.3);
+  assert.ok(walker.s < s, `expected to move back from ${s}, got ${walker.s}`);
+});
+
 test("swipe UP on a touchscreen walks forward, swipe DOWN walks back", () => {
   fresh(20);
   addSwipeWalk(-40);
