@@ -11,6 +11,7 @@ import { Lighting } from "./scene/Lighting";
 import { Stores } from "./sections/Stores";
 import { Controls } from "./navigation/Controls";
 import { HoverController } from "./interaction/HoverController";
+import { LcdPreview } from "./interaction/LcdPreview";
 import { HoverLight } from "./interaction/HoverLight";
 import { walker } from "./navigation/walker";
 import { registerTutorialCamera, tickTutorial } from "./navigation/tutorialLogic";
@@ -101,6 +102,7 @@ export default function MallCanvas() {
       <Controls />
       <Director />
       <HoverController />
+      <LcdPreview />
       <ReadySignal />
     </Canvas>
   );

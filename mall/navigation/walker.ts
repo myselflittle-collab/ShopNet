@@ -3,8 +3,10 @@ import { PATH_LENGTH, pointAt } from "@/lib/config/path";
 /**
  * The customer's body moves only along the S-shaped centreline (path position `s`).
  * The head turns independently: world yaw = path heading + headYaw.
- * headYaw is a continuous (unwrapped) angle, so full turns never snap at 180° or 360°,
- * and it is never pulled back automatically — the customer keeps looking where they chose.
+ * headYaw is a continuous (unwrapped) angle, so full turns never snap at 180° or 360°.
+ * While the customer walks without touching the look controls, the head eases back to look straight
+ * down the centreline (ahead or back, whichever way they are walking), so bends never point the
+ * view at a wall. Any look input pauses that for a moment.
  */
 export interface Pose {
   s: number;
@@ -30,6 +32,10 @@ export const TUNING = {
   /** radians per pixel of horizontal finger swipe */
   touchSensitivity: 0.0058,
   pitchLimit: (55 * Math.PI) / 180,
+  /** seconds without look input before walking re-centres the view on the path */
+  alignDelay: 0.6,
+  /** re-centring rate while walking, 1/s */
+  alignRate: 3.2,
 } as const;
 
 export const START_S = 2.0;
@@ -58,7 +64,16 @@ export const walker = {
   /** total leftward / rightward head rotation since the last reset (radians, for the tutorial) */
   turnedLeft: 0,
   turnedRight: 0,
+  /** seconds since the last look input (mouse, swipe, arrow keys) */
+  lookIdle: 0,
 };
+
+/** The unwrapped head yaw that looks straight along the path in the current facing direction. */
+export function alignedHeadYaw(headYaw = walker.headYaw, facing = walker.facing) {
+  const target = facing > 0 ? 0 : Math.PI;
+  const d = Math.atan2(Math.sin(headYaw - target), Math.cos(headYaw - target));
+  return headYaw - d;
+}
 
 export function getPose(): Pose {
   return { s: walker.s, headYaw: walker.headYaw, pitch: walker.pitch };
@@ -110,6 +125,14 @@ export function stepWalker(dt: number) {
   if (moved > 0) walker.walkedForward += moved;
   else walker.walkedBack -= moved;
   walker.s = clamped;
+
+  // walking without looking around: face straight down the centreline
+  walker.lookIdle += dt;
+  if (walker.vel !== 0 && walker.lookIdle > TUNING.alignDelay && !walker.hold) {
+    const k = 1 - Math.exp(-TUNING.alignRate * dt * Math.min(1, Math.abs(walker.vel) / 0.6));
+    walker.headYaw += (alignedHeadYaw() - walker.headYaw) * k;
+    walker.pitch += (0 - walker.pitch) * k;
+  }
 }
 
 /**
@@ -126,6 +149,7 @@ function updateFacing() {
 
 /** Positive = turn left. */
 function turn(rad: number) {
+  walker.lookIdle = 0;
   walker.headYaw += rad;
   if (rad > 0) walker.turnedLeft += rad;
   else walker.turnedRight -= rad;
@@ -157,6 +181,7 @@ export function addSwipeWalk(dy: number) {
 /** Mouse / trackpad movement: moving right turns right, moving up looks up. Raw, no smoothing. */
 export function addMouseLook(dx: number, dy: number) {
   turn(-dx * TUNING.mouseSensitivity);
+  if (dy) walker.lookIdle = 0;
   walker.pitch = clampPitch(walker.pitch - dy * TUNING.mouseSensitivity);
 }
 

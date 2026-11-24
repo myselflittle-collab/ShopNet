@@ -77,13 +77,11 @@ test("mouse moving right turns right; yaw is continuous through many full turns"
   assert.ok(Math.abs(walker.headYaw - before) < 0.01);
 });
 
-test("looking around never moves the body, and the head is not pulled back while walking", () => {
+test("looking around never moves the body", () => {
   fresh(30, 1.2);
-  walker.keys.add("KeyW");
-  run(2);
-  walker.keys.clear();
-  assert.ok(walker.s > 32);
-  assert.equal(walker.headYaw, 1.2);
+  addMouseLook(200, 40);
+  run(1);
+  assert.equal(walker.s, 30);
 });
 
 test("keyboard walking is a little faster than before (2 m/s)", () => {
@@ -152,4 +150,29 @@ test("the visibility model has walls everywhere along both sides", () => {
     return t > 0 && t < 1 && v >= 0 && v <= 1;
   });
   assert.ok(hit);
+});
+
+test("walking without looking around re-centres the view on the path (ahead or back)", () => {
+  fresh(30, 0.6);
+  walker.lookIdle = 10;
+  walker.pitch = 0.3;
+  for (let i = 0; i < 20; i++) addWheel(-60);
+  run(1.5);
+  assert.ok(Math.abs(walker.headYaw) < 0.05, `expected ~0, got ${walker.headYaw}`);
+  assert.ok(Math.abs(walker.pitch) < 0.05);
+  fresh(60, Math.PI + 0.5);
+  walker.lookIdle = 10;
+  for (let i = 0; i < 20; i++) addWheel(-60);
+  run(1.5);
+  assert.ok(Math.abs(walker.headYaw - Math.PI) < 0.05, `expected ~π, got ${walker.headYaw}`);
+});
+
+test("looking around while walking is respected (no pull until the mouse rests)", () => {
+  fresh(30, 0);
+  for (let i = 0; i < 20; i++) addWheel(-60);
+  for (let k = 0; k < 30; k++) {
+    addMouseLook(-4, 0);
+    stepWalker(1 / 60);
+  }
+  assert.ok(walker.headYaw > 0.25, `expected the look to stick, got ${walker.headYaw}`);
 });

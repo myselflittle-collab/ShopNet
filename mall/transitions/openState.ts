@@ -4,4 +4,6 @@ export const openState = {
   /** 0 = closed, 1 = fully open; the bay eases `value` toward `target` */
   target: 0,
   value: 0,
+  /** the way the customer was walking when the shop opened (+1 toward the exit, -1 toward the entrance) */
+  facing: 1,
 };

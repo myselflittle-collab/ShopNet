@@ -139,8 +139,9 @@ export function Hud() {
         </button>
       )}
 
-      <div className={"target-label " + (target && walking && entered ? "is-on" : "")} role="status" aria-live="polite">
-        {target && (
+      {/* the preview itself is drawn on the store's screen; this only announces it to screen readers */}
+      <div className="sr-only" role="status" aria-live="polite">
+        {target && walking && entered && (
           <>
             <b>
               {target.gender === "women" ? "Women's" : "Men's"} {target.label}

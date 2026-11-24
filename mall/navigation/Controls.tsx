@@ -10,7 +10,8 @@ import { lookBridge } from "@/lib/bridge/lookBridge";
 import { useTutorial } from "@/lib/bridge/tutorialStore";
 import { pickStore } from "@/mall/interaction/pick";
 import { openSection } from "@/mall/transitions/openSection";
-import { addMouseLook, addSwipeLook, addSwipeWalk, addWheel, stepWalker, walker } from "./walker";
+import { addMouseLook, addSwipeLook, addSwipeWalk, addWheel, setPose, stepWalker, walker } from "./walker";
+import { SECTION_BY_ID, viewingPose } from "@/lib/config/sections";
 import { attemptStopFreeLook } from "./tutorialLogic";
 import { videoStats } from "@/mall/video/videoManager";
 
@@ -79,6 +80,10 @@ export function Controls() {
         look: (dx: number, dy: number) => addMouseLook(dx, dy),
         wheel: (dy: number) => addWheel(dy),
         stopFreeLook,
+        face: (id: string) => {
+          const sec = SECTION_BY_ID[id];
+          if (sec) setPose(viewingPose(sec));
+        },
         tutorial: useTutorial,
         store: useMallStore,
         videoStats,

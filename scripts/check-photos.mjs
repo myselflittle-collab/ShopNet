@@ -1,8 +1,8 @@
 // Checks that every product photo URL loads. Run on a machine with normal internet access: npm run check:photos
 import { readFileSync } from "node:fs";
 
-const src = readFileSync(new URL("../lib/catalog/photos.ts", import.meta.url), "utf8");
-const ids = [...new Set([...src.matchAll(/id: "(photo-[\w-]+)"/g)].map((m) => m[1]))];
+const src = ["photos.ts", "collections.ts"].map((f) => readFileSync(new URL(`../lib/catalog/${f}`, import.meta.url), "utf8")).join("\n");
+const ids = [...new Set([...src.matchAll(/"(photo-\d+-[0-9a-f]+)"/g)].map((m) => m[1]))];
 let bad = 0;
 for (const id of ids) {
   const url = `https://images.unsplash.com/${id}?auto=format&fit=crop&w=400&h=500&q=60`;

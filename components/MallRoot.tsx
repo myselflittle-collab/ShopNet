@@ -7,7 +7,6 @@ import { useMallStore } from "@/lib/bridge/mallStore";
 import { transitionOrigin } from "@/lib/bridge/transitionBridge";
 import { sectionByRoute } from "@/lib/config/sections";
 import { enterFromDeepLink, returnToMall } from "@/mall/transitions/openSection";
-import { FloatingPreview } from "@/shop/preview/FloatingPreview";
 import { Hud } from "./Hud";
 
 const MallCanvas = dynamic(() => import("@/mall/MallCanvas"), { ssr: false });
@@ -60,7 +59,6 @@ export function MallRoot() {
       <div className={`mall-stage ${shopVisible ? "is-dimmed" : ""}`} aria-hidden={shopVisible}>
         <MallCanvas />
       </div>
-      <FloatingPreview />
       <Hud />
       {veil && (
         <div
